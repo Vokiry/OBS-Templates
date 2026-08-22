@@ -1,10 +1,44 @@
 # SYSTEM — OBS broadcast templates
 
 TUI-inspired визуальная система для стрима: эфир как интерфейс технической
-системы, который меняет состояние (starting → intro → main → chatting → brb →
-ending). Спокойный тёмный UI, моноширинная типографика, реакция на события.
+системы, который меняет состояние (starting → main → chatting → brb → ending).
+Спокойный тёмный UI, моноширинная типографика, живые алерты и музыкальный
+плеер. Работает локально, без внешних сервисов.
 
-Полная концепция и дизайн-принципы: [Design and branding.md](Design%20and%20branding.md).
+Это руководство — путь от клонирования репозитория до полностью собранного
+эфира в OBS. Внутренние документы (дизайн-концепция, исследования, план
+разработки) лежат в [`docs/`](docs/).
+
+## Возможности
+
+- 6 готовых сцен: starting, main, chatting, focus, break, ending
+- Прозрачные оверлеи-компоненты с позиционированием через URL (`?pos=`)
+- Движок алертов: FIFO-очередь, ASCII-анимация (spinner, печать заголовка,
+  прогресс-бар), авто-скрытие
+- Мост событий: Twitch (subs/raids/cheers) + DonationAlerts — локальный демон,
+  без публичного URL и чужих виджетов
+- Обратный отсчёт, live feed, чат-панель, индикатор состояния эфира
+
+## Требования
+
+- OBS Studio 28+ (Browser Source)
+- Python 3.11+ — только для моста событий и локального превью-сервера
+- Интернет — только один раз, для OAuth-токенов Twitch/DonationAlerts
+
+## Быстрый старт
+
+```bash
+git clone https://github.com/Vokiry/OBS-Templates.git
+cd OBS-Templates
+python3 -m http.server 8000
+```
+
+- Тест-стенд со всеми компонентами в живом loop:
+  http://localhost:8000/src/preview/
+- Сцены: http://localhost:8000/src/scenes/main.html (навигация в шапке)
+
+Страницы работают и напрямую через `file://` — пути относительные, шрифты
+в комплекте.
 
 ## Структура проекта
 
@@ -12,65 +46,25 @@ ending). Спокойный тёмный UI, моноширинная типог
 obs-templates/
 ├── src/
 │   ├── tokens/          # design tokens (цвет, типографика, геометрия, motion)
-│   │   └── tokens.css
-│   ├── base/            # базовые стили
-│   │   ├── fonts.css    # @font-face для локальных шрифтов
-│   │   ├── reset.css    # сброс + .stage 1920×1080
-│   │   ├── overlay.css  # прозрачный холст оверлеев 1920×1080 + якоря .overlay--*
-│   │   └── typography.css
+│   ├── base/            # базовые стили: fonts / reset / overlay / typography
 │   ├── components/      # переиспользуемые компоненты (css + js)
-│   ├── overlays/        # прозрачные browser source для OBS (по одному на компонент)
-│   ├── scenes/          # превью-чертежи сцен (полная композиция 1920×1080)
-│   ├── preview/         # тест-стенд токенов и компонентов
-│   └── fonts/           # локальные woff2 (Space Grotesk, IBM Plex Mono)
-├── Design and branding.md
-└── Design plan.md
+│   ├── overlays/        # прозрачные browser source для OBS
+│   ├── scenes/          # превью-чертежи сцен 1920×1080
+│   ├── preview/         # тест-стенд
+│   └── fonts/           # локальные woff2
+├── bridge/              # мост событий (python)
+└── docs/                # внутренняя документация
 ```
 
-## Быстрый старт
-
-```bash
-cd obs-templates
-python3 -m http.server 8000
-```
-
-- Тест-стенд: http://localhost:8000/src/preview/ (живой: алерты, countdown,
-  прогресс трека, смена состояний — всё крутится в loop)
-- Сцены: http://localhost:8000/src/scenes/main.html (навигация в шапке)
-
-Открыть можно и напрямую через `file://` — все пути относительные, шрифты
-локальные, интернет не нужен.
-
-## Дизайн-токены
-
-Все значения в `src/tokens/tokens.css`. Меняются только там.
-
-| Роль | Значение | Назначение |
-|---|---|---|
-| `--color-base` | `#0B0F14` | фон сцены |
-| `--color-surface` | `#151C24` | панели |
-| `--color-surface-raised` | `#1B242E` | приподнятые элементы |
-| `--color-accent` | `#63E6BE` | активные состояния, прогресс |
-| `--color-warning` | `#E9B13C` | starting / brb |
-| `--color-danger` | `#E5484D` | ошибки |
-| `--font-display` | Space Grotesk | заголовки, бренд (без кириллицы!) |
-| `--font-interface` | IBM Plex Mono | данные, статусы, UI |
-
-Геометрия: радиус панелей 8px, границы 1px, safe area 32px, шкала отступов
-4–48px. Motion: fast 180ms, normal 280ms, scene 500ms.
-
-Внимание: **Space Grotesk не содержит кириллицу** — display-текст только
-латиницей, иначе выпадет на запасной шрифт.
-
-## Сцены (превью)
+## Сцены
 
 `src/scenes/*.html` — чертежи полной композиции. Захват игры/камеры показан
 плейсхолдерами; в OBS они заменяются реальными источниками.
 
 | Файл | Композиция |
 |---|---|
-| `starting.html` | мерж starting+intro: развёрнутый плеер с лирикой слева, компактный countdown справа-сверху, справа колонка chat + live feed |
-| `main.html` | игра на весь экран, справа колонка: плеер+live feed, чат, камера снизу |
+| `starting.html` | развёрнутый плеер с лирикой слева, компактный countdown справа-сверху, справа колонка chat + live feed |
+| `main.html` | игра на весь экран, справа колонка: плеер + live feed, чат, камера снизу |
 | `chatting.html` | камера (vtube) на весь экран без фона, слева плеер+фид, справа чат |
 | `focus.html` | игра почти на весь экран, маленькая камера, минимум UI |
 | `break.html` | PAUSED / BRB в центре с компактным плеером, по сторонам чат и live feed |
@@ -78,21 +72,22 @@ python3 -m http.server 8000
 
 ## Оверлеи для OBS
 
-Каждый файл — самостоятельный прозрачный browser source размером 1920×1080.
-Компонент позиционируется URL-параметром `?pos=`, а не перемещением источника.
+Каждый файл из `src/overlays/` — самостоятельный прозрачный browser source
+1920×1080. Компонент позиционируется параметром `?pos=`, а не перемещением
+источника.
 
 | Файл | Параметры | Описание |
 |---|---|---|
-| `background.html` | — | фон `.bg` + HUD-уголки (нижний слой) |
+| `background.html` | — | фон + HUD-уголки (нижний слой) |
 | `scene-indicator.html` | `?state=` | индикатор состояния: `offline`, `starting`, `intro`, `main`, `chatting`, `focus`, `brb`, `ending` |
-| `now-playing.html` | `?variant=compact\|expanded`, `expanded` центрируется сам | виджет трека |
+| `now-playing.html` | `?variant=compact\|expanded` | виджет трека; expanded центрируется сам |
 | `activity-feed.html` | — | лента донатов/сабов/рейдов |
 | `chat.html` | — | стилизованный чат |
-| `countdown.html` | `?minutes=10` | обратный отсчёт (тикает клиентски) |
-| `activity-pulse.html` | — | индикатор активности |
-| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=`, `?ws=` | движок алертов: FIFO-очередь, ASCII-анимация (spinner + печать заголовка + прогресс-бар), стек до `max` штук; старые сдвигаются вниз при появлении новых. Авто-подключение к мосту `ws://127.0.0.1:8787/events` (`?ws=off` выключить, `?ws=<url>` другой адрес) |
+| `countdown.html` | `?minutes=10` | обратный отсчёт |
+| `activity-pulse.html` | — | пульс активности |
+| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=`, `?ws=` | движок алертов; авто-подключение к мосту (`ws://127.0.0.1:8787/events`) |
 
-Общие параметры для всех, кроме `background.html`:
+Позиционирование (для всех, кроме `background.html`):
 
 ```
 ?pos=top-left | top-center | top-right | bottom-left | bottom-center | bottom-right | center
@@ -108,107 +103,117 @@ src/overlays/countdown.html?minutes=15&pos=center
 
 ## Настройка в OBS
 
-1. **Browser Source** → включить *Local file* → указать полный путь к
-   `src/overlays/<компонент>.html`. Либо через URL локального сервера
-   (`http://localhost:8000/src/overlays/...`) — тогда правки подхватываются по Refresh.
-2. **Ширина/высота источника: 1920 × 1080** — холст страницы фиксированный,
-   источник просто масштабируется. Не ставить 800×600 по умолчанию.
-3. Custom CSS можно оставить дефолтным — прозрачность фона уже встроена в
-   `base/overlay.css`.
+1. **Sources → + → Browser**:
+   - включить **Local file**, указать полный путь к
+     `<репозиторий>/src/overlays/<компонент>.html`;
+   - либо выключить Local file и указать URL локального сервера
+     (`http://localhost:8000/src/overlays/...`) — тогда правки подхватываются
+     по Refresh.
+2. **Ширина/высота источника: 1920 × 1080.** Холст страницы фиксированный,
+   источник масштабируется целиком. Не оставляй дефолтные 800×600.
+3. Custom CSS оставь по умолчанию — прозрачность уже встроена.
 4. Порядок слоёв снизу вверх:
    `background → game capture / vtube → camera → chat → activity-feed → now-playing → scene-indicator → activity-pulse → alerts`
-5. После правок файлов — Refresh источника (ПКМ по источнику → Refresh).
+5. После правок файлов — Refresh источника (ПКМ → Refresh).
 
 ### Сборка сцен
 
 | Сцена OBS | Источники |
 |---|---|
-| Main | game capture (весь экран), chat, activity-feed, now-playing(compact), camera, scene-indicator(`?state=main`), pulse |
-| Chatting | background (за vtube), vtube-модель (весь экран), chat, activity-feed, now-playing(compact), scene-indicator(`?state=chatting`), pulse |
-| Focus | game capture, маленькая камера, scene-indicator(`?state=focus`) |
 | Starting soon / Intro | background, now-playing(`?variant=expanded&pos=center-left`), countdown(`?minutes=`), chat, activity-feed, scene-indicator(`?state=starting` или `intro`), pulse |
+| Main | game capture (весь экран), chat, activity-feed, now-playing(compact), camera, scene-indicator(`?state=main`), pulse |
+| Chatting | background, vtube-модель (весь экран), chat, activity-feed, now-playing(compact), scene-indicator(`?state=chatting`), pulse |
+| Focus | game capture, маленькая камера, scene-indicator(`?state=focus`) |
 | Break | background, chat, activity-feed, now-playing(compact, центр), scene-indicator(`?state=brb`), pulse |
-| Ending | background, ending-card*, scene-indicator(`?state=ending`) |
+| Ending | background, ending-card\*, scene-indicator(`?state=ending`) |
 
-\* ending-card пока существует только в превью сцены — при необходимости
-вынесется в отдельный оверлей.
+\* ending-card пока существует только в превью сцены.
 
-## Разработка
+## Мост событий (bridge)
 
-**Добавить компонент:** css-файл в `src/components/`, классы с префиксом имени
-(`.my-widget__part`), только переменные из `tokens.css`. При необходимости js
-рядом (`countdown.js` как образец).
-
-**Добавить сцену-превью:** `src/scenes/<name>.html` + `<name>.css`; подключить
-`fonts/tokens/reset/typography/scenes.css` + нужные компоненты; раскладка через
-утилиты `.ui--tl/tr/bl/br/tc/center/stack`.
-
-**Добавить оверлей:** скопировать каркас любого файла из `src/overlays/`
-(`overlay.css` + `overlay.js` дают холст 1920×1080 и якорение `?pos=`).
-
-Проверка разметки (баланс тегов):
-
-```bash
-python3 - <<'EOF'
-from html.parser import HTMLParser
-import glob
-class P(HTMLParser):
-    def __init__(self): super().__init__(); self.stack=[]
-    def handle_starttag(self,t,a):
-        if t not in ('meta','link','br','img'): self.stack.append(t)
-    def handle_endtag(self,t):
-        assert self.stack and self.stack[-1]==t, f'mismatch {t}'
-for f in glob.glob('src/**/*.html', recursive=True):
-    p=P(); p.feed(open(f).read()); assert not p.stack, f
-print('all ok')
-EOF
-```
-
-## Шрифты
-
-Локальные woff2 лежат в `src/fonts/`, подключаются через
-`src/base/fonts.css` (`local('...')` сначала, затем url). На машине с
-установленным `ttf-ibm-plex` системный IBM Plex Mono используется автоматически;
-bundled-копии гарантируют одинаковый рендер на любой машине и в OBS без сети.
-
-## Статус / roadmap
-
-- [x] Этап 1 — концепция: токены, палитра, типографика, состояния
-- [x] Этап 2 — статический прототип (тест-стенд)
-- [x] Этап 3 — базовые сцены + сплит на оверлеи для OBS
-- [x] Сцены Starting soon и Focus
-- [x] Движок алертов в оверлее (очередь, анимации, demo-режим)
-- [x] Каркас моста: WebSocket-сервер + twitch/donationalerts адаптеры
-- [ ] DonateX-адаптер (сверить SignalR эндпоинты)
-- [ ] Переходы между режимами, динамические фоны, данные плеера
-- [ ] Этап 5 — автоматизация: OBS WebSocket, переключение сцен, события Twitch
-- [ ] Этап 6 — визуальный тест на реальном эфире
-
-## Мост алертов (bridge)
-
-Локальный демон `bridge/`: собирает события из адаптеров и раздаёт их в
-оверлеи по WebSocket (`ws://127.0.0.1:8787/events`).
+Локальный демон `bridge/`: собирает события Twitch и DonationAlerts,
+нормализует и раздаёт их в оверлей алертов по WebSocket
+(`ws://127.0.0.1:8787/events`). Без публичного URL, без чужих виджетов.
 
 | Адаптер | Источник | События | Статус |
 |---|---|---|---|
-| twitch | Twitch EventSub WebSocket (twitchAPI) | sub / resub / gift / cheer / raid, follow — опционально | готов |
+| twitch | Twitch EventSub WebSocket | sub / resub / gift / cheer / raid (+follow опционально) | готов |
 | donationalerts | Centrifugo WS, канал `$alerts:donation` | donate | готов |
-| donatex | SignalR + API-ключ из профиля | donate | заглушка (сверить эндпоинты api-docs) |
+| donatex | SignalR + API-ключ | donate | в разработке |
 
-### Установка и запуск
+### Установка
 
 ```bash
 cd bridge
 python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 cp config.example.toml config.toml
+```
+
+### Настройка Twitch
+
+1. Зарегистрируй приложение на https://dev.twitch.tv/console/apps/create:
+   - OAuth redirect URLs: `http://localhost:3000` (twitchAPI использует его);
+   - Category: Chat Bot.
+2. Скопируй **Client ID** и создай **Client Secret**.
+3. В `config.toml`:
+
+   ```toml
+   [twitch]
+   enabled = true
+   client_id = "..."
+   client_secret = "..."
+   include_follows = false
+   ```
+
+4. При первом запуске откроется страница Twitch для авторизации — подтверди.
+   Токен сохранится локально и будет обновляться автоматически.
+
+Скоупы запрашиваются сами: `bits:read` (cheer) и, если `include_follows`,
+`moderator:read:followers`.
+
+### Настройка DonationAlerts
+
+1. Создай приложение на https://www.donationalerts.com/application/clients
+   (redirect: `http://localhost`).
+2. Получи access token со scope `oauth-donation-subscribe`
+   (https://www.donationalerts.com/apidoc).
+3. В `config.toml`:
+
+   ```toml
+   [donationalerts]
+   enabled = true
+   access_token = "..."
+   ```
+
+### Запуск
+
+```bash
 ./.venv/bin/python alerts_bridge.py
 ```
 
-В `config.toml` включи нужные адаптеры (`enabled = true`) и заполни ключи.
-Первый запуск с `[twitch]` откроет OAuth-страницу Twitch (client_id/secret из
-dev-приложения) и сохранит токен локально. Для DonationAlerts нужен access
-token со scope `oauth-donation-subscribe`.
+Логи покажут подключение адаптеров и адрес WebSocket. Оверлей `alerts.html`
+подключается автоматически при старте; без моста он молчит и переподключается.
+
+### Автозапуск (systemd user unit)
+
+```ini
+~/.config/systemd/user/system-bridge.service
+[Unit]
+Description=SYSTEM alerts bridge
+
+[Service]
+WorkingDirectory=%h/OBS-Templates/bridge
+ExecStart=%h/OBS-Templates/bridge/.venv/bin/python alerts_bridge.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user enable --now system-bridge.service
+```
 
 ### Проверка без внешних сервисов
 
@@ -218,54 +223,53 @@ curl -X POST http://127.0.0.1:8787/notify \
   -d '{"kind": "raid", "user": "tester · 42 viewers"}'
 ```
 
-Оверлей `alerts.html` подключается к мосту автоматически при старте; без
-моста просто молчит и переподключается. `GET /health` показывает состояние.
+Или прямо в браузере: `alerts.html?demo=loop` гоняет все типы событий.
 
-## Исследование: существующие решения (Этапы 4–5)
+## Кастомизация
 
-Перед написанием внешних интеграций проверено, что уже есть готового.
+Все визуальные константы — в `src/tokens/tokens.css`. Меняются только там.
 
-### Плеер (MPRIS → оверлей)
-
-| Решение | Что это | Вердикт |
+| Роль | Значение | Назначение |
 |---|---|---|
-| [playerctl](https://github.com/altdesktop/playerctl) + `playerctld` | стандартный CLI/демон MPRIS: `playerctl metadata --format`, `playerctl position` | **база для нашего моста**: python-демон читает metadata+position, пишет JSON/раздаёт WebSocket |
-| [albilu/obs-player-overlay](https://github.com/albilu/obs-player-overlay) | python-скрипт внутри OBS: опрос через Playerctl GI → player.json → встроенный HTTP-сервер с html | близок к нашей задаче, но нам нужен свой дизайн — взять подход как референс |
-| [OBS Tuna](https://obsproject.com/forum/resources/tuna.843/) | плагин OBS, пишет метаданные трека в файл | вариант «без своего кода», но формат файла чужой и Linux-поддержка игроков ограничена |
-| rsp4jack/smtcinfo.py | OBS-скрипт SMTC+MPRIS с обложкой и таймлайном | референс получения обложки/позиции |
+| `--color-base` | `#0B0F14` | фон сцены |
+| `--color-surface` | `#151C24` | панели |
+| `--color-surface-raised` | `#1B242E` | приподнятые элементы |
+| `--color-accent` | `#63E6BE` | активные состояния, прогресс |
+| `--color-warning` | `#E9B13C` | starting / brb |
+| `--color-danger` | `#E5484D` | ошибки |
 
-Рекомендация: свой тонкий мост `playerctl → JSON/WebSocket → наши оверлеи`.
-Дизайн у нас свой, объём кода небольшой; LRC-синхротекст всё равно ни одно
-готовое решение не даёт из коробки.
+Геометрия: радиус панелей 8px, границы 1px, safe area 32px. Motion: fast
+180ms, normal 280ms, scene 500ms.
 
-### Автоматизация сцен
+Внимание: **Space Grotesk не содержит кириллицу** — display-текст только
+латиницей.
 
-| Решение | Что это | Вердикт |
-|---|---|---|
-| [obs-websocket v5](https://github.com/obsproject/obs-websocket) | встроен в OBS 28+ (порт 4455): сцены, источники, mute и т.д. | **основа этапа 5** |
-| [obsws-python](https://pypi.org/project/obsws-python) / [simpleobsws](https://github.com/IRLToolkit/simpleobsws) / [obs-websocket-js](https://github.com/obs-websocket-js) | клиентские библиотеки | python — obsws-python; js пригодится в браузерных оверлеях |
-| Advanced Scene Switcher | плагин OBS: макросы и условные переключения без внешнего кода | для авто-BRB по бездействию и подобных правил |
-| Streamer.bot | event-driven автоматизация Twitch→OBS | тяжеловат для наших нужд, но полезен как источник идей триггеров |
+Шрифты лежат в `src/fonts/` и подключаются локально (`src/base/fonts.css`);
+если в системе установлен IBM Plex Mono, используется системный. Интернет в
+OBS не нужен.
 
-Рекомендация: obs-websocket + obsws-python для контроллера состояний;
-Advanced Scene Switcher — точечно, там где не хочется писать код.
+## Устранение неполадок
 
-### Алерты (Twitch события)
+| Симптом | Причина / решение |
+|---|---|
+| Browser source чёрный или пустой | проверь галочку Local file и полный путь; размер источника должен быть 1920×1080; сделай Refresh источника |
+| Шрифт выглядит не так | шрифты бандлятся локально; убедись что не переименовал `src/fonts/`; при кастомных токенах проверь `--font-*` |
+| Алерты не приходят от Twitch | `GET http://127.0.0.1:8787/health` — статус адаптеров; проверь логи моста; токен мог протухнуть — удали сохранённый токен и перезапусти |
+| Оверлей «не видит» мост | мост запущен? порт 8787 свободен? другой адрес задаётся `?ws=<url>`, отключение — `?ws=off` |
+| Изменил css, в OBS ничего не поменялось | Refresh источника; при Local file OBS может кэшировать — Refresh обязателен |
 
-| Решение | Что это | Вердикт |
-|---|---|---|
-| Twitch EventSub (WebSocket transport) | официальные события: subs, raids, cheers, follows; PubSub отключён 14.04.2025 | **наш путь**: `wss://eventsub.wss.twitch.tv/ws`, до ~10 подписок — достаточно |
-| [twitchAPI](https://pytwitchapi.dev) (Python) | готовые EventSub-клиенты (webhook/websocket) | использовать в мосте вместо сырого протокола |
-| [greys-tools/twitch-overlay](https://github.com/greys-tools/twitch-overlay) | self-hosted alert box с очередью (Node, SSE backend→overlay) | хорошая референс-реализация очереди и транспорта, дизайн чужой |
-| Streamer.bot | event-driven автоматизация Twitch→OBS | Linux только через экспериментальный Wine — не наш путь |
-| DonationAlerts Centrifugo WS | **прямой API донатов**: `wss://centrifugo.donationalerts.com/connection/websocket`, OAuth scope `oauth-donation-subscribe`; есть Node-библиотека `@donation-alerts/events` и Python-гайды | виджет не нужен — забираем данные напрямую в нашу систему |
-| [DonateX API](https://donatex.gg/api-docs) | **публичные эндпоинты** с двумя формами доступа: секретный ключ стримера или OAuth 2.0; realtime через SignalR с API-ключом из профиля | второй адаптер донатов; доки — SPA, точные эндпоинты сверить при реализации моста |
-| Twitch Cheer (EventSub) | нативные донаты-биты: `channel.cheer`, scope `bits:read` | покрывает биты без внешних платформ |
+## Разработка
 
-Рекомендация: свой движок алертов (готов, см. roadmap) поверх трёх
-адаптеров моста — Twitch EventSub WebSocket (twitchAPI) для sub/raid/cheer,
-DonationAlerts Centrifugo и DonateX SignalR для сторонних донатов. Все три
-работают локально, без публичного URL и чужих виджетов.
+Кратко (детали и обоснования — в [`docs/`](docs/)):
+
+- **Компонент**: css в `src/components/`, префикс классов имени, значения
+  только из `tokens.css`; js рядом (`countdown.js` — образец).
+- **Сцена-превью**: `src/scenes/<name>.html` + `.css`; раскладка утилитами
+  `.ui--tl/tr/tc/center/stack`.
+- **Оверлей**: скопируй каркас любого файла из `src/overlays/` — `overlay.css`
+  + `overlay.js` дают холст 1920×1080 и якорение `?pos=`.
+- **Адаптер моста**: модуль в `bridge/adapters/` c async-функцией
+  `run(config, broadcast)`; нормализация через `adapters/base.normalize`.
 
 ## Лицензия
 
