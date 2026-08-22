@@ -1,0 +1,20 @@
+.break-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.break-status {
+  font-size: var(--text-3xl);
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--state-brb);
+}
+
+.break-message {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+}

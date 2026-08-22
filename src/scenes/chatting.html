@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — chatting</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/typography.css">
+  <link rel="stylesheet" href="scenes.css">
+  <link rel="stylesheet" href="../components/scene-indicator.css">
+  <link rel="stylesheet" href="../components/now-playing.css">
+  <link rel="stylesheet" href="../components/activity-feed.css">
+  <link rel="stylesheet" href="../components/chat.css">
+  <link rel="stylesheet" href="../components/activity-pulse.css">
+  <link rel="stylesheet" href="chatting.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="bg"></div>
+    <div class="camera"></div>
+
+    <div class="ui ui--tc ui--stack">
+      <span class="scene-indicator" data-state="chatting">
+        <span class="scene-indicator__dot"></span>
+        <span class="scene-indicator__value">LIVE / CHAT</span>
+      </span>
+      <span class="activity-pulse">
+        <span class="activity-pulse__dot"></span>
+        <span class="activity-pulse__line"></span>
+        online
+      </span>
+    </div>
+
+    <div class="chatting-side chatting-side--left">
+      <div class="now-playing">
+        <div class="now-playing__cover"></div>
+        <div class="now-playing__meta">
+          <span class="now-playing__title">Neon Terminal</span>
+          <span class="now-playing__artist">Vokiry</span>
+          <div class="now-playing__progress">
+            <div class="now-playing__progress-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="activity-feed">
+        <div class="activity-feed__header">
+          <span>live feed</span>
+          <span class="activity-feed__count">042</span>
+        </div>
+        <div class="activity-feed__list">
+          <div class="activity-feed__item">
+            <span class="activity-feed__tag">DONATE</span>
+            <span class="activity-feed__text">username — 5.00</span>
+          </div>
+          <div class="activity-feed__item">
+            <span class="activity-feed__tag">SUB</span>
+            <span class="activity-feed__text">username — tier 3</span>
+          </div>
+          <div class="activity-feed__item">
+            <span class="activity-feed__tag">RAID</span>
+            <span class="activity-feed__text">username — 21 viewers</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chatting-side chatting-side--right">
+      <div class="chat">
+        <div class="chat__header">chat</div>
+        <div class="chat__body">
+          <div class="chat__msg">
+            <span class="chat__user">alice</span>
+            <span class="chat__text">this is so cozy</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">bob</span>
+            <span class="chat__text">how's your day been?</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">carol</span>
+            <span class="chat__text">do you produce the tracks yourself?</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">dave</span>
+            <span class="chat__text">love this playlist</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

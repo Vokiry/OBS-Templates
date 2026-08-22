@@ -1,0 +1,58 @@
+.bg {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-background);
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 38%, rgba(99, 230, 190, 0.06), transparent 70%),
+    linear-gradient(rgba(232, 238, 242, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 238, 242, 0.03) 1px, transparent 1px),
+    var(--color-base);
+  background-size: auto, 64px 64px, 64px 64px, auto;
+}
+
+.bg-label {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-content);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 180px;
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--color-text);
+  opacity: 0.03;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-content);
+  pointer-events: none;
+}
+
+.hud::before,
+.hud::after {
+  content: "";
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-border);
+}
+
+.hud::before {
+  top: var(--safe-area);
+  left: var(--safe-area);
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud::after {
+  bottom: var(--safe-area);
+  right: var(--safe-area);
+  border-left: none;
+  border-top: none;
+}

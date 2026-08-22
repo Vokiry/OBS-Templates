@@ -1,0 +1,77 @@
+:root {
+  /* Color — роли цветов */
+  --color-base: #0B0F14;
+  --color-surface: #151C24;
+  --color-surface-raised: #1B242E;
+  --color-accent: #63E6BE;
+  --color-accent-dim: rgba(99, 230, 190, 0.35);
+  --color-text: #E8EEF2;
+  --color-muted: #7E8B96;
+  --color-warning: #E9B13C;
+  --color-danger: #E5484D;
+  --color-border: rgba(232, 238, 242, 0.35);
+  --color-border-faint: rgba(232, 238, 242, 0.12);
+  --color-overlay: rgba(11, 15, 20, 0.72);
+
+  /* Typography */
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-interface: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 26px;
+  --text-2xl: 36px;
+  --text-3xl: 52px;
+  --text-hero: 84px;
+
+  --text-weight-normal: 400;
+  --text-weight-medium: 500;
+  --text-weight-semibold: 600;
+  --text-weight-bold: 700;
+
+  --letter-spacing-mono: 0.08em;
+  --letter-spacing-display: -0.02em;
+
+  /* Geometry */
+  --radius-panel: 8px;
+  --radius-small: 4px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --safe-area: 32px;
+
+  /* Motion */
+  --anim-fast: 180ms;
+  --anim-normal: 280ms;
+  --anim-scene: 500ms;
+  --anim-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --alert-duration: 4200ms;
+  --pulse-speed: 2.4s;
+
+  /* States — семантика состояний эфира */
+  --state-offline: var(--color-muted);
+  --state-starting: var(--color-warning);
+  --state-intro: var(--color-accent);
+  --state-main: var(--color-accent);
+  --state-chatting: var(--color-accent);
+  --state-focus: var(--color-accent);
+  --state-brb: var(--color-warning);
+  --state-ending: var(--color-muted);
+
+  /* Layers */
+  --z-background: 0;
+  --z-content: 10;
+  --z-ui: 20;
+  --z-alert: 30;
+  --z-transition: 40;
+}

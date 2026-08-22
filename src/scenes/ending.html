@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — ending</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/typography.css">
+  <link rel="stylesheet" href="scenes.css">
+  <link rel="stylesheet" href="../components/background.css">
+  <link rel="stylesheet" href="../components/scene-indicator.css">
+  <link rel="stylesheet" href="../components/activity-pulse.css">
+  <link rel="stylesheet" href="ending.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="bg"></div>
+    <div class="bg-label">offline</div>
+    <div class="hud"></div>
+
+    <div class="ui ui--tl">
+      <span class="scene-indicator" data-state="ending">
+        <span class="scene-indicator__dot"></span>
+        <span class="scene-indicator__value">ENDING</span>
+      </span>
+    </div>
+
+    <div class="ui ui--tr">
+      <span class="activity-pulse">
+        <span class="activity-pulse__dot"></span>
+        <span class="activity-pulse__line"></span>
+        shutting down
+      </span>
+    </div>
+
+    <div class="ui ui--center">
+      <div class="ending-card">
+        <span class="ending-card__status">ending transmission</span>
+        <span class="ending-card__message">thanks for watching</span>
+        <div class="ending-card__next">
+          <span class="ending-card__label">next stream</span>
+          <span class="ending-card__time">fri 20:00</span>
+        </div>
+        <div class="ending-card__links">
+          <span>twitch.tv/channel</span>
+          <span>discord.gg/channel</span>
+        </div>
+        <span class="ending-card__offline">system offline</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

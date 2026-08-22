@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — now playing</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/overlay.css">
+  <link rel="stylesheet" href="../components/now-playing.css">
+</head>
+<body>
+  <div class="overlay">
+    <div class="now-playing" data-variant="compact">
+      <div class="now-playing__cover"></div>
+      <div class="now-playing__meta">
+        <span class="now-playing__title">Neon Terminal</span>
+        <span class="now-playing__artist">Vokiry</span>
+        <span class="now-playing__album">Protocol EP</span>
+        <div class="now-playing__row">
+          <span>00:47</span>
+          <span>03:48</span>
+        </div>
+        <div class="now-playing__progress">
+          <div class="now-playing__progress-bar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const variant = params.get('variant') || 'compact';
+    document.querySelector('.now-playing').dataset.variant = variant;
+    if (variant === 'expanded' && !params.get('pos')) {
+      document.querySelector('.overlay').classList.add('overlay--center');
+    }
+  </script>
+  <script src="overlay.js"></script>
+</body>
+</html>

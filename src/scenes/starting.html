@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — starting soon</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/typography.css">
+  <link rel="stylesheet" href="scenes.css">
+  <link rel="stylesheet" href="../components/background.css">
+  <link rel="stylesheet" href="../components/scene-indicator.css">
+  <link rel="stylesheet" href="../components/countdown.css">
+  <link rel="stylesheet" href="../components/activity-pulse.css">
+  <link rel="stylesheet" href="starting.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="bg"></div>
+    <div class="bg-label">standby</div>
+    <div class="hud"></div>
+
+    <div class="ui ui--tl">
+      <span class="scene-indicator" data-state="starting">
+        <span class="scene-indicator__dot"></span>
+        <span class="scene-indicator__value">STARTING SOON</span>
+      </span>
+    </div>
+
+    <div class="ui ui--tr">
+      <span class="activity-pulse">
+        <span class="activity-pulse__dot"></span>
+        <span class="activity-pulse__line"></span>
+        holding
+      </span>
+    </div>
+
+    <div class="ui ui--center">
+      <div class="starting-center">
+        <div class="logo">
+          <span class="logo__name">system</span>
+          <span class="logo__tag">broadcast interface v0.1</span>
+        </div>
+        <div class="countdown">
+          <span class="countdown__value">10:00</span>
+          <span class="countdown__label">starting soon</span>
+        </div>
+        <span class="starting-message">stream begins shortly — take a seat</span>
+      </div>
+    </div>
+  </div>
+  <script src="../components/countdown.js"></script>
+</body>
+</html>

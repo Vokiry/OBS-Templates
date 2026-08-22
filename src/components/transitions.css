@@ -1,0 +1,13 @@
+.scene-transition {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-transition);
+  background: var(--color-base);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--anim-scene) var(--anim-ease);
+}
+
+.scene-transition.is-active {
+  opacity: 1;
+}

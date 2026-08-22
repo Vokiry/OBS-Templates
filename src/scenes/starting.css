@@ -1,0 +1,45 @@
+.starting-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-8);
+  border: var(--border-width) solid var(--color-border-faint);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.logo__name {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.logo__name::before {
+  content: "● ";
+  color: var(--color-accent);
+}
+
+.logo__tag {
+  font-family: var(--font-interface);
+  font-size: var(--text-xs);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.starting-message {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+}

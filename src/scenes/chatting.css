@@ -1,0 +1,47 @@
+.camera {
+  inset: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  border: none;
+}
+
+.camera::after {
+  content: none;
+}
+
+.chatting-side {
+  position: absolute;
+  top: var(--safe-area);
+  bottom: var(--safe-area);
+  display: flex;
+}
+
+.chatting-side--left {
+  left: var(--safe-area);
+  width: 400px;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.chatting-side--right {
+  right: var(--safe-area);
+  width: 360px;
+}
+
+.chatting-side--left .now-playing {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.chatting-side--left .activity-feed {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.chatting-side .chat {
+  flex: 1;
+  width: 100%;
+  background: rgba(11, 15, 20, 0.55);
+}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — scene indicator</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/overlay.css">
+  <link rel="stylesheet" href="../components/scene-indicator.css">
+</head>
+<body>
+  <div class="overlay">
+    <span class="scene-indicator" data-state="main">
+      <span class="scene-indicator__dot"></span>
+      <span class="scene-indicator__value">LIVE / MAIN</span>
+    </span>
+  </div>
+  <script>
+    const STATES = {
+      offline: 'SYSTEM OFFLINE',
+      starting: 'STARTING SOON',
+      intro: 'INTRO / NOW PLAYING',
+      main: 'LIVE / MAIN',
+      chatting: 'LIVE / CHAT',
+      focus: 'LIVE / FOCUS',
+      brb: 'PAUSED / BRB',
+      ending: 'ENDING',
+    };
+    const state = new URLSearchParams(location.search).get('state') || 'main';
+    const el = document.querySelector('.scene-indicator');
+    el.dataset.state = state;
+    el.querySelector('.scene-indicator__value').textContent = STATES[state] || state;
+  </script>
+  <script src="overlay.js"></script>
+</body>
+</html>

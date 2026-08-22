@@ -1,0 +1,60 @@
+.intro-center {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-content);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: 0 var(--space-12);
+}
+
+.intro-center .now-playing {
+  width: 520px;
+  flex: 0 0 520px;
+}
+
+.intro-center .now-playing__cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--color-surface-raised), var(--color-base));
+}
+
+.intro-center .now-playing__cover::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  content: attr(data-label);
+  font-family: var(--font-interface);
+  font-size: var(--text-sm);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  opacity: 0.6;
+}
+
+.lyrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 440px;
+  max-width: 560px;
+  font-family: var(--font-interface);
+}
+
+.lyrics__line {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+  transition: color var(--anim-normal) var(--anim-ease);
+}
+
+.lyrics__line.is-active {
+  color: var(--color-text);
+}
+
+.lyrics__line.is-active::before {
+  content: "> ";
+  color: var(--color-accent);
+}

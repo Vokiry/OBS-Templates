@@ -1,0 +1,48 @@
+body {
+  background: transparent;
+}
+
+.overlay {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.overlay--top-left {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.overlay--top-center {
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.overlay--top-right {
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.overlay--bottom-left {
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.overlay--bottom-center {
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.overlay--bottom-right {
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.overlay--center {
+  align-items: center;
+  justify-content: center;
+}

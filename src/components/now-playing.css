@@ -1,0 +1,114 @@
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-overlay);
+  border: var(--border-width) solid var(--color-border-faint);
+  border-radius: var(--radius-panel);
+  font-family: var(--font-interface);
+  min-width: 380px;
+}
+
+.now-playing__cover {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  overflow: hidden;
+}
+
+.now-playing__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.now-playing__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.now-playing__title {
+  font-size: var(--text-md);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.now-playing__artist {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.now-playing__progress {
+  height: 2px;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-border-faint);
+  overflow: hidden;
+}
+
+.now-playing__progress-bar {
+  height: 100%;
+  width: 34%;
+  background: var(--color-accent);
+}
+
+.now-playing:not([data-variant="expanded"]) .now-playing__album,
+.now-playing:not([data-variant="expanded"]) .now-playing__row {
+  display: none;
+}
+
+.now-playing[data-variant="expanded"] {
+  align-items: stretch;
+  flex-direction: column;
+  min-width: 480px;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.now-playing[data-variant="expanded"] .now-playing__cover {
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%;
+  border-radius: var(--radius-panel);
+}
+
+.now-playing[data-variant="expanded"] .now-playing__cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.now-playing[data-variant="expanded"] .now-playing__title {
+  font-size: var(--text-xl);
+  font-weight: var(--text-weight-semibold);
+}
+
+.now-playing[data-variant="expanded"] .now-playing__artist {
+  font-size: var(--text-md);
+}
+
+.now-playing[data-variant="expanded"] .now-playing__album {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.now-playing[data-variant="expanded"] .now-playing__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
