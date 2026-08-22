@@ -60,16 +60,6 @@
   gap: var(--space-3);
 }
 
-.ui--bl {
-  bottom: var(--safe-area);
-  left: var(--safe-area);
-}
-
-.ui--br {
-  bottom: var(--safe-area);
-  right: var(--safe-area);
-}
-
 .ui--center {
   position: absolute;
   top: 50%;

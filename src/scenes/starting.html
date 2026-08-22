@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SYSTEM — starting soon</title>
+  <title>SYSTEM — starting</title>
   <link rel="stylesheet" href="../base/fonts.css">
   <link rel="stylesheet" href="../tokens/tokens.css">
   <link rel="stylesheet" href="../base/reset.css">
@@ -11,8 +11,11 @@
   <link rel="stylesheet" href="scenes.css">
   <link rel="stylesheet" href="../components/background.css">
   <link rel="stylesheet" href="../components/scene-indicator.css">
+  <link rel="stylesheet" href="../components/now-playing.css">
   <link rel="stylesheet" href="../components/countdown.css">
   <link rel="stylesheet" href="../components/activity-pulse.css">
+  <link rel="stylesheet" href="../components/activity-feed.css">
+  <link rel="stylesheet" href="../components/chat.css">
   <link rel="stylesheet" href="starting.css">
 </head>
 <body>
@@ -34,19 +37,67 @@
         <span class="activity-pulse__line"></span>
         holding
       </span>
+      <div class="countdown starting-countdown">
+        <span class="countdown__value">10:00</span>
+        <span class="countdown__label">start</span>
+      </div>
     </div>
 
-    <div class="ui ui--center">
-      <div class="starting-center">
-        <div class="logo">
-          <span class="logo__name">system</span>
-          <span class="logo__tag">broadcast interface v0.1</span>
+    <div class="starting-stage">
+      <div class="now-playing" data-variant="expanded">
+        <div class="now-playing__cover" data-label="cover"></div>
+        <div class="now-playing__meta">
+          <span class="now-playing__title">Neon Terminal</span>
+          <span class="now-playing__artist">Vokiry</span>
+          <span class="now-playing__album">Protocol EP</span>
+          <div class="now-playing__row">
+            <span>00:47</span>
+            <span>03:48</span>
+          </div>
+          <div class="now-playing__progress">
+            <div class="now-playing__progress-bar" style="width: 21%"></div>
+          </div>
         </div>
-        <div class="countdown">
-          <span class="countdown__value">10:00</span>
-          <span class="countdown__label">starting soon</span>
+      </div>
+
+      <div class="lyrics">
+        <div class="lyrics__line">synthetic morning light</div>
+        <div class="lyrics__line is-active">fading through the window</div>
+        <div class="lyrics__line">while the city hums below</div>
+        <div class="lyrics__line">waiting for a signal</div>
+      </div>
+    </div>
+
+    <div class="starting-side">
+      <div class="activity-feed">
+        <div class="activity-feed__header">
+          <span>live feed</span>
+          <span class="activity-feed__count">000</span>
         </div>
-        <span class="starting-message">stream begins shortly — take a seat</span>
+        <div class="activity-feed__list">
+          <div class="activity-feed__item">
+            <span class="activity-feed__tag">FOLLOW</span>
+            <span class="activity-feed__text">username connected</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat">
+        <div class="chat__header">chat</div>
+        <div class="chat__body">
+          <div class="chat__msg">
+            <span class="chat__user">alice</span>
+            <span class="chat__text">hi everyone!</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">bob</span>
+            <span class="chat__text">good morning stream</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">carol</span>
+            <span class="chat__text">what are we playing today?</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>

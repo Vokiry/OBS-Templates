@@ -14,6 +14,44 @@
   <div class="overlay">
     <div class="alerts"></div>
   </div>
+
+  <script src="../components/alerts.js"></script>
   <script src="overlay.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+
+    const queue = new AlertQueue(document.querySelector('.alerts'), {
+      holdMs: params.has('hold') ? parseInt(params.get('hold'), 10) : undefined,
+      maxVisible: params.has('max') ? parseInt(params.get('max'), 10) : undefined,
+    });
+
+    window.systemAlerts = (title, body) => queue.enqueue({ title, body });
+
+    const DEMO_EVENTS = [
+      { title: 'NEW SUB', body: 'username · tier 1' },
+      { title: 'RESUB', body: 'username · 12 months' },
+      { title: 'GIFT SUB', body: 'username × 5' },
+      { title: 'RAID', body: 'username · 42 viewers' },
+      { title: 'CHEER', body: 'username · 500' },
+      { title: 'DONATION', body: 'username · 5.00' },
+    ];
+
+    const mode = params.get('demo');
+
+    if (mode) {
+      if (mode === 'once') {
+        DEMO_EVENTS.forEach((event, index) => {
+          setTimeout(() => window.systemAlerts(event.title, event.body), index * 5200);
+        });
+      } else {
+        let index = 0;
+        setInterval(() => {
+          const event = DEMO_EVENTS[index % DEMO_EVENTS.length];
+          index += 1;
+          window.systemAlerts(event.title, event.body);
+        }, 5500);
+      }
+    }
+  </script>
 </body>
 </html>

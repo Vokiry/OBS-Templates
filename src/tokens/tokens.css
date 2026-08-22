@@ -12,6 +12,7 @@
   --color-border: rgba(232, 238, 242, 0.35);
   --color-border-faint: rgba(232, 238, 242, 0.12);
   --color-overlay: rgba(11, 15, 20, 0.72);
+  --color-overlay-soft: rgba(11, 15, 20, 0.55);
 
   /* Typography */
   --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;

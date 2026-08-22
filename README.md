@@ -34,7 +34,8 @@ cd obs-templates
 python3 -m http.server 8000
 ```
 
-- Тест-стенд: http://localhost:8000/src/preview/
+- Тест-стенд: http://localhost:8000/src/preview/ (живой: алерты, countdown,
+  прогресс трека, смена состояний — всё крутится в loop)
 - Сцены: http://localhost:8000/src/scenes/main.html (навигация в шапке)
 
 Открыть можно и напрямую через `file://` — все пути относительные, шрифты
@@ -68,12 +69,11 @@ python3 -m http.server 8000
 
 | Файл | Композиция |
 |---|---|
-| `starting.html` | логотип + живой countdown (`?minutes=N`) + статус STARTING SOON |
+| `starting.html` | мерж starting+intro: развёрнутый плеер с лирикой слева, компактный countdown справа-сверху, справа колонка chat + live feed |
 | `main.html` | игра на весь экран, справа колонка: плеер+live feed, чат, камера снизу |
 | `chatting.html` | камера (vtube) на весь экран без фона, слева плеер+фид, справа чат |
 | `focus.html` | игра почти на весь экран, маленькая камера, минимум UI |
-| `intro.html` | развёрнутый now-playing + синхротекст лирики |
-| `break.html` | PAUSED / BRB + сообщение + компактный плеер |
+| `break.html` | PAUSED / BRB в центре с компактным плеером, по сторонам чат и live feed |
 | `ending.html` | итоговая карточка, next stream, ссылки, SYSTEM OFFLINE |
 
 ## Оверлеи для OBS
@@ -90,7 +90,7 @@ python3 -m http.server 8000
 | `chat.html` | — | стилизованный чат |
 | `countdown.html` | `?minutes=10` | обратный отсчёт (тикает клиентски) |
 | `activity-pulse.html` | — | индикатор активности |
-| `alerts.html` | — | контейнер алертов (движок — этап динамики) |
+| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=` | движок алертов: FIFO-очередь, ASCII-анимация (spinner + печать заголовка + прогресс-бар), стек до `max` штук; старые сдвигаются вниз при появлении новых. Без моста работает в demo-режиме |
 
 Общие параметры для всех, кроме `background.html`:
 
@@ -123,12 +123,11 @@ src/overlays/countdown.html?minutes=15&pos=center
 
 | Сцена OBS | Источники |
 |---|---|
-| Starting soon | background, countdown(`?minutes=`), scene-indicator(`?state=starting`), pulse |
 | Main | game capture (весь экран), chat, activity-feed, now-playing(compact), camera, scene-indicator(`?state=main`), pulse |
 | Chatting | background (за vtube), vtube-модель (весь экран), chat, activity-feed, now-playing(compact), scene-indicator(`?state=chatting`), pulse |
 | Focus | game capture, маленькая камера, scene-indicator(`?state=focus`) |
-| Intro | background, now-playing(`?variant=expanded`, центр), scene-indicator(`?state=intro`) |
-| Break | background, now-playing(compact), scene-indicator(`?state=brb`), pulse |
+| Starting soon / Intro | background, now-playing(`?variant=expanded&pos=center-left`), countdown(`?minutes=`), chat, activity-feed, scene-indicator(`?state=starting` или `intro`), pulse |
+| Break | background, chat, activity-feed, now-playing(compact, центр), scene-indicator(`?state=brb`), pulse |
 | Ending | background, ending-card*, scene-indicator(`?state=ending`) |
 
 \* ending-card пока существует только в превью сцены — при необходимости
@@ -178,8 +177,9 @@ bundled-копии гарантируют одинаковый рендер на
 - [x] Этап 2 — статический прототип (тест-стенд)
 - [x] Этап 3 — базовые сцены + сплит на оверлеи для OBS
 - [x] Сцены Starting soon и Focus
-- [ ] Этап 4 — динамика: движок алертов (анимации, очередь), переходы между
-      режимами, динамические фоны, данные плеера
+- [x] Движок алертов в оверлее (очередь, анимации, demo-режим)
+- [ ] Мост алертов: Twitch EventSub + DonationAlerts → WebSocket → оверлей
+- [ ] Переходы между режимами, динамические фоны, данные плеера
 - [ ] Этап 5 — автоматизация: OBS WebSocket, переключение сцен, события Twitch
 - [ ] Этап 6 — визуальный тест на реальном эфире
 
@@ -218,12 +218,16 @@ Advanced Scene Switcher — точечно, там где не хочется п
 |---|---|---|
 | Twitch EventSub (WebSocket transport) | официальные события: subs, raids, cheers, follows; PubSub отключён 14.04.2025 | **наш путь**: `wss://eventsub.wss.twitch.tv/ws`, до ~10 подписок — достаточно |
 | [twitchAPI](https://pytwitchapi.dev) (Python) | готовые EventSub-клиенты (webhook/websocket) | использовать в мосте вместо сырого протокола |
-| [greys-tools/twitch-overlay](https://github.com/greys-tools/twitch-overlay) | self-hosted alert box с очередью | хорошая референс-реализация очереди, дизайн чужой |
-| Streamlabs / StreamElements | hosted alert box | кастомизация под наш TUI-стиль ограничена — не подходит |
+| [greys-tools/twitch-overlay](https://github.com/greys-tools/twitch-overlay) | self-hosted alert box с очередью (Node, SSE backend→overlay) | хорошая референс-реализация очереди и транспорта, дизайн чужой |
+| Streamer.bot | event-driven автоматизация Twitch→OBS | Linux только через экспериментальный Wine — не наш путь |
+| DonationAlerts Centrifugo WS | **прямой API донатов**: `wss://centrifugo.donationalerts.com/connection/websocket`, OAuth scope `oauth-donation-subscribe`; есть Node-библиотека `@donation-alerts/events` и Python-гайды | виджет не нужен — забираем данные напрямую в нашу систему |
+| [DonateX API](https://donatex.gg/api-docs) | **публичные эндпоинты** с двумя формами доступа: секретный ключ стримера или OAuth 2.0; realtime через SignalR с API-ключом из профиля | второй адаптер донатов; доки — SPA, точные эндпоинты сверить при реализации моста |
+| Twitch Cheer (EventSub) | нативные донаты-биты: `channel.cheer`, scope `bits:read` | покрывает биты без внешних платформ |
 
-Рекомендация: свой движок алертов (очередь + анимации уже спроектированы в
-наших компонентах) поверх EventSub WebSocket через twitchAPI. Донаты вне
-Twitch (если появятся) добавятся отдельными адаптерами позже.
+Рекомендация: свой движок алертов (готов, см. roadmap) поверх трёх
+адаптеров моста — Twitch EventSub WebSocket (twitchAPI) для sub/raid/cheer,
+DonationAlerts Centrifugo и DonateX SignalR для сторонних донатов. Все три
+работают локально, без публичного URL и чужих виджетов.
 
 ## Лицензия
 

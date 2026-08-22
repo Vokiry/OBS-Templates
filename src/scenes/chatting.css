@@ -43,5 +43,5 @@
 .chatting-side .chat {
   flex: 1;
   width: 100%;
-  background: rgba(11, 15, 20, 0.55);
+  background: var(--color-overlay-soft);
 }

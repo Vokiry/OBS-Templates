@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="../components/scene-indicator.css">
   <link rel="stylesheet" href="../components/now-playing.css">
   <link rel="stylesheet" href="../components/activity-pulse.css">
+  <link rel="stylesheet" href="../components/activity-feed.css">
+  <link rel="stylesheet" href="../components/chat.css">
   <link rel="stylesheet" href="break.css">
 </head>
 <body>
@@ -36,6 +38,26 @@
       </span>
     </div>
 
+    <div class="break-side break-side--left">
+      <div class="chat">
+        <div class="chat__header">chat</div>
+        <div class="chat__body">
+          <div class="chat__msg">
+            <span class="chat__user">alice</span>
+            <span class="chat__text">see you soon!</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">bob</span>
+            <span class="chat__text">this song is a banger</span>
+          </div>
+          <div class="chat__msg">
+            <span class="chat__user">carol</span>
+            <span class="chat__text">take your time</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="ui ui--center">
       <div class="break-center">
         <span class="break-status">paused / brb</span>
@@ -48,6 +70,25 @@
             <div class="now-playing__progress">
               <div class="now-playing__progress-bar"></div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="break-side break-side--right">
+      <div class="activity-feed">
+        <div class="activity-feed__header">
+          <span>live feed</span>
+          <span class="activity-feed__count">042</span>
+        </div>
+        <div class="activity-feed__list">
+          <div class="activity-feed__item">
+            <span class="activity-feed__tag">DONATE</span>
+            <span class="activity-feed__text">username — 5.00</span>
+          </div>
+          <div class="activity-feed__item">
+            <span class="activity-feed__tag">SUB</span>
+            <span class="activity-feed__text">username — tier 1</span>
           </div>
         </div>
       </div>

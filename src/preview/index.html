@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../components/alerts.css">
   <link rel="stylesheet" href="../components/countdown.css">
   <link rel="stylesheet" href="../components/activity-pulse.css">
+  <link rel="stylesheet" href="../components/alerts.css">
   <link rel="stylesheet" href="../components/activity-feed.css">
   <link rel="stylesheet" href="../components/chat.css">
   <link rel="stylesheet" href="../components/transitions.css">
@@ -29,12 +30,54 @@
         <a href="../scenes/main.html">main</a>
         <a href="../scenes/chatting.html">chatting</a>
         <a href="../scenes/focus.html">focus</a>
-        <a href="../scenes/intro.html">intro</a>
         <a href="../scenes/break.html">break</a>
         <a href="../scenes/ending.html">ending</a>
       </nav>
       <span class="mono text-sm text-muted">test bench / design tokens</span>
     </header>
+
+    <section>
+      <h2 class="preview__section-title">Live — simulation</h2>
+      <div class="live">
+        <span class="scene-indicator" id="live-indicator" data-state="starting">
+          <span class="scene-indicator__dot"></span>
+          <span class="scene-indicator__value">STARTING SOON</span>
+        </span>
+
+        <div class="alerts" id="live-alerts"></div>
+
+        <div class="chat" id="live-chat">
+          <div class="chat__header">chat</div>
+          <div class="chat__body"></div>
+        </div>
+
+        <div class="activity-feed" id="live-feed">
+          <div class="activity-feed__header">
+            <span>live feed</span>
+            <span class="activity-feed__count">000</span>
+          </div>
+          <div class="activity-feed__list"></div>
+        </div>
+
+        <div class="live__bottom">
+          <div class="countdown" id="live-countdown">
+            <span class="countdown__value">15:00</span>
+            <span class="countdown__label">starting soon</span>
+          </div>
+
+          <div class="now-playing" id="live-np">
+            <div class="now-playing__cover"></div>
+            <div class="now-playing__meta">
+              <span class="now-playing__title">Neon Terminal</span>
+              <span class="now-playing__artist">Vokiry</span>
+              <div class="now-playing__progress">
+                <div class="now-playing__progress-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section>
       <h2 class="preview__section-title">Color roles</h2>
@@ -162,13 +205,12 @@
           </div>
         </div>
         <span class="activity-pulse"><span class="activity-pulse__dot"></span><span class="activity-pulse__line"></span>online</span>
-        <div class="alert">
-          <span class="alert__title">NEW FOLLOWER</span>
-          <span class="alert__body">username connected</span>
-        </div>
+        <div class="alerts"></div>
       </div>
     </section>
 
   </div>
+  <script src="../components/alerts.js"></script>
+  <script src="preview.js"></script>
 </body>
 </html>

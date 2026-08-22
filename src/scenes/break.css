@@ -1,3 +1,32 @@
+.break-side {
+  position: absolute;
+  top: var(--safe-area);
+  bottom: var(--safe-area);
+  display: flex;
+}
+
+.break-side--left {
+  left: var(--safe-area);
+  width: 360px;
+}
+
+.break-side--right {
+  right: var(--safe-area);
+  width: 400px;
+}
+
+.break-side .chat {
+  flex: 1;
+  width: 100%;
+  background: var(--color-overlay-soft);
+}
+
+.break-side .activity-feed {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
 .break-center {
   display: flex;
   flex-direction: column;
