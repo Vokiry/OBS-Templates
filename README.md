@@ -1,3 +1,5 @@
+# IN ALPHA: FOR PREVIEW ONLY. WAIT UNTIL PUBLIC RELEASE
+---
 # SYSTEM — OBS broadcast templates
 
 TUI-inspired визуальная система для стрима: эфир как интерфейс технической
