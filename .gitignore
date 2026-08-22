@@ -2,3 +2,7 @@
 Thumbs.db
 *.swp
 __pycache__/
+bridge/config.toml
+bridge/.venv/
+bridge/*.token
+.twitch*

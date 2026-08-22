@@ -90,7 +90,7 @@ python3 -m http.server 8000
 | `chat.html` | — | стилизованный чат |
 | `countdown.html` | `?minutes=10` | обратный отсчёт (тикает клиентски) |
 | `activity-pulse.html` | — | индикатор активности |
-| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=` | движок алертов: FIFO-очередь, ASCII-анимация (spinner + печать заголовка + прогресс-бар), стек до `max` штук; старые сдвигаются вниз при появлении новых. Без моста работает в demo-режиме |
+| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=`, `?ws=` | движок алертов: FIFO-очередь, ASCII-анимация (spinner + печать заголовка + прогресс-бар), стек до `max` штук; старые сдвигаются вниз при появлении новых. Авто-подключение к мосту `ws://127.0.0.1:8787/events` (`?ws=off` выключить, `?ws=<url>` другой адрес) |
 
 Общие параметры для всех, кроме `background.html`:
 
@@ -178,10 +178,48 @@ bundled-копии гарантируют одинаковый рендер на
 - [x] Этап 3 — базовые сцены + сплит на оверлеи для OBS
 - [x] Сцены Starting soon и Focus
 - [x] Движок алертов в оверлее (очередь, анимации, demo-режим)
-- [ ] Мост алертов: Twitch EventSub + DonationAlerts → WebSocket → оверлей
+- [x] Каркас моста: WebSocket-сервер + twitch/donationalerts адаптеры
+- [ ] DonateX-адаптер (сверить SignalR эндпоинты)
 - [ ] Переходы между режимами, динамические фоны, данные плеера
 - [ ] Этап 5 — автоматизация: OBS WebSocket, переключение сцен, события Twitch
 - [ ] Этап 6 — визуальный тест на реальном эфире
+
+## Мост алертов (bridge)
+
+Локальный демон `bridge/`: собирает события из адаптеров и раздаёт их в
+оверлеи по WebSocket (`ws://127.0.0.1:8787/events`).
+
+| Адаптер | Источник | События | Статус |
+|---|---|---|---|
+| twitch | Twitch EventSub WebSocket (twitchAPI) | sub / resub / gift / cheer / raid, follow — опционально | готов |
+| donationalerts | Centrifugo WS, канал `$alerts:donation` | donate | готов |
+| donatex | SignalR + API-ключ из профиля | donate | заглушка (сверить эндпоинты api-docs) |
+
+### Установка и запуск
+
+```bash
+cd bridge
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+cp config.example.toml config.toml
+./.venv/bin/python alerts_bridge.py
+```
+
+В `config.toml` включи нужные адаптеры (`enabled = true`) и заполни ключи.
+Первый запуск с `[twitch]` откроет OAuth-страницу Twitch (client_id/secret из
+dev-приложения) и сохранит токен локально. Для DonationAlerts нужен access
+token со scope `oauth-donation-subscribe`.
+
+### Проверка без внешних сервисов
+
+```bash
+curl -X POST http://127.0.0.1:8787/notify \
+  -H 'Content-Type: application/json' \
+  -d '{"kind": "raid", "user": "tester · 42 viewers"}'
+```
+
+Оверлей `alerts.html` подключается к мосту автоматически при старте; без
+моста просто молчит и переподключается. `GET /health` показывает состояние.
 
 ## Исследование: существующие решения (Этапы 4–5)
 

@@ -1,0 +1,3 @@
+aiohttp>=3.9
+websockets>=12
+twitchAPI>=4.5,<6

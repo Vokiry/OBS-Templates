@@ -52,6 +52,34 @@
         }, 5500);
       }
     }
+
+    const wsParam = params.get('ws');
+    if (wsParam !== 'off') {
+      const wsUrl = wsParam || 'ws://127.0.0.1:8787/events';
+      let retryDelay = 1000;
+
+      const connect = () => {
+        const socket = new WebSocket(wsUrl);
+        socket.onopen = () => {
+          retryDelay = 1000;
+        };
+        socket.onmessage = (message) => {
+          try {
+            const data = JSON.parse(message.data);
+            if (data.type === 'alert' && data.title) {
+              window.systemAlerts(data.title, data.body || '');
+            }
+          } catch (error) {}
+        };
+        socket.onclose = () => {
+          setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 10000);
+        };
+        socket.onerror = () => socket.close();
+      };
+
+      connect();
+    }
   </script>
 </body>
 </html>

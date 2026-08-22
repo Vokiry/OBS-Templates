@@ -1,0 +1,17 @@
+[server]
+host = "127.0.0.1"
+port = 8787
+
+[twitch]
+enabled = false
+client_id = ""
+client_secret = ""
+include_follows = false
+
+[donationalerts]
+enabled = false
+access_token = ""
+
+[donatex]
+enabled = false
+api_key = ""
