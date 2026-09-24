@@ -25,6 +25,7 @@
       holdMs: params.has('hold') ? parseInt(params.get('hold'), 10) : undefined,
       maxVisible: params.has('max') ? parseInt(params.get('max'), 10) : undefined,
       sfx: params.get('sfx') !== 'off',
+      volume: params.has('vol') ? parseFloat(params.get('vol')) : undefined,
     });
 
     window.systemAlerts = (title, body) => queue.enqueue({ title, body });

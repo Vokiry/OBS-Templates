@@ -7,6 +7,17 @@ const BAR_EMPTY = '-';
 const EXIT_FALLBACK_MS = 600;
 const NEXT_DELAY_MS = 150;
 
+const DEFAULT_SOUNDS = {
+  donate: { file: '../sounds/donate.wav', volume: 0.8 },
+  sub: { file: '../sounds/sub.wav', volume: 0.7 },
+  resub: { file: '../sounds/sub.wav', volume: 0.7 },
+  gift: { file: '../sounds/sub.wav', volume: 0.7 },
+  raid: { file: '../sounds/raid.wav', volume: 0.9 },
+  cheer: { file: '../sounds/cheer.wav', volume: 0.6 },
+  follow: { file: '../sounds/follow.wav', volume: 0.5 },
+  default: { file: '../sounds/default.wav', volume: 0.7 },
+};
+
 function readHoldMs() {
   const raw = getComputedStyle(document.documentElement).getPropertyValue('--alert-duration');
   const parsed = parseFloat(raw);
@@ -18,33 +29,52 @@ class AlertQueue {
     this.container = container;
     this.maxVisible = opts.maxVisible ?? 3;
     this.holdMs = opts.holdMs ?? readHoldMs();
-    this.sfx = opts.sfx ?? false;
+    this.sfx = opts.sfx ?? true;
+    this.masterVolume = typeof opts.volume === 'number' ? Math.max(0, Math.min(1, opts.volume)) : 0.7;
+    this.soundMap = { ...DEFAULT_SOUNDS, ...(opts.sounds || {}) };
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.queue = [];
     this.activeCount = 0;
+    this.loadSoundConfig();
   }
 
-  playTone() {
-    if (!this.sfx) return;
+  async loadSoundConfig() {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      if (!this.audioCtx) this.audioCtx = new AudioCtx();
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
+      const resp = await fetch('../sounds/sounds.json');
+      if (resp.ok) {
+        const data = await resp.json();
+        if (typeof data.masterVolume === 'number' && this.masterVolume === 0.7) {
+          this.masterVolume = data.masterVolume;
+        }
+        if (data.sounds) {
+          this.soundMap = { ...this.soundMap, ...data.sounds };
+        }
       }
-      const now = this.audioCtx.currentTime;
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(587.33, now);
-      osc.frequency.setValueAtTime(880.00, now + 0.08);
-      gain.gain.setValueAtTime(0.06, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.22);
+    } catch (e) {}
+  }
+
+  resolveKind(event) {
+    if (event.kind) return event.kind.toLowerCase();
+    const t = (event.title || '').toLowerCase();
+    if (t.includes('resub')) return 'resub';
+    if (t.includes('gift')) return 'gift';
+    if (t.includes('sub')) return 'sub';
+    if (t.includes('raid')) return 'raid';
+    if (t.includes('cheer') || t.includes('bit')) return 'cheer';
+    if (t.includes('donat')) return 'donate';
+    if (t.includes('follow')) return 'follow';
+    return 'default';
+  }
+
+  playSound(kind) {
+    if (!this.sfx || this.masterVolume <= 0) return;
+    const soundConfig = this.soundMap[kind] || this.soundMap.default;
+    if (!soundConfig || !soundConfig.file) return;
+    try {
+      const audio = new Audio(soundConfig.file);
+      const vol = (soundConfig.volume ?? 0.7) * this.masterVolume;
+      audio.volume = Math.max(0, Math.min(1, vol));
+      audio.play().catch(() => {});
     } catch (e) {}
   }
 
@@ -60,7 +90,7 @@ class AlertQueue {
 
   show(event) {
     this.activeCount += 1;
-    this.playTone();
+    this.playSound(this.resolveKind(event));
     const timers = [];
 
     const el = document.createElement('div');

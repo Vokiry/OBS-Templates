@@ -1,0 +1,13 @@
+{
+  "masterVolume": 0.7,
+  "sounds": {
+    "donate": { "file": "../sounds/donate.wav", "volume": 0.8 },
+    "sub": { "file": "../sounds/sub.wav", "volume": 0.7 },
+    "resub": { "file": "../sounds/sub.wav", "volume": 0.7 },
+    "gift": { "file": "../sounds/sub.wav", "volume": 0.7 },
+    "raid": { "file": "../sounds/raid.wav", "volume": 0.9 },
+    "cheer": { "file": "../sounds/cheer.wav", "volume": 0.6 },
+    "follow": { "file": "../sounds/follow.wav", "volume": 0.5 },
+    "default": { "file": "../sounds/default.wav", "volume": 0.7 }
+  }
+}

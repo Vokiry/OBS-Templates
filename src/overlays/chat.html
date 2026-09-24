@@ -78,10 +78,11 @@
       loadChannelEmotes(params.get('room'));
     }
 
-    const MEDIA_REGEX = /(https?:\/\/(?:img\.drisnya\.online\/[^\s]+|media\.tenor\.com\/[^\s]+|c\.tenor\.com\/[^\s]+|media[0-9]*\.giphy\.com\/media\/[^\s]+|i\.imgur\.com\/[^\s]+|[^\s]+\.(?:gif|png|jpe?g|webp|gifv)(?:\?[^\s]*)?))/i;
+    // Strict media allowlist: only JeetBot extension upload server and verified major GIF/image platforms
+    const ALLOWED_MEDIA_REGEX = /(https?:\/\/(?:img\.drisnya\.online|media\.tenor\.com|c\.tenor\.com|i\.imgur\.com|(?:media[0-9]*|i)\.giphy\.com)\/[^\s]+)/i;
 
     function extractMedia(text) {
-      const match = text.match(MEDIA_REGEX);
+      const match = text.match(ALLOWED_MEDIA_REGEX);
       if (!match) return { cleanText: text, mediaUrl: null };
       const mediaUrl = match[1];
       const cleanText = text.replace(mediaUrl, '').replace(/\s+/g, ' ').trim();
