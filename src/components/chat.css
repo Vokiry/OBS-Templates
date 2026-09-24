@@ -95,9 +95,44 @@
   margin-right: 4px;
 }
 
+.chat__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
 .chat__text {
   color: var(--color-muted);
-  white-space: nowrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.chat__emote {
+  height: 22px;
+  max-width: 52px;
+  vertical-align: -4px;
+  display: inline-block;
+  margin: 0 2px;
+  object-fit: contain;
+}
+
+.chat__media {
+  margin-top: 4px;
+  max-width: 260px;
+  max-height: 160px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  border: var(--border-width) solid var(--color-border-faint);
+  border-radius: var(--radius-none, 0);
+  background: rgba(11, 15, 20, 0.6);
+  display: inline-flex;
+}
+
+.chat__media img {
+  width: auto;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  display: block;
 }

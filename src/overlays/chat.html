@@ -38,12 +38,79 @@
     const maxMessages = parseInt(params.get('max'), 10) || 20;
     let hasLiveMessage = false;
 
-    function addMessage(user, text, color) {
+    const emotesMap = {};
+
+    async function loadGlobalEmotes() {
+      try {
+        const resp = await fetch('https://7tv.io/v3/emote-sets/global');
+        if (resp.ok) {
+          const data = await resp.json();
+          for (const emote of data.emotes || []) {
+            const hostUrl = emote.data?.host?.url;
+            if (hostUrl) {
+              const url = (hostUrl.startsWith('//') ? 'https:' : '') + hostUrl + '/2x.webp';
+              emotesMap[emote.name] = url;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    loadGlobalEmotes();
+
+    async function loadChannelEmotes(roomId) {
+      if (!roomId) return;
+      try {
+        const resp = await fetch(`https://7tv.io/v3/users/twitch/${encodeURIComponent(roomId)}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          for (const emote of data.emote_set?.emotes || []) {
+            const hostUrl = emote.data?.host?.url;
+            if (hostUrl) {
+              const url = (hostUrl.startsWith('//') ? 'https:' : '') + hostUrl + '/2x.webp';
+              emotesMap[emote.name] = url;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (params.get('room')) {
+      loadChannelEmotes(params.get('room'));
+    }
+
+    const MEDIA_REGEX = /(https?:\/\/(?:img\.drisnya\.online\/[^\s]+|media\.tenor\.com\/[^\s]+|c\.tenor\.com\/[^\s]+|media[0-9]*\.giphy\.com\/media\/[^\s]+|i\.imgur\.com\/[^\s]+|[^\s]+\.(?:gif|png|jpe?g|webp|gifv)(?:\?[^\s]*)?))/i;
+
+    function extractMedia(text) {
+      const match = text.match(MEDIA_REGEX);
+      if (!match) return { cleanText: text, mediaUrl: null };
+      const mediaUrl = match[1];
+      const cleanText = text.replace(mediaUrl, '').replace(/\s+/g, ' ').trim();
+      return { cleanText, mediaUrl };
+    }
+
+    function formatTextWithEmotes(text) {
+      if (!text) return '';
+      const words = text.split(' ');
+      const htmlParts = [];
+      for (const word of words) {
+        if (emotesMap[word]) {
+          htmlParts.push(`<img class="chat__emote" src="${emotesMap[word]}" alt="${word}" title="${word}">`);
+        } else {
+          const escaped = word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          htmlParts.push(escaped);
+        }
+      }
+      return htmlParts.join(' ');
+    }
+
+    function addMessage(user, rawText, color) {
       if (!chatBody) return;
       if (!hasLiveMessage) {
         chatBody.innerHTML = '';
         hasLiveMessage = true;
       }
+
+      const { cleanText, mediaUrl } = extractMedia(rawText || '');
 
       const msg = document.createElement('div');
       msg.className = 'chat__msg';
@@ -53,11 +120,29 @@
       userEl.textContent = user;
       if (color) userEl.style.color = color;
 
-      const textEl = document.createElement('span');
-      textEl.className = 'chat__text';
-      textEl.textContent = text;
+      const contentEl = document.createElement('div');
+      contentEl.className = 'chat__content';
 
-      msg.append(userEl, textEl);
+      if (cleanText || !mediaUrl) {
+        const textEl = document.createElement('span');
+        textEl.className = 'chat__text';
+        textEl.innerHTML = formatTextWithEmotes(cleanText || rawText);
+        contentEl.append(textEl);
+      }
+
+      if (mediaUrl) {
+        const mediaContainer = document.createElement('div');
+        mediaContainer.className = 'chat__media';
+        const img = document.createElement('img');
+        img.src = mediaUrl;
+        img.alt = 'media';
+        img.loading = 'lazy';
+        img.onerror = () => mediaContainer.remove();
+        mediaContainer.append(img);
+        contentEl.append(mediaContainer);
+      }
+
+      msg.append(userEl, contentEl);
       chatBody.append(msg);
 
       while (chatBody.children.length > maxMessages) {
@@ -69,9 +154,9 @@
     const demoMode = params.get('demo');
     if (demoMode) {
       const DEMO_CHAT = [
-        ['alice', 'lets goooo!'],
-        ['bob', 'audio sounds super crisp'],
-        ['carol', 'hype for the stream'],
+        ['alice', 'lets goooo! RainTime'],
+        ['bob', 'check this out https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif'],
+        ['carol', 'hype for the stream!'],
         ['dave', 'greetings from berlin'],
         ['erin', 'system24 aesthetic is amazing'],
       ];
@@ -93,7 +178,11 @@
         socket.onmessage = (msg) => {
           try {
             const data = JSON.parse(msg.data);
-            if (data.type === 'chat' && data.user) {
+            if (data.type === '7tv_emotes' && data.emotes) {
+              Object.assign(emotesMap, data.emotes);
+            } else if (data.type === 'room_info' && data.roomId) {
+              loadChannelEmotes(data.roomId);
+            } else if (data.type === 'chat' && data.user) {
               addMessage(data.user, data.text || '', data.color);
             }
           } catch (e) {}

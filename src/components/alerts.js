@@ -18,7 +18,7 @@ class AlertQueue {
     this.container = container;
     this.maxVisible = opts.maxVisible ?? 3;
     this.holdMs = opts.holdMs ?? readHoldMs();
-    this.sfx = opts.sfx ?? true;
+    this.sfx = opts.sfx ?? false;
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.queue = [];
     this.activeCount = 0;
