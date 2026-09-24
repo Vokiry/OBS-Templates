@@ -2,6 +2,10 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  padding: 4px 8px;
+  border: var(--border-width) solid var(--color-border-faint);
+  border-radius: var(--radius-panel);
+  background: var(--color-overlay);
   font-family: var(--font-interface);
   font-size: var(--text-xs);
   letter-spacing: var(--letter-spacing-mono);
@@ -12,14 +16,15 @@
 .activity-pulse__dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-none, 0);
   background: currentColor;
   animation: activity-pulse var(--pulse-speed) ease-in-out infinite;
 }
 
 .activity-pulse__line {
-  width: 28px;
+  width: 20px;
   height: 2px;
+  border-radius: var(--radius-none, 0);
   background: currentColor;
   opacity: 0.6;
   animation: activity-pulse var(--pulse-speed) ease-in-out infinite 0.4s;

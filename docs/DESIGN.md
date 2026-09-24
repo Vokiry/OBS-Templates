@@ -201,7 +201,7 @@ STATUS: ONLINE
 Предварительные правила:
 
 ```text
-Panel radius:      8 px
+Panel radius:      0 px (system24 unrounded style)
 Border width:      1 px
 Border opacity:    35%
 Internal spacing:  12 px
@@ -230,7 +230,7 @@ Animation duration: 180–320 ms
   --color-muted: #7E8B96;
   --color-danger: #FF6B6B;
 
-  --radius-panel: 8px;
+  --radius-panel: 0px;
   --border-width: 1px;
   --spacing-unit: 4px;
   --animation-fast: 180ms;

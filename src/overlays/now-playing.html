@@ -29,12 +29,14 @@
     </div>
   </div>
   <script>
+    (() => {
     const params = new URLSearchParams(location.search);
     const variant = params.get('variant') || 'compact';
     document.querySelector('.now-playing').dataset.variant = variant;
     if (variant === 'expanded' && !params.get('pos')) {
       document.querySelector('.overlay').classList.add('overlay--center');
     }
+    })();
   </script>
   <script src="overlay.js"></script>
 </body>

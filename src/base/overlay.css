@@ -7,6 +7,8 @@ body {
   width: 1920px;
   height: 1080px;
   display: flex;
+  box-sizing: border-box;
+  padding: var(--safe-area);
   align-items: flex-start;
   justify-content: flex-start;
   overflow: hidden;
@@ -24,6 +26,16 @@ body {
 
 .overlay--top-right {
   align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.overlay--center-left {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.overlay--center-right {
+  align-items: center;
   justify-content: flex-end;
 }
 

@@ -6,7 +6,8 @@
   border: none;
 }
 
-.camera::after {
+.camera::after,
+.camera::before {
   content: none;
 }
 

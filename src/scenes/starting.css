@@ -63,7 +63,7 @@
 
 .starting-side {
   position: absolute;
-  top: var(--safe-area);
+  top: calc(var(--safe-area) + 120px);
   bottom: var(--safe-area);
   right: var(--safe-area);
   width: 400px;

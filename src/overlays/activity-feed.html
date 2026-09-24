@@ -34,5 +34,58 @@
     </div>
   </div>
   <script src="overlay.js"></script>
+  <script>
+    (() => {
+    const params = new URLSearchParams(location.search);
+    const feedList = document.querySelector('.activity-feed__list');
+    const countEl = document.querySelector('.activity-feed__count');
+    let count = 42;
+
+    function addFeedItem(tag, text) {
+      if (!feedList) return;
+      count += 1;
+      if (countEl) countEl.textContent = String(count).padStart(3, '0');
+
+      const item = document.createElement('div');
+      item.className = 'activity-feed__item';
+      const tagEl = document.createElement('span');
+      tagEl.className = 'activity-feed__tag';
+      tagEl.textContent = tag;
+      const textEl = document.createElement('span');
+      textEl.className = 'activity-feed__text';
+      textEl.textContent = text;
+      item.append(tagEl, textEl);
+      feedList.prepend(item);
+
+      while (feedList.children.length > 5) {
+        feedList.lastElementChild.remove();
+      }
+    }
+
+    const wsParam = params.get('ws');
+    if (wsParam !== 'off') {
+      const wsUrl = wsParam || 'ws://127.0.0.1:8787/events';
+      let retryDelay = 1000;
+      const connect = () => {
+        const socket = new WebSocket(wsUrl);
+        socket.onopen = () => { retryDelay = 1000; };
+        socket.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.type === 'alert' && data.title) {
+              addFeedItem(data.title, data.body || '');
+            }
+          } catch (e) {}
+        };
+        socket.onclose = () => {
+          setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 10000);
+        };
+        socket.onerror = () => socket.close();
+      };
+      connect();
+    }
+    })();
+  </script>
 </body>
 </html>

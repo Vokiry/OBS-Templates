@@ -14,12 +14,15 @@
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
+  border-left: var(--divider-thickness, 3px) solid var(--color-accent);
   border-radius: var(--radius-panel);
   font-family: var(--font-interface);
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transition:
     height var(--anim-normal) var(--anim-ease),
-    opacity var(--anim-normal) var(--anim-ease);
+    opacity var(--anim-normal) var(--anim-ease),
+    border-color var(--border-hover-transition);
 }
 
 .alert__title {

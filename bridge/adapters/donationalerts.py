@@ -75,7 +75,12 @@ class DonationAlertsAdapter:
         if push.get("channel") != CHANNEL:
             return
         donation = (push.get("data") or {}).get("data") or {}
-        if not donation:
+        if isinstance(donation, str):
+            try:
+                donation = json.loads(donation)
+            except Exception:
+                pass
+        if not donation or not isinstance(donation, dict):
             return
         await self.broadcast(normalize_donation(donation))
 

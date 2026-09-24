@@ -240,7 +240,7 @@ curl -X POST http://127.0.0.1:8787/notify \
 | `--color-warning` | `#E9B13C` | starting / brb |
 | `--color-danger` | `#E5484D` | ошибки |
 
-Геометрия: радиус панелей 8px, границы 1px, safe area 32px. Motion: fast
+Геометрия: строгая TUI-геометрия (в стиле system24: прямые углы 0px, границы 1px, safe area 32px). Motion: fast
 180ms, normal 280ms, scene 500ms.
 
 Внимание: **Space Grotesk не содержит кириллицу** — display-текст только

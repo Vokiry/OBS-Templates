@@ -17,6 +17,16 @@
 .countdown__label {
   font-size: var(--text-sm);
   letter-spacing: var(--letter-spacing-mono);
-  text-transform: uppercase;
+  text-transform: lowercase;
   color: var(--color-muted);
+}
+
+.countdown__label::before {
+  content: "[ ";
+  color: var(--color-accent);
+}
+
+.countdown__label::after {
+  content: " ]";
+  color: var(--color-accent);
 }

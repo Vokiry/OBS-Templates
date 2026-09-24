@@ -27,13 +27,25 @@
   display: grid;
   place-items: center;
   background: var(--color-overlay);
-  border: var(--border-width) solid var(--color-border-faint);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-panel);
   font-family: var(--font-interface);
   font-size: var(--text-xs);
   letter-spacing: var(--letter-spacing-mono);
   text-transform: uppercase;
   color: var(--color-muted);
+}
+
+.camera::before {
+  content: "[ camera ]";
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: var(--text-xs);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: lowercase;
+  color: var(--label-color);
+  opacity: 0.8;
 }
 
 .camera::after {

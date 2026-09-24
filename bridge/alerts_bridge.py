@@ -38,7 +38,7 @@ class Broadcaster:
         for socket in list(self.clients):
             try:
                 await socket.send_str(message)
-            except ConnectionResetError:
+            except Exception:
                 self.clients.discard(socket)
 
 

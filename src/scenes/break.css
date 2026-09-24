@@ -1,6 +1,6 @@
 .break-side {
   position: absolute;
-  top: var(--safe-area);
+  top: calc(var(--safe-area) + 48px);
   bottom: var(--safe-area);
   display: flex;
 }
@@ -41,6 +41,16 @@
   letter-spacing: var(--letter-spacing-mono);
   text-transform: uppercase;
   color: var(--state-brb);
+}
+
+.break-status::before {
+  content: "[ ";
+  opacity: 0.6;
+}
+
+.break-status::after {
+  content: " ]";
+  opacity: 0.6;
 }
 
 .break-message {

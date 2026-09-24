@@ -18,6 +18,7 @@
     </span>
   </div>
   <script>
+    (() => {
     const STATES = {
       offline: 'SYSTEM OFFLINE',
       starting: 'STARTING SOON',
@@ -32,6 +33,7 @@
     const el = document.querySelector('.scene-indicator');
     el.dataset.state = state;
     el.querySelector('.scene-indicator__value').textContent = STATES[state] || state;
+    })();
   </script>
   <script src="overlay.js"></script>
 </body>

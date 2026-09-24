@@ -11,11 +11,14 @@
   --color-danger: #E5484D;
   --color-border: rgba(232, 238, 242, 0.35);
   --color-border-faint: rgba(232, 238, 242, 0.12);
+  --color-border-hover: rgba(99, 230, 190, 0.45);
   --color-overlay: rgba(11, 15, 20, 0.72);
   --color-overlay-soft: rgba(11, 15, 20, 0.55);
+  --label-color: var(--color-muted);
+  --label-hover-color: var(--color-accent);
 
   /* Typography */
-  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
   --font-interface: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
 
   --text-xs: 12px;
@@ -36,10 +39,13 @@
   --letter-spacing-display: -0.02em;
 
   /* Geometry */
-  --radius-panel: 8px;
-  --radius-small: 4px;
-  --radius-pill: 999px;
+  --radius-panel: 0px;
+  --radius-small: 0px;
+  --radius-pill: 0px;
   --border-width: 1px;
+  --border-thickness: 1px;
+  --divider-thickness: 3px;
+  --border-hover-transition: 0.2s ease;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
