@@ -129,6 +129,10 @@
   display: inline-flex;
 }
 
+.chat__media--hidden {
+  display: none;
+}
+
 .chat__media img {
   width: auto;
   max-width: 100%;

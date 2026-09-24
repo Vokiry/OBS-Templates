@@ -38,7 +38,14 @@
     const maxMessages = parseInt(params.get('max'), 10) || 20;
     let hasLiveMessage = false;
 
-    const emotesMap = {};
+    const SEED_EMOTES = {
+      RainTime: 'https://cdn.7tv.app/emote/01FCY771D800007PQ2DF3GDTN6/2x.webp',
+      catJAM: 'https://cdn.7tv.app/emote/01F00YT2CR0007E4VV006YKSK6/2x.webp',
+      KEKW: 'https://cdn.7tv.app/emote/01FCY771D800007PQ2DF3GDTN6/2x.webp',
+      peepoHappy: 'https://cdn.7tv.app/emote/60ae3e542597b2219c9b46c6/2x.webp',
+      OMEGALUL: 'https://cdn.7tv.app/emote/60abf171870d317bef23d399/2x.webp',
+    };
+    const emotesMap = { ...SEED_EMOTES };
 
     async function loadGlobalEmotes() {
       try {
@@ -138,7 +145,7 @@
         img.src = mediaUrl;
         img.alt = 'media';
         img.loading = 'lazy';
-        img.onerror = () => mediaContainer.remove();
+        img.onerror = () => { mediaContainer.classList.add('chat__media--hidden'); };
         mediaContainer.append(img);
         contentEl.append(mediaContainer);
       }
@@ -179,7 +186,9 @@
         socket.onmessage = (msg) => {
           try {
             const data = JSON.parse(msg.data);
-            if (data.type === '7tv_emotes' && data.emotes) {
+            if (data.type === 'chat_clear') {
+              chatBody.innerHTML = '';
+            } else if (data.type === '7tv_emotes' && data.emotes) {
               Object.assign(emotesMap, data.emotes);
             } else if (data.type === 'room_info' && data.roomId) {
               loadChannelEmotes(data.roomId);

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — OBS Dock</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="dock.css">
+</head>
+<body>
+  <div class="dock">
+    <header class="dock__header">
+      <span class="dock__title">SYSTEM // DOCK</span>
+      <span class="dock__status-badge" id="bridge-status">ONLINE</span>
+    </header>
+
+    <!-- Telemetry -->
+    <div class="dock__section">
+      <div class="dock__section-label">telemetry</div>
+      <div class="dock__telemetry">
+        <div class="dock__telemetry-row">
+          <span>Overlays attached:</span>
+          <span class="dock__telemetry-val" id="overlay-count">0</span>
+        </div>
+        <div class="dock__telemetry-row">
+          <span>Twitch:</span>
+          <span class="dock__telemetry-val" id="twitch-status">OFF</span>
+        </div>
+        <div class="dock__telemetry-row">
+          <span>Twitch Chat:</span>
+          <span class="dock__telemetry-val" id="chat-status">OFF</span>
+        </div>
+        <div class="dock__telemetry-row">
+          <span>DonationAlerts:</span>
+          <span class="dock__telemetry-val" id="da-status">OFF</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- State Switcher -->
+    <div class="dock__section">
+      <div class="dock__section-label">stream state</div>
+      <div class="dock__grid dock__grid--3">
+        <button class="dock__btn" onclick="setState('starting')">Starting</button>
+        <button class="dock__btn dock__btn--active" onclick="setState('main')">Main</button>
+        <button class="dock__btn" onclick="setState('chatting')">Chat</button>
+        <button class="dock__btn" onclick="setState('focus')">Focus</button>
+        <button class="dock__btn" onclick="setState('brb')">BRB</button>
+        <button class="dock__btn" onclick="setState('ending')">Ending</button>
+      </div>
+    </div>
+
+    <!-- Alert Test Triggers -->
+    <div class="dock__section">
+      <div class="dock__section-label">trigger alert</div>
+      <div class="dock__grid">
+        <button class="dock__btn" onclick="sendAlert('sub', 'alice · tier 1')">+ Sub</button>
+        <button class="dock__btn" onclick="sendAlert('resub', 'bob · 12 months')">+ Resub</button>
+        <button class="dock__btn" onclick="sendAlert('raid', 'carol · 42 viewers')">+ Raid</button>
+        <button class="dock__btn" onclick="sendAlert('donate', 'dave · $25.00')">+ Donate</button>
+        <button class="dock__btn" onclick="sendAlert('cheer', 'erin · 500 bits')">+ Cheer</button>
+        <button class="dock__btn" onclick="sendAlert('follow', 'frank connected')">+ Follow</button>
+      </div>
+    </div>
+
+    <!-- Chat Test Triggers -->
+    <div class="dock__section">
+      <div class="dock__section-label">chat tools</div>
+      <div class="dock__grid">
+        <button class="dock__btn" onclick="sendChat('Viewer', 'RainTime this stream is awesome!', '#63E6BE')">+ 7TV Emote</button>
+        <button class="dock__btn" onclick="sendChat('MediaUser', 'meme https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif', '#E9B13C')">+ GIF Media</button>
+        <button class="dock__btn" onclick="sendChat('Viewer42', 'gl hf with the stream!')">+ Regular Chat</button>
+        <button class="dock__btn" onclick="clearChat()">Clear Chat</button>
+      </div>
+    </div>
+
+    <div class="dock__toast" id="toast"></div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    async function sendNotify(payload) {
+      try {
+        const res = await fetch(`${API_BASE}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast(res.ok ? 'Sent successfully' : 'Error sending');
+      } catch (err) {
+        showToast('Bridge offline');
+      }
+    }
+
+    function showToast(text) {
+      const el = document.getElementById('toast');
+      el.textContent = `[ ${text} ]`;
+      setTimeout(() => { if (el.textContent === `[ ${text} ]`) el.textContent = ''; }, 2200);
+    }
+
+    function setState(state) {
+      document.querySelectorAll('.dock__grid--3 .dock__btn').forEach(b => {
+        b.classList.toggle('dock__btn--active', b.textContent.toLowerCase().includes(state));
+      });
+      sendNotify({ type: 'status', state });
+    }
+
+    function sendAlert(kind, user) {
+      sendNotify({ kind, user });
+    }
+
+    function sendChat(user, text, color) {
+      sendNotify({ type: 'chat', user, text, color });
+    }
+
+    function clearChat() {
+      sendNotify({ type: 'chat_clear' });
+    }
+
+    async function pollHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('overlay-count').textContent = data.overlays ?? 0;
+          document.getElementById('twitch-status').textContent = data.adapters?.twitch ? 'ON' : 'OFF';
+          document.getElementById('chat-status').textContent = data.adapters?.twitch_chat ? 'ON' : 'OFF';
+          document.getElementById('da-status').textContent = data.adapters?.donationalerts ? 'ON' : 'OFF';
+          document.getElementById('bridge-status').textContent = 'ONLINE';
+          document.getElementById('bridge-status').style.color = 'var(--color-accent)';
+        }
+      } catch (e) {
+        document.getElementById('bridge-status').textContent = 'OFFLINE';
+        document.getElementById('bridge-status').style.color = 'var(--color-danger)';
+      }
+    }
+
+    pollHealth();
+    setInterval(pollHealth, 3000);
+  </script>
+</body>
+</html>

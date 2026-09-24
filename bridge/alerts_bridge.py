@@ -43,6 +43,9 @@ class Broadcaster:
 
 
 def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application:
+    project_root = Path(__file__).parent.parent
+    src_dir = project_root / "src"
+
     async def events(request):
         return await broadcaster.attach(request)
 
@@ -63,10 +66,22 @@ def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application
             "adapters": adapter_states,
         })
 
+    async def root_redirect(request):
+        return web.HTTPFound("/src/preview/index.html")
+
+    async def dock_redirect(request):
+        return web.HTTPFound("/src/dock/index.html")
+
     app = web.Application()
+    app.router.add_get("/", root_redirect)
+    app.router.add_get("/dock", dock_redirect)
     app.router.add_get("/events", events)
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)
+
+    if src_dir.exists():
+        app.router.add_static("/src", path=str(src_dir))
+
     return app
 
 
