@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — ending card</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/overlay.css">
+  <link rel="stylesheet" href="../scenes/ending.css">
+</head>
+<body>
+  <div class="overlay overlay--center">
+    <div class="ending-card">
+      <span class="ending-card__status">ending transmission</span>
+      <span class="ending-card__message">thanks for watching</span>
+      <div class="ending-card__next">
+        <span class="ending-card__label">next stream</span>
+        <span class="ending-card__time">fri 20:00</span>
+      </div>
+      <div class="ending-card__links">
+        <span id="link-twitch">twitch.tv/channel</span>
+        <span id="link-discord">discord.gg/channel</span>
+      </div>
+      <span class="ending-card__offline">system offline</span>
+    </div>
+  </div>
+  <script>
+    (() => {
+    const params = new URLSearchParams(location.search);
+    if (params.has('message')) {
+      const el = document.querySelector('.ending-card__message');
+      if (el) el.textContent = params.get('message');
+    }
+    if (params.has('next')) {
+      const el = document.querySelector('.ending-card__time');
+      if (el) el.textContent = params.get('next');
+    }
+    if (params.has('twitch')) {
+      const el = document.getElementById('link-twitch');
+      if (el) el.textContent = params.get('twitch');
+    }
+    if (params.has('discord')) {
+      const el = document.getElementById('link-discord');
+      if (el) el.textContent = params.get('discord');
+    }
+    })();
+  </script>
+  <script src="overlay.js"></script>
+</body>
+</html>

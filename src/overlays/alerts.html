@@ -24,6 +24,7 @@
     const queue = new AlertQueue(document.querySelector('.alerts'), {
       holdMs: params.has('hold') ? parseInt(params.get('hold'), 10) : undefined,
       maxVisible: params.has('max') ? parseInt(params.get('max'), 10) : undefined,
+      sfx: params.get('sfx') !== 'off',
     });
 
     window.systemAlerts = (title, body) => queue.enqueue({ title, body });

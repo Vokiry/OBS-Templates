@@ -12,6 +12,20 @@ KIND_TITLES = {
 
 
 def normalize(payload: dict) -> dict:
+    msg_type = payload.get("type", "alert")
+    if msg_type == "chat":
+        return {
+            "type": "chat",
+            "user": str(payload.get("user", "anonymous")),
+            "text": str(payload.get("text", "")),
+            "color": payload.get("color") or None,
+            "badges": payload.get("badges") or [],
+        }
+    if msg_type == "status":
+        return {
+            "type": "status",
+            "state": str(payload.get("state", "main")),
+        }
     kind = str(payload.get("kind", "donate")).lower()
     title = payload.get("title") or KIND_TITLES.get(kind, kind.upper())
     body = payload.get("body") or payload.get("user") or ""

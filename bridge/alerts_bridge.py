@@ -74,6 +74,7 @@ def spawn_adapters(config: dict, broadcast) -> list:
     tasks = []
     sections = {
         "twitch": ("adapters.twitch", config.get("twitch", {})),
+        "twitch_chat": ("adapters.twitch_chat", config.get("twitch_chat", {})),
         "donationalerts": ("adapters.donationalerts", config.get("donationalerts", {})),
         "donatex": ("adapters.donatex", config.get("donatex", {})),
     }
@@ -111,7 +112,7 @@ async def main() -> None:
     broadcaster = Broadcaster()
     tasks = spawn_adapters(config, broadcaster.broadcast)
 
-    app = build_app(broadcaster, {name: bool(config.get(name, {}).get("enabled")) for name in ("twitch", "donationalerts", "donatex")})
+    app = build_app(broadcaster, {name: bool(config.get(name, {}).get("enabled")) for name in ("twitch", "twitch_chat", "donationalerts", "donatex")})
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)

@@ -8,6 +8,11 @@ client_id = ""
 client_secret = ""
 include_follows = false
 
+# Twitch Chat (anonymous IRC connection — no OAuth token required)
+[twitch_chat]
+enabled = false
+channel = ""
+
 [donationalerts]
 enabled = false
 access_token = ""

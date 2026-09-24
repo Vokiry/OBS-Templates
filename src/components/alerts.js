@@ -18,9 +18,34 @@ class AlertQueue {
     this.container = container;
     this.maxVisible = opts.maxVisible ?? 3;
     this.holdMs = opts.holdMs ?? readHoldMs();
+    this.sfx = opts.sfx ?? true;
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.queue = [];
     this.activeCount = 0;
+  }
+
+  playTone() {
+    if (!this.sfx) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!this.audioCtx) this.audioCtx = new AudioCtx();
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+      const now = this.audioCtx.currentTime;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.setValueAtTime(880.00, now + 0.08);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (e) {}
   }
 
   enqueue(event) {
@@ -35,6 +60,7 @@ class AlertQueue {
 
   show(event) {
     this.activeCount += 1;
+    this.playTone();
     const timers = [];
 
     const el = document.createElement('div');

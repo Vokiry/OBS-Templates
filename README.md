@@ -83,16 +83,17 @@ obs-templates/
 | `background.html` | — | фон + HUD-уголки (нижний слой) |
 | `scene-indicator.html` | `?state=` | индикатор состояния: `offline`, `starting`, `intro`, `main`, `chatting`, `focus`, `brb`, `ending` |
 | `now-playing.html` | `?variant=compact\|expanded` | виджет трека; expanded центрируется сам |
-| `activity-feed.html` | — | лента донатов/сабов/рейдов |
-| `chat.html` | — | стилизованный чат |
+| `activity-feed.html` | `?ws=` | лента донатов/сабов/рейдов; авто-подключение к мосту |
+| `chat.html` | `?demo=loop`, `?max=20`, `?ws=` | стилизованный чат; авто-подключение к мосту |
 | `countdown.html` | `?minutes=10` | обратный отсчёт |
 | `activity-pulse.html` | — | пульс активности |
-| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=`, `?ws=` | движок алертов; авто-подключение к мосту (`ws://127.0.0.1:8787/events`) |
+| `ending-card.html` | `?message=`, `?next=`, `?twitch=`, `?discord=` | итоговая карточка завершения стрима |
+| `alerts.html` | `?demo=once\|loop`, `?hold=`, `?max=`, `?sfx=off`, `?ws=` | движок алертов с ретро-бипами; авто-подключение к мосту (`ws://127.0.0.1:8787/events`) |
 
 Позиционирование (для всех, кроме `background.html`):
 
 ```
-?pos=top-left | top-center | top-right | bottom-left | bottom-center | bottom-right | center
+?pos=top-left | top-center | top-right | center-left | center | center-right | bottom-left | bottom-center | bottom-right
 ```
 
 Примеры:
@@ -127,19 +128,18 @@ src/overlays/countdown.html?minutes=15&pos=center
 | Chatting | background, vtube-модель (весь экран), chat, activity-feed, now-playing(compact), scene-indicator(`?state=chatting`), pulse |
 | Focus | game capture, маленькая камера, scene-indicator(`?state=focus`) |
 | Break | background, chat, activity-feed, now-playing(compact, центр), scene-indicator(`?state=brb`), pulse |
-| Ending | background, ending-card\*, scene-indicator(`?state=ending`) |
-
-\* ending-card пока существует только в превью сцены.
+| Ending | background, ending-card, scene-indicator(`?state=ending`) |
 
 ## Мост событий (bridge)
 
 Локальный демон `bridge/`: собирает события Twitch и DonationAlerts,
-нормализует и раздаёт их в оверлей алертов по WebSocket
+нормализует и раздаёт их в оверлеи алертов, фида и чата по WebSocket
 (`ws://127.0.0.1:8787/events`). Без публичного URL, без чужих виджетов.
 
 | Адаптер | Источник | События | Статус |
 |---|---|---|---|
 | twitch | Twitch EventSub WebSocket | sub / resub / gift / cheer / raid (+follow опционально) | готов |
+| twitch_chat | Twitch IRC WebSocket | chat (анонимное чтение, без OAuth) | готов |
 | donationalerts | Centrifugo WS, канал `$alerts:donation` | donate | готов |
 | donatex | SignalR + API-ключ | donate | в разработке |
 
@@ -173,6 +173,18 @@ cp config.example.toml config.toml
 
 Скоупы запрашиваются сами: `bits:read` (cheer) и, если `include_follows`,
 `moderator:read:followers`.
+
+### Настройка Twitch Chat (без токенов)
+
+Чат читается публично и анонимно через официальный Twitch IRC WebSocket. Регистрация приложения не требуется. В `config.toml`:
+
+```toml
+[twitch_chat]
+enabled = true
+channel = "твой_канал"
+```
+
+При запуске мост подключится к чату, и оверлей `src/overlays/chat.html` начнёт выводить сообщения в реальном времени.
 
 ### Настройка DonationAlerts
 

@@ -31,5 +31,82 @@
     </div>
   </div>
   <script src="overlay.js"></script>
+  <script>
+    (() => {
+    const params = new URLSearchParams(location.search);
+    const chatBody = document.querySelector('.chat__body');
+    const maxMessages = parseInt(params.get('max'), 10) || 20;
+    let hasLiveMessage = false;
+
+    function addMessage(user, text, color) {
+      if (!chatBody) return;
+      if (!hasLiveMessage) {
+        chatBody.innerHTML = '';
+        hasLiveMessage = true;
+      }
+
+      const msg = document.createElement('div');
+      msg.className = 'chat__msg';
+
+      const userEl = document.createElement('span');
+      userEl.className = 'chat__user';
+      userEl.textContent = user;
+      if (color) userEl.style.color = color;
+
+      const textEl = document.createElement('span');
+      textEl.className = 'chat__text';
+      textEl.textContent = text;
+
+      msg.append(userEl, textEl);
+      chatBody.append(msg);
+
+      while (chatBody.children.length > maxMessages) {
+        chatBody.firstElementChild.remove();
+      }
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    const demoMode = params.get('demo');
+    if (demoMode) {
+      const DEMO_CHAT = [
+        ['alice', 'lets goooo!'],
+        ['bob', 'audio sounds super crisp'],
+        ['carol', 'hype for the stream'],
+        ['dave', 'greetings from berlin'],
+        ['erin', 'system24 aesthetic is amazing'],
+      ];
+      let i = 0;
+      setInterval(() => {
+        const [u, t] = DEMO_CHAT[i % DEMO_CHAT.length];
+        i++;
+        addMessage(u, t);
+      }, 3500);
+    }
+
+    const wsParam = params.get('ws');
+    if (wsParam !== 'off') {
+      const wsUrl = wsParam || 'ws://127.0.0.1:8787/events';
+      let retryDelay = 1000;
+      const connect = () => {
+        const socket = new WebSocket(wsUrl);
+        socket.onopen = () => { retryDelay = 1000; };
+        socket.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.type === 'chat' && data.user) {
+              addMessage(data.user, data.text || '', data.color);
+            }
+          } catch (e) {}
+        };
+        socket.onclose = () => {
+          setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 10000);
+        };
+        socket.onerror = () => socket.close();
+      };
+      connect();
+    }
+    })();
+  </script>
 </body>
 </html>
