@@ -52,6 +52,23 @@
       </div>
     </div>
 
+    <!-- Countdown Timer Controller -->
+    <div class="dock__section">
+      <div class="dock__section-label">timer control</div>
+      <div class="dock__grid dock__grid--4">
+        <button class="dock__btn" onclick="setTimer(5)">5m</button>
+        <button class="dock__btn" onclick="setTimer(10)">10m</button>
+        <button class="dock__btn" onclick="setTimer(15)">15m</button>
+        <button class="dock__btn" onclick="setTimer(20)">20m</button>
+      </div>
+      <div class="dock__grid dock__grid--4" style="margin-top: 6px;">
+        <button class="dock__btn" onclick="adjustTimer(-60)">-1m</button>
+        <button class="dock__btn" onclick="adjustTimer(60)">+1m</button>
+        <button class="dock__btn" onclick="toggleTimerPause()">Pause</button>
+        <button class="dock__btn" onclick="resetTimer()">Reset</button>
+      </div>
+    </div>
+
     <!-- Alert Test Triggers -->
     <div class="dock__section">
       <div class="dock__section-label">trigger alert</div>
@@ -59,7 +76,7 @@
         <button class="dock__btn" onclick="sendAlert('sub', 'alice · tier 1')">+ Sub</button>
         <button class="dock__btn" onclick="sendAlert('resub', 'bob · 12 months')">+ Resub</button>
         <button class="dock__btn" onclick="sendAlert('raid', 'carol · 42 viewers')">+ Raid</button>
-        <button class="dock__btn" onclick="sendAlert('donate', 'dave · $25.00')">+ Donate</button>
+        <button class="dock__btn" onclick="sendAlert('donate', 'dave · $25.00', 'Top stream quality! Keep it up!')">+ Donate (Msg)</button>
         <button class="dock__btn" onclick="sendAlert('cheer', 'erin · 500 bits')">+ Cheer</button>
         <button class="dock__btn" onclick="sendAlert('follow', 'frank connected')">+ Follow</button>
       </div>
@@ -108,8 +125,27 @@
       sendNotify({ type: 'status', state });
     }
 
-    function sendAlert(kind, user) {
-      sendNotify({ kind, user });
+    function sendAlert(kind, user, message) {
+      sendNotify({ kind, user, message });
+    }
+
+    function setTimer(minutes) {
+      sendNotify({ type: 'countdown_control', action: 'set', minutes: Number(minutes) });
+    }
+
+    function adjustTimer(deltaSeconds) {
+      sendNotify({ type: 'countdown_control', action: 'adjust', deltaSeconds });
+    }
+
+    let isTimerPaused = false;
+    function toggleTimerPause() {
+      isTimerPaused = !isTimerPaused;
+      sendNotify({ type: 'countdown_control', action: isTimerPaused ? 'pause' : 'resume' });
+    }
+
+    function resetTimer() {
+      isTimerPaused = false;
+      sendNotify({ type: 'countdown_control', action: 'reset' });
     }
 
     function sendChat(user, text, color) {

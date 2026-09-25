@@ -55,11 +55,32 @@ def parse_privmsg(line: str, channel: str) -> dict | None:
     nick = prefix.split("!")[0].lstrip(":")
     user = tags.get("display-name") or nick
     color = tags.get("color") or None
+
+    twitch_emotes = []
+    emotes_tag = tags.get("emotes")
+    if emotes_tag:
+        for group in emotes_tag.split("/"):
+            if ":" in group:
+                emote_id, ranges = group.split(":", 1)
+                for r in ranges.split(","):
+                    if "-" in r:
+                        try:
+                            start, end = map(int, r.split("-", 1))
+                            twitch_emotes.append({
+                                "id": emote_id,
+                                "start": start,
+                                "end": end + 1,
+                                "url": f"https://static-cdn.jtvnw.net/emoticons/v2/{emote_id}/default/dark/2.0",
+                            })
+                        except ValueError:
+                            pass
+
     return {
         "type": "chat",
         "user": user,
         "text": text,
         "color": color,
+        "emotes": twitch_emotes,
     }
 
 

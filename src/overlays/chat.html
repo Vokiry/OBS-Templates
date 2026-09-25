@@ -39,13 +39,29 @@
     let hasLiveMessage = false;
 
     const SEED_EMOTES = {
+      // 7TV popular globals
       RainTime: 'https://cdn.7tv.app/emote/01FCY771D800007PQ2DF3GDTN6/2x.webp',
       catJAM: 'https://cdn.7tv.app/emote/01F00YT2CR0007E4VV006YKSK6/2x.webp',
       KEKW: 'https://cdn.7tv.app/emote/01FCY771D800007PQ2DF3GDTN6/2x.webp',
       peepoHappy: 'https://cdn.7tv.app/emote/60ae3e542597b2219c9b46c6/2x.webp',
       OMEGALUL: 'https://cdn.7tv.app/emote/60abf171870d317bef23d399/2x.webp',
+      // Twitch native popular globals
+      Kappa: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0',
+      LUL: 'https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/2.0',
+      PogChamp: 'https://static-cdn.jtvnw.net/emoticons/v2/305954156/default/dark/2.0',
+      BibleThump: 'https://static-cdn.jtvnw.net/emoticons/v2/86/default/dark/2.0',
+      Kreygasm: 'https://static-cdn.jtvnw.net/emoticons/v2/41/default/dark/2.0',
+      VoHiYo: 'https://static-cdn.jtvnw.net/emoticons/v2/81274/default/dark/2.0',
+      HeyGuys: 'https://static-cdn.jtvnw.net/emoticons/v2/30259/default/dark/2.0',
+      WutFace: 'https://static-cdn.jtvnw.net/emoticons/v2/28087/default/dark/2.0',
+      NotLikeThis: 'https://static-cdn.jtvnw.net/emoticons/v2/58765/default/dark/2.0',
+      ResidentSleeper: 'https://static-cdn.jtvnw.net/emoticons/v2/245/default/dark/2.0',
     };
     const emotesMap = { ...SEED_EMOTES };
+
+    const chatEl = document.querySelector('.chat');
+    if (params.get('width') && chatEl) chatEl.style.width = params.get('width') + 'px';
+    if (params.get('height') && chatEl) chatEl.style.height = params.get('height') + 'px';
 
     async function loadGlobalEmotes() {
       try {
@@ -85,33 +101,56 @@
       loadChannelEmotes(params.get('room'));
     }
 
-    // Strict media allowlist: only JeetBot extension upload server and verified major GIF/image platforms
-    const ALLOWED_MEDIA_REGEX = /(https?:\/\/(?:img\.drisnya\.online|media\.tenor\.com|c\.tenor\.com|i\.imgur\.com|(?:media[0-9]*|i)\.giphy\.com)\/[^\s]+)/i;
+    // Media allowlist: JeetBot/PicDrisnya upload domains, Tenor, Giphy, Imgur
+    const ALLOWED_MEDIA_REGEX = /(https?:\/\/(?:[a-zA-Z0-9-]+\.)*drisnya\.online\/[^\s]+|https?:\/\/(?:[a-zA-Z0-9-]+\.)*tenor\.com\/[^\s]+|https?:\/\/(?:[a-zA-Z0-9-]+\.)*giphy\.com\/[^\s]+|https?:\/\/(?:[a-zA-Z0-9-]+\.)*imgur\.com\/[^\s]+)/i;
 
     function extractMedia(text) {
       const match = text.match(ALLOWED_MEDIA_REGEX);
       if (!match) return { cleanText: text, mediaUrl: null };
-      const mediaUrl = match[1];
-      const cleanText = text.replace(mediaUrl, '').replace(/\s+/g, ' ').trim();
+      let mediaUrl = match[1].replace(/[.,!?;:)\"]+$/, "");
+      const cleanText = text.replace(match[1], '').replace(/\s+/g, ' ').trim();
       return { cleanText, mediaUrl };
     }
 
-    function formatTextWithEmotes(text) {
+    function formatTextWithEmotes(text, twitchEmotes = []) {
       if (!text) return '';
-      const words = text.split(' ');
+
+      // 1. Process native Twitch emotes by character slice ranges if provided from IRC
+      let tokens = [text];
+      if (twitchEmotes && twitchEmotes.length > 0) {
+        const sorted = [...twitchEmotes].sort((a, b) => b.start - a.start);
+        let cur = text;
+        for (const e of sorted) {
+          if (e.start >= 0 && e.end <= cur.length) {
+            const before = cur.slice(0, e.start);
+            const after = cur.slice(e.end);
+            const img = `<img class="chat__emote" src="${e.url}" alt="emote">`;
+            cur = before + '\uFFF0' + img + '\uFFF1' + after;
+          }
+        }
+        tokens = cur.split(/(\uFFF0[^\uFFF1]+\uFFF1)/);
+      }
+
+      // 2. Process remaining text chunks for 7TV & global seed emotes, safely escaping HTML
       const htmlParts = [];
-      for (const word of words) {
-        if (emotesMap[word]) {
-          htmlParts.push(`<img class="chat__emote" src="${emotesMap[word]}" alt="${word}" title="${word}">`);
+      for (const token of tokens) {
+        if (token.startsWith('\uFFF0') && token.endsWith('\uFFF1')) {
+          htmlParts.push(token.slice(1, -1));
         } else {
-          const escaped = word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          htmlParts.push(escaped);
+          const words = token.split(' ');
+          const formattedWords = words.map(w => {
+            if (emotesMap[w]) {
+              return `<img class="chat__emote" src="${emotesMap[w]}" alt="${w}" title="${w}">`;
+            }
+            return w.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          });
+          htmlParts.push(formattedWords.join(' '));
         }
       }
-      return htmlParts.join(' ');
+      return htmlParts.join('');
     }
 
-    function addMessage(user, rawText, color) {
+    function addMessage(user, rawText, color, twitchEmotes = []) {
       if (!chatBody) return;
       if (!hasLiveMessage) {
         chatBody.innerHTML = '';
@@ -134,19 +173,32 @@
       if (cleanText || !mediaUrl) {
         const textEl = document.createElement('span');
         textEl.className = 'chat__text';
-        textEl.innerHTML = formatTextWithEmotes(cleanText || rawText);
+        textEl.innerHTML = formatTextWithEmotes(cleanText || rawText, twitchEmotes);
         contentEl.append(textEl);
       }
 
       if (mediaUrl) {
         const mediaContainer = document.createElement('div');
         mediaContainer.className = 'chat__media';
-        const img = document.createElement('img');
-        img.src = mediaUrl;
-        img.alt = 'media';
-        img.loading = 'lazy';
-        img.onerror = () => { mediaContainer.classList.add('chat__media--hidden'); };
-        mediaContainer.append(img);
+        const isVideo = /\.(mp4|webm)(\?[^\s]*)?$/i.test(mediaUrl);
+        if (isVideo) {
+          const video = document.createElement('video');
+          video.src = mediaUrl;
+          video.autoplay = true;
+          video.loop = true;
+          video.muted = true;
+          video.playsInline = true;
+          video.onerror = () => { mediaContainer.classList.add('chat__media--hidden'); };
+          mediaContainer.append(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = mediaUrl;
+          img.alt = 'media';
+          img.loading = 'lazy';
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = () => { mediaContainer.classList.add('chat__media--hidden'); };
+          mediaContainer.append(img);
+        }
         contentEl.append(mediaContainer);
       }
 
@@ -162,11 +214,11 @@
     const demoMode = params.get('demo');
     if (demoMode) {
       const DEMO_CHAT = [
-        ['alice', 'lets goooo! RainTime'],
-        ['bob', 'check this out https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif'],
-        ['carol', 'hype for the stream!'],
+        ['alice', 'lets goooo! RainTime Kappa'],
+        ['bob', 'look at this https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif LUL'],
+        ['carol', 'hype for the stream! PogChamp'],
         ['dave', 'greetings from berlin'],
-        ['erin', 'system24 aesthetic is amazing'],
+        ['erin', 'system24 aesthetic is amazing VoHiYo'],
       ];
       let i = 0;
       setInterval(() => {
@@ -178,7 +230,7 @@
 
     const wsParam = params.get('ws');
     if (wsParam !== 'off') {
-      const wsUrl = wsParam || 'ws://127.0.0.1:8787/events';
+      const wsUrl = wsParam || `ws://${location.host || '127.0.0.1:8787'}/events`;
       let retryDelay = 1000;
       const connect = () => {
         const socket = new WebSocket(wsUrl);
@@ -193,7 +245,7 @@
             } else if (data.type === 'room_info' && data.roomId) {
               loadChannelEmotes(data.roomId);
             } else if (data.type === 'chat' && data.user) {
-              addMessage(data.user, data.text || '', data.color);
+              addMessage(data.user, data.text || '', data.color, data.emotes);
             }
           } catch (e) {}
         };

@@ -91,6 +91,10 @@ body {
   grid-template-columns: repeat(3, 1fr);
 }
 
+.dock__grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .dock__btn {
   display: inline-flex;
   align-items: center;

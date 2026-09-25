@@ -93,7 +93,7 @@ def make_scene(name: str, scene_sources: list[dict]) -> dict:
 def build_collection() -> dict:
     # 1. Define atomic browser sources
     bg = make_browser_source("SYSTEM: Background", "background.html")
-    alerts = make_browser_source("SYSTEM: Alerts", "alerts.html", "pos=top-right")
+    alerts = make_browser_source("SYSTEM: Alerts", "alerts.html", "pos=top-center")
     pulse = make_browser_source("SYSTEM: Pulse", "activity-pulse.html", "pos=top-right")
 
     ind_starting = make_browser_source("SYSTEM: State [Starting]", "scene-indicator.html", "state=starting&pos=top-left")

@@ -28,15 +28,21 @@
       volume: params.has('vol') ? parseFloat(params.get('vol')) : undefined,
     });
 
-    window.systemAlerts = (title, body) => queue.enqueue({ title, body });
+    window.systemAlerts = (eventOrTitle, body, message) => {
+      if (typeof eventOrTitle === 'object' && eventOrTitle !== null) {
+        queue.enqueue(eventOrTitle);
+      } else {
+        queue.enqueue({ title: eventOrTitle, body, message });
+      }
+    };
 
     const DEMO_EVENTS = [
-      { title: 'NEW SUB', body: 'username · tier 1' },
-      { title: 'RESUB', body: 'username · 12 months' },
-      { title: 'GIFT SUB', body: 'username × 5' },
-      { title: 'RAID', body: 'username · 42 viewers' },
-      { title: 'CHEER', body: 'username · 500' },
-      { title: 'DONATION', body: 'username · 5.00' },
+      { title: 'NEW SUB', body: 'username · tier 1', kind: 'sub' },
+      { title: 'RESUB', body: 'username · 12 months', kind: 'resub' },
+      { title: 'GIFT SUB', body: 'username × 5', kind: 'gift' },
+      { title: 'RAID', body: 'username · 42 viewers', kind: 'raid' },
+      { title: 'CHEER', body: 'username · 500', kind: 'cheer' },
+      { title: 'NEW DONATION', body: 'dave · $25.00', kind: 'donate', message: 'Top tier stream, thank you for the vibes!' },
     ];
 
     const mode = params.get('demo');
@@ -44,21 +50,21 @@
     if (mode) {
       if (mode === 'once') {
         DEMO_EVENTS.forEach((event, index) => {
-          setTimeout(() => window.systemAlerts(event.title, event.body), index * 5200);
+          setTimeout(() => queue.enqueue(event), index * 5200);
         });
       } else {
         let index = 0;
         setInterval(() => {
           const event = DEMO_EVENTS[index % DEMO_EVENTS.length];
           index += 1;
-          window.systemAlerts(event.title, event.body);
+          queue.enqueue(event);
         }, 5500);
       }
     }
 
     const wsParam = params.get('ws');
     if (wsParam !== 'off') {
-      const wsUrl = wsParam || 'ws://127.0.0.1:8787/events';
+      const wsUrl = wsParam || `ws://${location.host || '127.0.0.1:8787'}/events`;
       let retryDelay = 1000;
 
       const connect = () => {
@@ -70,7 +76,7 @@
           try {
             const data = JSON.parse(message.data);
             if (data.type === 'alert' && data.title) {
-              window.systemAlerts(data.title, data.body || '');
+              queue.enqueue(data);
             }
           } catch (error) {}
         };

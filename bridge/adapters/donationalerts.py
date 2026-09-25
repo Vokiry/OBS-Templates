@@ -20,8 +20,16 @@ def normalize_donation(data: dict) -> dict:
     username = data.get("username") or data.get("name") or "anonymous"
     amount = data.get("amount")
     currency = data.get("currency", "")
-    body = f"{username} · {amount} {currency}".strip()
-    return {"kind": "donate", "body": body}
+    message = (data.get("message") or "").strip()
+    amount_str = f"{amount} {currency}".strip()
+    body = f"{username} · {amount_str}".strip(" ·")
+    return {
+        "kind": "donate",
+        "user": username,
+        "amount": amount_str,
+        "message": message,
+        "body": body,
+    }
 
 
 class DonationAlertsAdapter:

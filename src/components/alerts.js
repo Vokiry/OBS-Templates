@@ -90,11 +90,15 @@ class AlertQueue {
 
   show(event) {
     this.activeCount += 1;
-    this.playSound(this.resolveKind(event));
+    const kind = this.resolveKind(event);
+    this.playSound(kind);
     const timers = [];
 
     const el = document.createElement('div');
     el.className = 'alert';
+    if (kind === 'donate') {
+      el.classList.add('alert--donation');
+    }
 
     const title = document.createElement('span');
     title.className = 'alert__title';
@@ -114,7 +118,14 @@ class AlertQueue {
     const progress = document.createElement('span');
     progress.className = 'alert__progress';
 
-    el.append(title, body, progress);
+    if (event.message) {
+      const msgEl = document.createElement('div');
+      msgEl.className = 'alert__message';
+      msgEl.textContent = event.message;
+      el.append(title, body, msgEl, progress);
+    } else {
+      el.append(title, body, progress);
+    }
 
     el.style.opacity = '0';
     this.container.prepend(el);

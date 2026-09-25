@@ -26,7 +26,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Background",
-            "uuid": "fbff6973-b55c-4c8e-8b81-280f30a6c2ec",
+            "uuid": "ecc09107-2ad8-44b9-8434-0f5f5e0144ee",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -60,11 +60,11 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Alerts",
-            "uuid": "60461c18-a8cd-4808-a704-14ff74767b8a",
+            "uuid": "b5277822-f027-4146-8e0b-4c71489d719c",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
-                "url": "http://localhost:8787/src/overlays/alerts.html?pos=top-right",
+                "url": "http://localhost:8787/src/overlays/alerts.html?pos=top-center",
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
@@ -94,7 +94,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Pulse",
-            "uuid": "85dfbdcb-b1fa-4c30-8c1c-6674e1ca42cf",
+            "uuid": "1399b3fe-6c22-4e0f-835a-fc64e97c4334",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -128,7 +128,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: State [Starting]",
-            "uuid": "e3f3a2a6-28a7-409e-a11f-742b2f6c7a2c",
+            "uuid": "154c75a1-ad2f-4a3e-9d7b-68fbb7ebb82f",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -162,7 +162,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: State [Main]",
-            "uuid": "8a4955cf-e2cf-4518-b269-9b323b90ffe7",
+            "uuid": "87453aa2-b1cd-4f9c-9d2c-797534d91bd3",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -196,7 +196,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: State [Chatting]",
-            "uuid": "26c9059a-f125-4960-bc0c-ca5ff27596b9",
+            "uuid": "8c816685-6be2-4343-afe6-a37e733eba3d",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -230,7 +230,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: State [Focus]",
-            "uuid": "05f5337f-0d85-4b2c-a54a-69c9c95c3977",
+            "uuid": "de5f2175-537a-41ed-9893-c57cb3b6c5c8",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -264,7 +264,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: State [BRB]",
-            "uuid": "24ebe8f0-dbdf-4384-9c2f-358261fc5577",
+            "uuid": "e9bbe9b0-7aa7-4709-a540-1bc1af444d17",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -298,7 +298,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: State [Ending]",
-            "uuid": "01eddda8-1935-4b76-a48c-4f6c41c4d8db",
+            "uuid": "73fecf87-cf37-4a27-81d6-c6beda7ebdbc",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -332,7 +332,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Chat",
-            "uuid": "1ceab155-ffcb-486c-a8dd-f26cb10216b7",
+            "uuid": "cf24df93-0cb1-4be4-88e1-c6d708a860e1",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -366,7 +366,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Chat (Left)",
-            "uuid": "1d86672a-6bf2-4a79-8f47-7fba095202ec",
+            "uuid": "4f40ecc2-5975-4b0f-a702-74ed7c19d816",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -400,7 +400,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Activity Feed",
-            "uuid": "4e9a6286-18cf-43d6-bd5b-b79bbc38061f",
+            "uuid": "92804a52-494e-4a03-b634-bc5364bbd753",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -434,7 +434,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Activity Feed (Left)",
-            "uuid": "0fcb6984-da46-42f7-bbbe-c707fe1c7683",
+            "uuid": "1856e969-99cc-434d-ae6b-35fb93d4be07",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -468,7 +468,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Now Playing",
-            "uuid": "59b7db85-c130-4e29-b52e-48da9cf46701",
+            "uuid": "c3ff727f-3e4d-41d3-9297-2e9947556dc9",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -502,7 +502,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Now Playing (Expanded)",
-            "uuid": "39ac8aca-2e9f-4798-b3ef-a783a5edc6d0",
+            "uuid": "aba7637c-5be8-4381-80bf-d5c2a3d11ea1",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -536,7 +536,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Now Playing (Center)",
-            "uuid": "f1d4bd89-d551-40fb-a386-870bfa8f34e7",
+            "uuid": "b94db0a7-367f-4df2-b410-4c04edb02d4f",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -570,7 +570,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Countdown",
-            "uuid": "9cfdda1e-03ff-4c00-8451-b32cbad95f1e",
+            "uuid": "7d2e9e9e-d74b-4314-a7fb-3ccec97ba764",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -604,7 +604,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Ending Card",
-            "uuid": "b56ce124-2187-4fc8-aa55-25a66a36b3ee",
+            "uuid": "5acc4e78-8f05-484e-9b5e-f2a88604ff87",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
@@ -638,7 +638,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Starting Soon",
-            "uuid": "d3a730de-468f-45cc-8b2a-33e20098961f",
+            "uuid": "8a657523-7ec8-4830-bf0a-ecc13072ec52",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
@@ -647,7 +647,7 @@
                 "items": [
                     {
                         "name": "SYSTEM: Background",
-                        "source_uuid": "fbff6973-b55c-4c8e-8b81-280f30a6c2ec",
+                        "source_uuid": "ecc09107-2ad8-44b9-8434-0f5f5e0144ee",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -666,7 +666,7 @@
                     },
                     {
                         "name": "SYSTEM: Now Playing (Expanded)",
-                        "source_uuid": "39ac8aca-2e9f-4798-b3ef-a783a5edc6d0",
+                        "source_uuid": "aba7637c-5be8-4381-80bf-d5c2a3d11ea1",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -685,7 +685,7 @@
                     },
                     {
                         "name": "SYSTEM: Countdown",
-                        "source_uuid": "9cfdda1e-03ff-4c00-8451-b32cbad95f1e",
+                        "source_uuid": "7d2e9e9e-d74b-4314-a7fb-3ccec97ba764",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -704,7 +704,7 @@
                     },
                     {
                         "name": "SYSTEM: Activity Feed",
-                        "source_uuid": "4e9a6286-18cf-43d6-bd5b-b79bbc38061f",
+                        "source_uuid": "92804a52-494e-4a03-b634-bc5364bbd753",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -723,7 +723,7 @@
                     },
                     {
                         "name": "SYSTEM: Chat",
-                        "source_uuid": "1ceab155-ffcb-486c-a8dd-f26cb10216b7",
+                        "source_uuid": "cf24df93-0cb1-4be4-88e1-c6d708a860e1",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -742,7 +742,7 @@
                     },
                     {
                         "name": "SYSTEM: State [Starting]",
-                        "source_uuid": "e3f3a2a6-28a7-409e-a11f-742b2f6c7a2c",
+                        "source_uuid": "154c75a1-ad2f-4a3e-9d7b-68fbb7ebb82f",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -761,7 +761,7 @@
                     },
                     {
                         "name": "SYSTEM: Pulse",
-                        "source_uuid": "85dfbdcb-b1fa-4c30-8c1c-6674e1ca42cf",
+                        "source_uuid": "1399b3fe-6c22-4e0f-835a-fc64e97c4334",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -780,7 +780,7 @@
                     },
                     {
                         "name": "SYSTEM: Alerts",
-                        "source_uuid": "60461c18-a8cd-4808-a704-14ff74767b8a",
+                        "source_uuid": "b5277822-f027-4146-8e0b-4c71489d719c",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -812,7 +812,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Main (Gameplay)",
-            "uuid": "61243596-c5c4-498b-b6f7-eeca2e5e68bc",
+            "uuid": "a93ec164-72ab-4604-ae70-275b5c9bd51c",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
@@ -821,7 +821,7 @@
                 "items": [
                     {
                         "name": "SYSTEM: Background",
-                        "source_uuid": "fbff6973-b55c-4c8e-8b81-280f30a6c2ec",
+                        "source_uuid": "ecc09107-2ad8-44b9-8434-0f5f5e0144ee",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -840,7 +840,7 @@
                     },
                     {
                         "name": "SYSTEM: Now Playing",
-                        "source_uuid": "59b7db85-c130-4e29-b52e-48da9cf46701",
+                        "source_uuid": "c3ff727f-3e4d-41d3-9297-2e9947556dc9",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -859,7 +859,7 @@
                     },
                     {
                         "name": "SYSTEM: Activity Feed",
-                        "source_uuid": "4e9a6286-18cf-43d6-bd5b-b79bbc38061f",
+                        "source_uuid": "92804a52-494e-4a03-b634-bc5364bbd753",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -878,7 +878,7 @@
                     },
                     {
                         "name": "SYSTEM: Chat",
-                        "source_uuid": "1ceab155-ffcb-486c-a8dd-f26cb10216b7",
+                        "source_uuid": "cf24df93-0cb1-4be4-88e1-c6d708a860e1",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -897,7 +897,7 @@
                     },
                     {
                         "name": "SYSTEM: State [Main]",
-                        "source_uuid": "8a4955cf-e2cf-4518-b269-9b323b90ffe7",
+                        "source_uuid": "87453aa2-b1cd-4f9c-9d2c-797534d91bd3",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -916,7 +916,7 @@
                     },
                     {
                         "name": "SYSTEM: Pulse",
-                        "source_uuid": "85dfbdcb-b1fa-4c30-8c1c-6674e1ca42cf",
+                        "source_uuid": "1399b3fe-6c22-4e0f-835a-fc64e97c4334",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -935,7 +935,7 @@
                     },
                     {
                         "name": "SYSTEM: Alerts",
-                        "source_uuid": "60461c18-a8cd-4808-a704-14ff74767b8a",
+                        "source_uuid": "b5277822-f027-4146-8e0b-4c71489d719c",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -967,7 +967,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Chatting",
-            "uuid": "e153cb76-1f0c-4083-a660-4216b792078f",
+            "uuid": "2dc73161-1c5c-402d-9b88-2e0f6608614e",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
@@ -976,7 +976,7 @@
                 "items": [
                     {
                         "name": "SYSTEM: Background",
-                        "source_uuid": "fbff6973-b55c-4c8e-8b81-280f30a6c2ec",
+                        "source_uuid": "ecc09107-2ad8-44b9-8434-0f5f5e0144ee",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -995,7 +995,7 @@
                     },
                     {
                         "name": "SYSTEM: Activity Feed (Left)",
-                        "source_uuid": "0fcb6984-da46-42f7-bbbe-c707fe1c7683",
+                        "source_uuid": "1856e969-99cc-434d-ae6b-35fb93d4be07",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1014,7 +1014,7 @@
                     },
                     {
                         "name": "SYSTEM: Chat",
-                        "source_uuid": "1ceab155-ffcb-486c-a8dd-f26cb10216b7",
+                        "source_uuid": "cf24df93-0cb1-4be4-88e1-c6d708a860e1",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1033,7 +1033,7 @@
                     },
                     {
                         "name": "SYSTEM: State [Chatting]",
-                        "source_uuid": "26c9059a-f125-4960-bc0c-ca5ff27596b9",
+                        "source_uuid": "8c816685-6be2-4343-afe6-a37e733eba3d",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1052,7 +1052,7 @@
                     },
                     {
                         "name": "SYSTEM: Pulse",
-                        "source_uuid": "85dfbdcb-b1fa-4c30-8c1c-6674e1ca42cf",
+                        "source_uuid": "1399b3fe-6c22-4e0f-835a-fc64e97c4334",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1071,7 +1071,7 @@
                     },
                     {
                         "name": "SYSTEM: Alerts",
-                        "source_uuid": "60461c18-a8cd-4808-a704-14ff74767b8a",
+                        "source_uuid": "b5277822-f027-4146-8e0b-4c71489d719c",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1103,7 +1103,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Focus",
-            "uuid": "13f83d27-1b3b-441b-b037-d8835a72dda0",
+            "uuid": "1bf18271-afe6-469b-aa99-954875355fff",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
@@ -1112,7 +1112,7 @@
                 "items": [
                     {
                         "name": "SYSTEM: State [Focus]",
-                        "source_uuid": "05f5337f-0d85-4b2c-a54a-69c9c95c3977",
+                        "source_uuid": "de5f2175-537a-41ed-9893-c57cb3b6c5c8",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1131,7 +1131,7 @@
                     },
                     {
                         "name": "SYSTEM: Alerts",
-                        "source_uuid": "60461c18-a8cd-4808-a704-14ff74767b8a",
+                        "source_uuid": "b5277822-f027-4146-8e0b-4c71489d719c",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1163,7 +1163,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Break (BRB)",
-            "uuid": "98783edf-165c-415c-93b2-ba7532349664",
+            "uuid": "494f3fbf-1360-4f80-80b7-8c5e16b2af46",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
@@ -1172,7 +1172,7 @@
                 "items": [
                     {
                         "name": "SYSTEM: Background",
-                        "source_uuid": "fbff6973-b55c-4c8e-8b81-280f30a6c2ec",
+                        "source_uuid": "ecc09107-2ad8-44b9-8434-0f5f5e0144ee",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1191,7 +1191,7 @@
                     },
                     {
                         "name": "SYSTEM: Now Playing (Center)",
-                        "source_uuid": "f1d4bd89-d551-40fb-a386-870bfa8f34e7",
+                        "source_uuid": "b94db0a7-367f-4df2-b410-4c04edb02d4f",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1210,7 +1210,7 @@
                     },
                     {
                         "name": "SYSTEM: Chat (Left)",
-                        "source_uuid": "1d86672a-6bf2-4a79-8f47-7fba095202ec",
+                        "source_uuid": "4f40ecc2-5975-4b0f-a702-74ed7c19d816",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1229,7 +1229,7 @@
                     },
                     {
                         "name": "SYSTEM: Activity Feed",
-                        "source_uuid": "4e9a6286-18cf-43d6-bd5b-b79bbc38061f",
+                        "source_uuid": "92804a52-494e-4a03-b634-bc5364bbd753",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1248,7 +1248,7 @@
                     },
                     {
                         "name": "SYSTEM: State [BRB]",
-                        "source_uuid": "24ebe8f0-dbdf-4384-9c2f-358261fc5577",
+                        "source_uuid": "e9bbe9b0-7aa7-4709-a540-1bc1af444d17",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1267,7 +1267,7 @@
                     },
                     {
                         "name": "SYSTEM: Pulse",
-                        "source_uuid": "85dfbdcb-b1fa-4c30-8c1c-6674e1ca42cf",
+                        "source_uuid": "1399b3fe-6c22-4e0f-835a-fc64e97c4334",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1286,7 +1286,7 @@
                     },
                     {
                         "name": "SYSTEM: Alerts",
-                        "source_uuid": "60461c18-a8cd-4808-a704-14ff74767b8a",
+                        "source_uuid": "b5277822-f027-4146-8e0b-4c71489d719c",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1318,7 +1318,7 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Ending",
-            "uuid": "96dd36ec-8a35-4f62-8c94-beb28732ea51",
+            "uuid": "f7ee9eda-4a80-424a-98e3-25b567634e7f",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
@@ -1327,7 +1327,7 @@
                 "items": [
                     {
                         "name": "SYSTEM: Background",
-                        "source_uuid": "fbff6973-b55c-4c8e-8b81-280f30a6c2ec",
+                        "source_uuid": "ecc09107-2ad8-44b9-8434-0f5f5e0144ee",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1346,7 +1346,7 @@
                     },
                     {
                         "name": "SYSTEM: Ending Card",
-                        "source_uuid": "b56ce124-2187-4fc8-aa55-25a66a36b3ee",
+                        "source_uuid": "5acc4e78-8f05-484e-9b5e-f2a88604ff87",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1365,7 +1365,7 @@
                     },
                     {
                         "name": "SYSTEM: State [Ending]",
-                        "source_uuid": "01eddda8-1935-4b76-a48c-4f6c41c4d8db",
+                        "source_uuid": "73fecf87-cf37-4a27-81d6-c6beda7ebdbc",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1384,7 +1384,7 @@
                     },
                     {
                         "name": "SYSTEM: Pulse",
-                        "source_uuid": "85dfbdcb-b1fa-4c30-8c1c-6674e1ca42cf",
+                        "source_uuid": "1399b3fe-6c22-4e0f-835a-fc64e97c4334",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
