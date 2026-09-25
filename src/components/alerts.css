@@ -78,8 +78,8 @@
   letter-spacing: var(--letter-spacing-mono);
   text-transform: uppercase;
   color: var(--color-accent);
-  white-space: nowrap;
-  overflow: hidden;
+  line-height: 1.5;
+  padding-top: 2px;
 }
 
 .alert__spinner {
@@ -98,9 +98,10 @@
 .alert__body {
   font-size: var(--text-md);
   color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: normal;
+  padding-top: 2px;
 }
 
 .alert__progress {
@@ -108,6 +109,8 @@
   letter-spacing: var(--letter-spacing-mono);
   color: var(--color-accent-dim);
   white-space: pre;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 
 @keyframes alert-cursor-blink {

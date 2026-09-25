@@ -268,6 +268,92 @@
   width: 300px;
 }
 
+.live #live-media-card {
+  position: absolute;
+  bottom: var(--space-4);
+  right: calc(var(--space-4) + 316px);
+  width: 320px;
+  z-index: 35;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-none, 0);
+  font-family: var(--font-interface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity var(--anim-normal) var(--anim-ease), transform var(--anim-normal) var(--anim-ease);
+  overflow: hidden;
+}
+
+.live #live-media-card.is-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.live #live-media-card .media-card__header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: rgba(21, 28, 36, 0.6);
+  border-bottom: var(--border-width) solid var(--color-border-faint);
+  font-size: 11px;
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--label-color);
+}
+
+.live #live-media-card .media-card__header::before {
+  content: "[ media // ";
+  color: var(--color-muted);
+}
+
+.live #live-media-card .media-card__header::after {
+  content: " ]";
+  color: var(--color-muted);
+}
+
+.live #live-media-card .media-card__info {
+  color: var(--color-accent);
+  font-weight: var(--text-weight-semibold);
+}
+
+.live #live-media-card .media-card__player {
+  width: 100%;
+  height: 180px;
+  background: #000;
+}
+
+.live #live-media-card .media-card__player iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.live #live-media-card .media-card__footer {
+  padding: 6px 8px;
+  background: var(--color-surface);
+  border-top: var(--border-width) solid var(--color-border-faint);
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.live #live-media-card .media-card__message {
+  color: var(--color-text);
+  font-style: italic;
+  font-size: 11px;
+}
+
+.live #live-media-card .media-card__status {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-muted);
+  font-size: 10px;
+}
+
 .live__bottom {
   position: absolute;
   bottom: var(--space-4);

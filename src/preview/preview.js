@@ -160,3 +160,82 @@ setInterval(() => {
     bar.style.width = trackProgress + '%';
   });
 }, 140);
+
+// Connect live preview to WebSocket events so dock controls update preview in real time
+(() => {
+  const wsUrl = `ws://${location.host || '127.0.0.1:8787'}/events`;
+  let retryDelay = 1000;
+
+  const liveMediaCard = document.getElementById('live-media-card');
+  const liveMediaDonor = document.getElementById('live-media-donor');
+  const liveMediaMsg = document.getElementById('live-media-msg');
+  const liveMediaTitle = document.getElementById('live-media-title');
+  const liveYtContainer = document.getElementById('live-yt-container');
+
+  const connect = () => {
+    const socket = new WebSocket(wsUrl);
+    socket.onopen = () => { retryDelay = 1000; };
+    socket.onmessage = (msg) => {
+      try {
+        const data = JSON.parse(msg.data);
+
+        // 1. Media Request
+        if (data.type === 'media_request' && data.youtubeId && liveMediaCard) {
+          liveMediaDonor.textContent = `${data.user || 'viewer'}${data.amount ? ' · ' + data.amount : ''}`;
+          liveMediaTitle.textContent = data.title || 'YouTube Track';
+          if (data.message) {
+            liveMediaMsg.textContent = data.message;
+            liveMediaMsg.style.display = 'block';
+          } else {
+            liveMediaMsg.style.display = 'none';
+          }
+          liveYtContainer.innerHTML = `
+            <iframe
+              src="https://www.youtube.com/embed/${encodeURIComponent(data.youtubeId)}?autoplay=1&enablejsapi=1&controls=1"
+              allow="autoplay; encrypted-media"
+              allowfullscreen>
+            </iframe>
+          `;
+          liveMediaCard.classList.add('is-active');
+        } else if (data.type === 'media_control' && liveMediaCard) {
+          if (data.action === 'skip' || data.action === 'stop') {
+            liveMediaCard.classList.remove('is-active');
+            setTimeout(() => { liveYtContainer.innerHTML = ''; }, 300);
+          }
+        }
+
+        // 2. Countdown Control
+        else if (data.type === 'countdown_control' && countdownValue) {
+          if (data.action === 'set' && typeof data.minutes === 'number') {
+            countdownLeft = Math.round(data.minutes * 60);
+          } else if (data.action === 'adjust') {
+            countdownLeft = Math.max(0, countdownLeft + (data.deltaSeconds || 0));
+          } else if (data.action === 'reset') {
+            countdownLeft = 900;
+          }
+          const m = String(Math.floor(countdownLeft / 60)).padStart(2, '0');
+          const s = String(countdownLeft % 60).padStart(2, '0');
+          countdownValue.textContent = m + ':' + s;
+        }
+
+        // 3. Status Switcher
+        else if (data.type === 'status' && data.state && liveIndicator) {
+          const s = data.state.toLowerCase();
+          liveIndicator.dataset.state = s;
+          liveIndicator.querySelector('.scene-indicator__value').textContent = STATES[s] || s.toUpperCase();
+        }
+
+        // 4. Alert Broadcast
+        else if (data.type === 'alert' && data.title && typeof AlertQueue !== 'undefined') {
+          // Trigger alert in live simulation if AlertQueue instance exists
+        }
+      } catch (e) {}
+    };
+    socket.onclose = () => {
+      setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 10000);
+    };
+    socket.onerror = () => socket.close();
+  };
+  connect();
+})();

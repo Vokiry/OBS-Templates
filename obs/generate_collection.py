@@ -115,30 +115,31 @@ def build_collection() -> dict:
 
     countdown = make_browser_source("SYSTEM: Countdown", "countdown.html", "minutes=10&pos=top-right")
     ending_card = make_browser_source("SYSTEM: Ending Card", "ending-card.html", "pos=center")
+    media_request = make_browser_source("SYSTEM: Media Request", "media-request.html", "pos=bottom-left")
 
     all_browser_sources = [
         bg, alerts, pulse,
         ind_starting, ind_main, ind_chatting, ind_focus, ind_brb, ind_ending,
         chat_right, chat_left, feed_right, feed_left,
         np_compact, np_expanded, np_center,
-        countdown, ending_card
+        countdown, ending_card, media_request
     ]
 
     # 2. Build Scenes (ordered layers from bottom to top)
     scene_starting = make_scene("SYSTEM: Starting Soon", [
-        bg, np_expanded, countdown, feed_right, chat_right, ind_starting, pulse, alerts
+        bg, np_expanded, countdown, feed_right, chat_right, ind_starting, pulse, alerts, media_request
     ])
     scene_main = make_scene("SYSTEM: Main (Gameplay)", [
-        bg, np_compact, feed_right, chat_right, ind_main, pulse, alerts
+        bg, np_compact, feed_right, chat_right, ind_main, pulse, alerts, media_request
     ])
     scene_chatting = make_scene("SYSTEM: Chatting", [
-        bg, feed_left, chat_right, ind_chatting, pulse, alerts
+        bg, feed_left, chat_right, ind_chatting, pulse, alerts, media_request
     ])
     scene_focus = make_scene("SYSTEM: Focus", [
         ind_focus, alerts
     ])
     scene_break = make_scene("SYSTEM: Break (BRB)", [
-        bg, np_center, chat_left, feed_right, ind_brb, pulse, alerts
+        bg, np_center, chat_left, feed_right, ind_brb, pulse, alerts, media_request
     ])
     scene_ending = make_scene("SYSTEM: Ending", [
         bg, ending_card, ind_ending, pulse

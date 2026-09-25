@@ -127,6 +127,10 @@ class AlertQueue {
       el.append(title, body, progress);
     }
 
+    // Pre-populate text to measure accurate targetHeight including progress bar and title
+    titleText.textContent = ' ' + (event.title || '');
+    progress.textContent = this.bar(1);
+
     el.style.opacity = '0';
     this.container.prepend(el);
 
@@ -135,12 +139,22 @@ class AlertQueue {
     el.style.height = '0px';
     void el.offsetHeight;
 
+    // Reset for typewriter animation
+    titleText.textContent = ' ';
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         el.style.height = targetHeight + 'px';
         el.style.opacity = '1';
       });
     });
+
+    // Once opened, release fixed height to auto so text is never cut off
+    setTimeout(() => {
+      if (el.style.height !== '0px') {
+        el.style.height = 'auto';
+      }
+    }, 320);
 
     if (this.reducedMotion) {
       spinner.replaceWith(this.doneMark());
@@ -193,8 +207,12 @@ class AlertQueue {
 
   dismiss(el, timers) {
     timers.forEach(clearInterval);
-    el.style.height = '0px';
-    el.style.opacity = '0';
+    el.style.height = el.offsetHeight + 'px';
+    void el.offsetHeight;
+    requestAnimationFrame(() => {
+      el.style.height = '0px';
+      el.style.opacity = '0';
+    });
     el.addEventListener('transitionend', () => el.remove(), { once: true });
     setTimeout(() => el.remove(), EXIT_FALLBACK_MS);
     this.activeCount -= 1;
