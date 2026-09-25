@@ -13,7 +13,7 @@ KIND_TITLES = {
 
 def normalize(payload: dict) -> dict:
     msg_type = payload.get("type", "alert")
-    if msg_type in ("chat", "7tv_emotes", "room_info", "status", "countdown_control", "chat_clear"):
+    if msg_type in ("chat", "7tv_emotes", "room_info", "status", "countdown_control", "chat_clear", "media_request", "media_control"):
         return payload
     kind = str(payload.get("kind", "donate")).lower()
     title = payload.get("title") or KIND_TITLES.get(kind, kind.upper())

@@ -11,5 +11,13 @@
 <body>
   <div class="bg"></div>
   <div class="hud"></div>
+  <script>
+    (() => {
+      const fx = new URLSearchParams(location.search).get('fx');
+      if (fx && fx !== 'off') {
+        document.body.classList.add('fx--' + fx);
+      }
+    })();
+  </script>
 </body>
 </html>

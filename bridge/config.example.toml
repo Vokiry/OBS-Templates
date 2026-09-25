@@ -17,6 +17,7 @@ channel = ""
 enabled = false
 access_token = ""
 
+# DonateX (приём донатов и заказ треков)
 [donatex]
 enabled = false
-api_key = ""
+token = ""

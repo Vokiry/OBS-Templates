@@ -36,6 +36,14 @@
       <span class="mono text-sm text-muted">test bench / design tokens</span>
     </header>
 
+    <div style="display:flex; align-items:center; gap: 8px;">
+      <span class="mono text-xs text-muted">FX Variant:</span>
+      <button class="preview__nav-btn" onclick="setFx('')">[ Normal ]</button>
+      <button class="preview__nav-btn" onclick="setFx('scanlines')">[ CRT Scanlines ]</button>
+      <button class="preview__nav-btn" onclick="setFx('telemetry')">[ Cyber Telemetry ]</button>
+      <button class="preview__nav-btn" onclick="setFx('vhs-grain')">[ VHS Grain ]</button>
+    </div>
+
     <section>
       <h2 class="preview__section-title">Live — simulation</h2>
       <div class="live">
@@ -212,5 +220,13 @@
   </div>
   <script src="../components/alerts.js"></script>
   <script src="preview.js"></script>
+  <script>
+    function setFx(name) {
+      const live = document.querySelector('.live');
+      if (live) {
+        live.className = 'live ' + (name ? 'fx--' + name : '');
+      }
+    }
+  </script>
 </body>
 </html>

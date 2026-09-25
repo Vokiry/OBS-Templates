@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — Media Request (YouTube Player)</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/overlay.css">
+  <style>
+    .media-card {
+      display: flex;
+      flex-direction: column;
+      width: 460px;
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+      border-left: 4px solid var(--color-accent);
+      border-radius: var(--radius-none, 0);
+      font-family: var(--font-interface);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition:
+        opacity var(--anim-normal) var(--anim-ease),
+        transform var(--anim-normal) var(--anim-ease);
+      overflow: hidden;
+    }
+
+    .media-card.is-active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .media-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(21, 28, 36, 0.6);
+      border-bottom: var(--border-width) solid var(--color-border-faint);
+      font-size: var(--text-xs);
+      letter-spacing: var(--letter-spacing-mono);
+      text-transform: lowercase;
+      color: var(--label-color);
+    }
+
+    .media-card__header::before {
+      content: "[ media request // ";
+      color: var(--color-muted);
+    }
+
+    .media-card__header::after {
+      content: " ]";
+      color: var(--color-muted);
+    }
+
+    .media-card__info {
+      color: var(--color-accent);
+      font-weight: var(--text-weight-semibold);
+    }
+
+    .media-card__player {
+      width: 100%;
+      height: 258px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-card__player iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .media-card__footer {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-surface);
+      border-top: var(--border-width) solid var(--color-border-faint);
+      font-size: var(--text-xs);
+    }
+
+    .media-card__message {
+      color: var(--color-text);
+      font-style: italic;
+      word-break: break-word;
+    }
+
+    .media-card__message::before {
+      content: "“ ";
+      color: var(--color-warning);
+    }
+
+    .media-card__message::after {
+      content: " ”";
+      color: var(--color-warning);
+    }
+
+    .media-card__status {
+      display: flex;
+      justify-content: space-between;
+      color: var(--color-muted);
+      font-size: 11px;
+      letter-spacing: var(--letter-spacing-mono);
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay overlay--bottom-left">
+    <div class="media-card" id="media-card">
+      <div class="media-card__header">
+        <span class="media-card__info" id="media-donor">user</span>
+      </div>
+      <div class="media-card__player">
+        <div id="yt-player-container"></div>
+      </div>
+      <div class="media-card__footer">
+        <div class="media-card__message" id="media-message" style="display:none;"></div>
+        <div class="media-card__status">
+          <span id="media-track-title">YouTube Track</span>
+          <span id="media-duration">PLAYING</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="overlay.js"></script>
+  <script>
+    (() => {
+    const params = new URLSearchParams(location.search);
+    const card = document.getElementById('media-card');
+    const donorEl = document.getElementById('media-donor');
+    const messageEl = document.getElementById('media-message');
+    const titleEl = document.getElementById('media-track-title');
+    const statusEl = document.getElementById('media-duration');
+    const container = document.getElementById('yt-player-container');
+
+    let currentIframe = null;
+
+    function playYouTube(youtubeId, donor, amount, message, title) {
+      if (!youtubeId) return;
+
+      donorEl.textContent = `${donor || 'viewer'}${amount ? ' · ' + amount : ''}`;
+      titleEl.textContent = title || 'YouTube Track';
+      statusEl.textContent = 'LIVE AUDIO';
+
+      if (message) {
+        messageEl.textContent = message;
+        messageEl.style.display = 'block';
+      } else {
+        messageEl.style.display = 'none';
+      }
+
+      container.innerHTML = `
+        <iframe
+          src="https://www.youtube.com/embed/${encodeURIComponent(youtubeId)}?autoplay=1&enablejsapi=1&controls=1"
+          allow="autoplay; encrypted-media"
+          allowfullscreen>
+        </iframe>
+      `;
+      currentIframe = container.querySelector('iframe');
+
+      card.classList.add('is-active');
+    }
+
+    function stopPlayback() {
+      card.classList.remove('is-active');
+      setTimeout(() => {
+        container.innerHTML = '';
+        currentIframe = null;
+      }, 300);
+    }
+
+    // Support testing via URL: ?yt=dQw4w9WgXcQ&donor=Alex&amount=500RUB
+    if (params.has('yt')) {
+      playYouTube(
+        params.get('yt'),
+        params.get('donor') || 'TestDonor',
+        params.get('amount') || '$10.00',
+        params.get('msg') || 'Track request test!'
+      );
+    }
+
+    const wsParam = params.get('ws');
+    if (wsParam !== 'off') {
+      const wsUrl = wsParam || `ws://${location.host || '127.0.0.1:8787'}/events`;
+      let retryDelay = 1000;
+      const connect = () => {
+        const socket = new WebSocket(wsUrl);
+        socket.onopen = () => { retryDelay = 1000; };
+        socket.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.type === 'media_request' && data.youtubeId) {
+              playYouTube(data.youtubeId, data.user, data.amount, data.message, data.title);
+            } else if (data.type === 'media_control') {
+              if (data.action === 'skip' || data.action === 'stop') {
+                stopPlayback();
+              }
+            }
+          } catch (e) {}
+        };
+        socket.onclose = () => {
+          setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 10000);
+        };
+        socket.onerror = () => socket.close();
+      };
+      connect();
+    }
+    })();
+  </script>
+</body>
+</html>

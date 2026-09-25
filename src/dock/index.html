@@ -82,6 +82,15 @@
       </div>
     </div>
 
+    <!-- Media / YouTube Request -->
+    <div class="dock__section">
+      <div class="dock__section-label">media order (youtube)</div>
+      <div class="dock__grid">
+        <button class="dock__btn" onclick="sendYouTubeTest()">+ Test YT Track</button>
+        <button class="dock__btn" onclick="skipMedia()">Skip Track</button>
+      </div>
+    </div>
+
     <!-- Chat Test Triggers -->
     <div class="dock__section">
       <div class="dock__section-label">chat tools</div>
@@ -154,6 +163,21 @@
 
     function clearChat() {
       sendNotify({ type: 'chat_clear' });
+    }
+
+    function sendYouTubeTest() {
+      sendNotify({
+        type: 'media_request',
+        user: 'MusicFan',
+        amount: '250 ₽',
+        message: 'Поставь этот трек на стрим!',
+        youtubeId: 'jfKfPfyJRdk',
+        title: 'Lofi Hip Hop Radio — Beats to Relax'
+      });
+    }
+
+    function skipMedia() {
+      sendNotify({ type: 'media_control', action: 'skip' });
     }
 
     async function pollHealth() {
