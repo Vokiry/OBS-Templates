@@ -69,6 +69,7 @@
 
     async function loadGlobalEmotes() {
       const urls = [
+        '/api/7tv/global',
         'https://enhanced.jeetbot.cc/https://7tv.io/v3/emote-sets/global',
         'https://7tv.io/v3/emote-sets/global'
       ];
@@ -92,6 +93,7 @@
     async function loadChannelEmotes(roomId) {
       if (!roomId) return;
       const urls = [
+        `/api/7tv/channel/${encodeURIComponent(roomId)}`,
         `https://enhanced.jeetbot.cc/https://7tv.io/v3/users/twitch/${encodeURIComponent(roomId)}`,
         `https://7tv.io/v3/users/twitch/${encodeURIComponent(roomId)}`
       ];
@@ -128,19 +130,12 @@
 
     async function resolveMediaUrl(rawUrl) {
       if (!rawUrl) return null;
-      const postMatch = rawUrl.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)*drisnya\.online\/post\/([A-Za-z0-9_-]+)/i);
-      if (postMatch) {
-        const slug = postMatch[1];
+      if (rawUrl.includes('drisnya.online/post/')) {
         try {
-          const res = await fetch(`https://img.drisnya.online/api/posts/${encodeURIComponent(slug)}`);
+          const res = await fetch(`/api/resolve-media?url=${encodeURIComponent(rawUrl)}`);
           if (res.ok) {
-            const payload = await res.json();
-            const media = Array.isArray(payload.media) ? payload.media[0] : null;
-            if (media) {
-              const cdn = (payload.cdnBase || '').replace(/\/+$/, '');
-              const file = (media.filePath || media.thumbnailPath || '').replace(/^\/+/, '');
-              if (cdn && file) return `${cdn}/${file}`;
-            }
+            const data = await res.json();
+            if (data.url && data.url !== rawUrl) return data.url;
           }
         } catch (e) {}
       }

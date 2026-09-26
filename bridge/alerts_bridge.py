@@ -72,12 +72,58 @@ def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application
     async def dock_redirect(request):
         return web.HTTPFound("/src/dock/index.html")
 
+    async def resolve_media_api(request):
+        url = request.query.get("url", "")
+        if not url:
+            return web.json_response({"url": ""}, headers={"Access-Control-Allow-Origin": "*"})
+        from adapters.twitch_chat import resolve_drisnya_media
+        resolved = await resolve_drisnya_media(url)
+        return web.json_response({"url": resolved}, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def proxy_7tv_global(request):
+        import aiohttp
+        urls = [
+            "https://enhanced.jeetbot.cc/https://7tv.io/v3/emote-sets/global",
+            "https://7tv.io/v3/emote-sets/global",
+        ]
+        for u in urls:
+            try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as s:
+                    async with s.get(u) as resp:
+                        if resp.status == 200:
+                            data = await resp.read()
+                            return web.Response(body=data, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"})
+            except Exception:
+                pass
+        return web.json_response({"emotes": []}, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def proxy_7tv_channel(request):
+        import aiohttp
+        room_id = request.match_info["room_id"]
+        urls = [
+            f"https://enhanced.jeetbot.cc/https://7tv.io/v3/users/twitch/{room_id}",
+            f"https://7tv.io/v3/users/twitch/{room_id}",
+        ]
+        for u in urls:
+            try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as s:
+                    async with s.get(u) as resp:
+                        if resp.status == 200:
+                            data = await resp.read()
+                            return web.Response(body=data, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"})
+            except Exception:
+                pass
+        return web.json_response({}, headers={"Access-Control-Allow-Origin": "*"})
+
     app = web.Application()
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
     app.router.add_get("/events", events)
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)
+    app.router.add_get("/api/resolve-media", resolve_media_api)
+    app.router.add_get("/api/7tv/global", proxy_7tv_global)
+    app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
 
     if src_dir.exists():
         app.router.add_static("/src", path=str(src_dir))

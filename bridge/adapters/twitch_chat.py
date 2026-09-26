@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 import aiohttp
 import websockets
 
@@ -31,6 +32,42 @@ async def fetch_7tv_emotes(room_id: str) -> dict:
         except Exception as e:
             log.debug("could not fetch 7TV emotes from %s: %s", url, e)
     return {}
+
+
+MEDIA_REGEX = re.compile(
+    r'(https?://(?:[a-zA-Z0-9-]+\.)*drisnya\.online/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*tenor\.com/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*giphy\.com/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*imgur\.com/[^\s]+)',
+    re.IGNORECASE
+)
+
+
+async def resolve_drisnya_media(url: str) -> str:
+    m = re.search(r"drisnya\.online/post/([A-Za-z0-9_-]+)", url)
+    if not m:
+        return url
+    slug = m.group(1)
+    api_url = f"https://img.drisnya.online/api/posts/{slug}"
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as session:
+            async with session.get(api_url, headers={"Accept": "application/json"}) as resp:
+                if resp.status == 200:
+                    payload = await resp.json()
+                    cdn_base = (payload.get("cdnBase") or "").rstrip("/")
+                    media_list = payload.get("media") or []
+                    if media_list and isinstance(media_list, list):
+                        media = media_list[0]
+                        file_path = (media.get("filePath") or media.get("thumbnailPath") or "").lstrip("/")
+                        if cdn_base and file_path:
+                            return f"{cdn_base}/{file_path}"
+            # Fallback: scrape og:image from the HTML page
+            async with session.get(f"https://img.drisnya.online/post/{slug}", headers={"Accept": "text/html"}) as resp:
+                if resp.status == 200:
+                    html = await resp.text()
+                    og_match = re.search(r'<meta\s+property=["\x27]og:image["\x27]\s+content=["\x27]([^"\x27]+)["\x27]', html)
+                    if og_match:
+                        return og_match.group(1)
+    except Exception as e:
+        log.debug("could not resolve drisnya post %s: %s", slug, e)
+    return url
 
 
 def parse_privmsg(line: str, channel: str) -> dict | None:
@@ -128,12 +165,13 @@ async def run(config: dict, broadcast) -> None:
                                     break
                         msg = parse_privmsg(line, channel)
                         if msg:
+                            m_match = MEDIA_REGEX.search(msg["text"])
+                            if m_match:
+                                raw_url = m_match.group(1).rstrip(".,!?;:)\"")
+                                resolved_url = await resolve_drisnya_media(raw_url)
+                                msg["mediaUrl"] = resolved_url
                             await broadcast(msg)
         except asyncio.CancelledError:
-            raise
-        except Exception as exc:
-            log.warning("twitch_chat connection dropped (%s), reconnecting in 5s...", exc)
-            await asyncio.sleep(5)
             raise
         except Exception as exc:
             log.warning("twitch_chat connection dropped (%s), reconnecting in 5s...", exc)
