@@ -67,7 +67,7 @@ def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application
         })
 
     async def root_redirect(request):
-        return web.HTTPFound("/src/preview/index.html")
+        return web.HTTPFound("/dock")
 
     async def dock_redirect(request):
         return web.HTTPFound("/src/dock/index.html")

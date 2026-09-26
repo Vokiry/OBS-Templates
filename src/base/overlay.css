@@ -54,6 +54,11 @@ body {
   justify-content: flex-end;
 }
 
+.overlay--main-right {
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
 .overlay--center {
   align-items: center;
   justify-content: center;

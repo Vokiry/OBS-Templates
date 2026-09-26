@@ -1,6 +1,0 @@
-.camera {
-  right: var(--safe-area);
-  bottom: var(--safe-area);
-  width: 240px;
-  height: 135px;
-}

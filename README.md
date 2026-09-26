@@ -34,9 +34,8 @@ cd OBS-Templates
 
 Скрипт автоматически подготовит окружение Python, создаст файл конфигурации и запустит единый сервер.
 
-- **Панель управления (OBS Dock)**: http://localhost:8787/dock
-- **Тестовый стенд (Live loop)**: http://localhost:8787/src/preview/
-- **Чертежи сцен**: http://localhost:8787/src/scenes/main.html
+- **Панель управления (OBS Dock)**: http://localhost:8787/dock (или просто http://localhost:8787/)
+- **Коллекция сцен для OBS**: `obs/SYSTEM_Scene_Collection.json` (импортируется в 1 клик)
 
 ---
 

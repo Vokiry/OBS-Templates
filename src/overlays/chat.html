@@ -66,6 +66,15 @@
     const chatEl = document.querySelector('.chat');
     if (params.get('width') && chatEl) chatEl.style.width = params.get('width') + 'px';
     if (params.get('height') && chatEl) chatEl.style.height = params.get('height') + 'px';
+    const layout = params.get('layout');
+    if (layout && chatEl) {
+      chatEl.dataset.layout = layout;
+      if (layout === 'half') {
+        chatEl.classList.add('chat--half');
+        const header = document.querySelector('.chat__header');
+        if (header) header.textContent = 'chat // pre-stream lobby';
+      }
+    }
 
     async function loadGlobalEmotes() {
       const urls = [

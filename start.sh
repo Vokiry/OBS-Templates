@@ -30,17 +30,14 @@ fi
 
 # 4. Generate & link OBS Scene Collection if OBS config folder exists
 if [ -d "$HOME/.config/obs-studio/basic/scenes" ]; then
-  if [ ! -f "$HOME/.config/obs-studio/basic/scenes/SYSTEM.json" ]; then
-    echo "[*] Registering SYSTEM Scene Collection in OBS Studio..."
-    python3 obs/generate_collection.py >/dev/null 2>&1 || true
-    cp obs/SYSTEM_Scene_Collection.json "$HOME/.config/obs-studio/basic/scenes/SYSTEM.json" 2>/dev/null || true
-  fi
+  echo "[*] Updating SYSTEM Scene Collection in OBS Studio..."
+  python3 obs/generate_collection.py >/dev/null 2>&1 || true
+  cp obs/SYSTEM_Scene_Collection.json "$HOME/.config/obs-studio/basic/scenes/SYSTEM.json" 2>/dev/null || true
 fi
 
 echo ""
 echo "  [✓] Unified Server:   http://localhost:8787/"
 echo "  [✓] Control Dock:     http://localhost:8787/dock"
-echo "  [✓] Test Preview:     http://localhost:8787/src/preview/"
 echo "  [✓] Event WebSocket:  ws://localhost:8787/events"
 echo ""
 echo "  [!] In OBS Studio:"
