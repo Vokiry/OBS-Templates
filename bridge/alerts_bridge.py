@@ -42,9 +42,14 @@ class Broadcaster:
                 self.clients.discard(socket)
 
 
-def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application:
+def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     project_root = Path(__file__).parent.parent
     src_dir = project_root / "src"
+
+    adapter_states = {
+        name: bool(config.get(name, {}).get("enabled"))
+        for name in ("twitch", "twitch_chat", "donationalerts", "donatex")
+    }
 
     async def events(request):
         return await broadcaster.attach(request)
@@ -115,6 +120,61 @@ def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application
                 pass
         return web.json_response({}, headers={"Access-Control-Allow-Origin": "*"})
 
+    async def da_callback(request):
+        code = request.query.get("code")
+        if not code:
+            error = request.query.get("error_description") or request.query.get("error") or "Код авторизации не найден"
+            log.error("DonationAlerts OAuth error: %s", error)
+            return web.Response(
+                text=f"<h1>[ SYSTEM ]</h1><p style='font-family: monospace;'>Ошибка от DonationAlerts: {error}</p>",
+                content_type="text/html",
+                status=400
+            )
+
+        da_cfg = config.get("donationalerts", {})
+        client_id = str(da_cfg.get("client_id", "")).strip()
+        client_secret = str(da_cfg.get("client_secret", "")).strip()
+        if not client_secret:
+            raw_token = str(da_cfg.get("access_token", "")).strip()
+            if len(raw_token) == 40 and not raw_token.startswith("eyJ"):
+                client_secret = raw_token
+
+        if not client_id or not client_secret:
+            log.error("DonationAlerts missing client_id or client_secret")
+            return web.Response(
+                text="<h1>[ SYSTEM ]</h1><p style='font-family: monospace;'>Ошибка: укажите client_id и client_secret в bridge/config.toml</p>",
+                content_type="text/html",
+                status=400
+            )
+
+        from adapters.donationalerts import exchange_da_code
+        try:
+            redirect_uri = "http://localhost:8787/api/da/callback"
+            await exchange_da_code(client_id, client_secret, redirect_uri, code)
+            return web.Response(
+                text=(
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'><title>SYSTEM // DA OK</title></head>"
+                    "<body style='background:#0B0F14;color:#63E6BE;font-family:monospace;padding:40px;text-align:center;'>"
+                    "<h1>[ SYSTEM // DONATIONALERTS CONNECTED ]</h1>"
+                    "<p style='color:#E8EEF2;'>DonationAlerts успешно авторизован! Окно можно закрыть, мост уже подключился.</p>"
+                    "</body></html>"
+                ),
+                content_type="text/html"
+            )
+        except Exception as e:
+            log.error("DonationAlerts auth callback error: %s", e)
+            return web.Response(
+                text=(
+                    f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>SYSTEM // DA ERROR</title></head>"
+                    f"<body style='background:#0B0F14;color:#E5484D;font-family:monospace;padding:40px;'>"
+                    f"<h1>[ Ошибка авторизации DonationAlerts ]</h1>"
+                    f"<p style='color:#E8EEF2;'>{e}</p>"
+                    f"</body></html>"
+                ),
+                content_type="text/html",
+                status=500
+            )
+
     app = web.Application()
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
@@ -124,6 +184,7 @@ def build_app(broadcaster: Broadcaster, adapter_states: dict) -> web.Application
     app.router.add_get("/api/resolve-media", resolve_media_api)
     app.router.add_get("/api/7tv/global", proxy_7tv_global)
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
+    app.router.add_get("/api/da/callback", da_callback)
 
     if src_dir.exists():
         app.router.add_static("/src", path=str(src_dir))
@@ -173,7 +234,7 @@ async def main() -> None:
     broadcaster = Broadcaster()
     tasks = spawn_adapters(config, broadcaster.broadcast)
 
-    app = build_app(broadcaster, {name: bool(config.get(name, {}).get("enabled")) for name in ("twitch", "twitch_chat", "donationalerts", "donatex")})
+    app = build_app(broadcaster, config)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)

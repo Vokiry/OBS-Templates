@@ -5,4 +5,5 @@ __pycache__/
 bridge/config.toml
 bridge/.venv/
 bridge/*.token
+bridge/.*token*
 .twitch*

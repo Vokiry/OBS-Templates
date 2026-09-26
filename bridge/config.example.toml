@@ -13,11 +13,19 @@ include_follows = false
 enabled = false
 channel = ""
 
+# 3. ДОНАТЫ DONATIONALERTS
 [donationalerts]
 enabled = false
+# Рекомендуется: укажи client_id и client_secret из https://www.donationalerts.com/application/clients
+# (В поле Redirect URI в настройках приложения укажи: http://localhost:8787/api/da/callback).
+# Авторизация выполнится автоматически в 1 клик при старте!
+client_id = ""
+client_secret = ""
+# Либо готовый access_token (если сгенерирован вручную):
 access_token = ""
 
-# DonateX (приём донатов и заказ треков)
+# 4. ДОНАТЫ И ЗАКАЗ ТРЕКОВ DONATEX
 [donatex]
 enabled = false
+# External token из donatex.gg -> Настройки -> Api
 token = ""
