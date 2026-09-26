@@ -1,6 +1,3 @@
-# IN ALPHA: FOR PREVIEW ONLY. WAIT UNTIL PUBLIC RELEASE
----
-
 # SYSTEM — OBS Broadcast Templates
 
 TUI-inspired визуальная система для стрима в стилистике **system24**: эфир как строгий интерфейс технической системы с состояниями (`starting` → `main` → `chatting` → `focus` → `brb` → `ending`).
