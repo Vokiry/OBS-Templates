@@ -72,12 +72,10 @@
   gap: var(--space-3);
 }
 
-.starting-side .activity-feed {
-  flex: 0 0 34%;
-}
-
 .starting-side .chat {
   flex: 1;
+  width: 100%;
+  height: auto;
 }
 
 .starting-countdown {

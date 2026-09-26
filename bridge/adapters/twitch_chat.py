@@ -10,24 +10,26 @@ IRC_WS_URL = "wss://irc-ws.chat.twitch.tv:443"
 
 
 async def fetch_7tv_emotes(room_id: str) -> dict:
-    url = f"https://7tv.io/v3/users/twitch/{room_id}"
-    try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    emotes = {}
-                    for e in data.get("emote_set", {}).get("emotes", []):
-                        name = e.get("name")
-                        host = e.get("data", {}).get("host", {}).get("url", "")
-                        if host.startswith("//"):
-                            host = "https:" + host
-                        if name and host:
-                            emotes[name] = f"{host}/2x.webp"
-                    log.info("loaded %d 7TV channel emotes for room %s", len(emotes), room_id)
-                    return emotes
-    except Exception as e:
-        log.warning("could not fetch 7TV emotes for room %s: %s", room_id, e)
+    urls = [
+        f"https://enhanced.jeetbot.cc/https://7tv.io/v3/users/twitch/{room_id}",
+        f"https://7tv.io/v3/users/twitch/{room_id}",
+    ]
+    for url in urls:
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+                async with session.get(url) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        emotes = {}
+                        for e in data.get("emote_set", {}).get("emotes", []):
+                            name = e.get("name")
+                            eid = e.get("id")
+                            if name and eid:
+                                emotes[name] = f"https://enhanced.jeetbot.cc/https://cdn.7tv.app/emote/{eid}/2x.webp"
+                        log.info("loaded %d 7TV channel emotes for room %s", len(emotes), room_id)
+                        return emotes
+        except Exception as e:
+            log.debug("could not fetch 7TV emotes from %s: %s", url, e)
     return {}
 
 

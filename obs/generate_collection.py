@@ -49,14 +49,18 @@ def make_browser_source(name: str, path: str, query: str = "") -> dict:
     }
 
 
-def make_scene(name: str, scene_sources: list[dict]) -> dict:
+def make_scene(name: str, scene_sources: list) -> dict:
     scene_uuid = make_uuid()
     items = []
-    for idx, s in enumerate(scene_sources):
+    for idx, item in enumerate(scene_sources):
+        if isinstance(item, tuple):
+            s, visible = item
+        else:
+            s, visible = item, True
         items.append({
             "name": s["name"],
             "source_uuid": s["uuid"],
-            "visible": True,
+            "visible": visible,
             "locked": True,
             "rot": 0.0,
             "pos": {"x": 0.0, "y": 0.0},
@@ -127,19 +131,19 @@ def build_collection() -> dict:
 
     # 2. Build Scenes (ordered layers from bottom to top)
     scene_starting = make_scene("SYSTEM: Starting Soon", [
-        bg, np_expanded, countdown, feed_right, chat_right, ind_starting, pulse, alerts, media_request
+        bg, np_expanded, countdown, (feed_right, False), chat_right, ind_starting, pulse, alerts, media_request
     ])
     scene_main = make_scene("SYSTEM: Main (Gameplay)", [
-        bg, np_compact, feed_right, chat_right, ind_main, pulse, alerts, media_request
+        bg, np_compact, (feed_right, False), chat_right, ind_main, pulse, alerts, media_request
     ])
     scene_chatting = make_scene("SYSTEM: Chatting", [
-        bg, feed_left, chat_right, ind_chatting, pulse, alerts, media_request
+        bg, (feed_left, False), chat_right, ind_chatting, pulse, alerts, media_request
     ])
     scene_focus = make_scene("SYSTEM: Focus", [
         ind_focus, alerts
     ])
     scene_break = make_scene("SYSTEM: Break (BRB)", [
-        bg, np_center, chat_left, feed_right, ind_brb, pulse, alerts, media_request
+        bg, np_center, chat_left, (feed_right, False), ind_brb, pulse, alerts, media_request
     ])
     scene_ending = make_scene("SYSTEM: Ending", [
         bg, ending_card, ind_ending, pulse

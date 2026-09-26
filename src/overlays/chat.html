@@ -38,13 +38,17 @@
     const maxMessages = parseInt(params.get('max'), 10) || 20;
     let hasLiveMessage = false;
 
+    function get7TvEmoteUrl(id) {
+      return `https://enhanced.jeetbot.cc/https://cdn.7tv.app/emote/${id}/2x.webp`;
+    }
+
     const SEED_EMOTES = {
-      // 7TV popular globals
-      RainTime: 'https://cdn.7tv.app/emote/01FCY771D800007PQ2DF3GDTN6/2x.webp',
-      catJAM: 'https://cdn.7tv.app/emote/01F00YT2CR0007E4VV006YKSK6/2x.webp',
-      KEKW: 'https://cdn.7tv.app/emote/01FCY771D800007PQ2DF3GDTN6/2x.webp',
-      peepoHappy: 'https://cdn.7tv.app/emote/60ae3e542597b2219c9b46c6/2x.webp',
-      OMEGALUL: 'https://cdn.7tv.app/emote/60abf171870d317bef23d399/2x.webp',
+      // 7TV popular globals (using JeetBot anti-block proxy)
+      RainTime: get7TvEmoteUrl('01FCY771D800007PQ2DF3GDTN6'),
+      catJAM: get7TvEmoteUrl('01F00YT2CR0007E4VV006YKSK6'),
+      KEKW: get7TvEmoteUrl('01FCY771D800007PQ2DF3GDTN6'),
+      peepoHappy: get7TvEmoteUrl('60ae3e542597b2219c9b46c6'),
+      OMEGALUL: get7TvEmoteUrl('60abf171870d317bef23d399'),
       // Twitch native popular globals
       Kappa: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0',
       LUL: 'https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/2.0',
@@ -64,37 +68,47 @@
     if (params.get('height') && chatEl) chatEl.style.height = params.get('height') + 'px';
 
     async function loadGlobalEmotes() {
-      try {
-        const resp = await fetch('https://7tv.io/v3/emote-sets/global');
-        if (resp.ok) {
-          const data = await resp.json();
-          for (const emote of data.emotes || []) {
-            const hostUrl = emote.data?.host?.url;
-            if (hostUrl) {
-              const url = (hostUrl.startsWith('//') ? 'https:' : '') + hostUrl + '/2x.webp';
-              emotesMap[emote.name] = url;
+      const urls = [
+        'https://enhanced.jeetbot.cc/https://7tv.io/v3/emote-sets/global',
+        'https://7tv.io/v3/emote-sets/global'
+      ];
+      for (const url of urls) {
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const data = await resp.json();
+            for (const emote of data.emotes || []) {
+              if (emote.id && emote.name) {
+                emotesMap[emote.name] = get7TvEmoteUrl(emote.id);
+              }
             }
+            break;
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
     }
     loadGlobalEmotes();
 
     async function loadChannelEmotes(roomId) {
       if (!roomId) return;
-      try {
-        const resp = await fetch(`https://7tv.io/v3/users/twitch/${encodeURIComponent(roomId)}`);
-        if (resp.ok) {
-          const data = await resp.json();
-          for (const emote of data.emote_set?.emotes || []) {
-            const hostUrl = emote.data?.host?.url;
-            if (hostUrl) {
-              const url = (hostUrl.startsWith('//') ? 'https:' : '') + hostUrl + '/2x.webp';
-              emotesMap[emote.name] = url;
+      const urls = [
+        `https://enhanced.jeetbot.cc/https://7tv.io/v3/users/twitch/${encodeURIComponent(roomId)}`,
+        `https://7tv.io/v3/users/twitch/${encodeURIComponent(roomId)}`
+      ];
+      for (const url of urls) {
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const data = await resp.json();
+            for (const emote of (data.emote_set?.emotes || [])) {
+              if (emote.id && emote.name) {
+                emotesMap[emote.name] = get7TvEmoteUrl(emote.id);
+              }
             }
+            break;
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
     }
 
     if (params.get('room')) {
@@ -110,6 +124,27 @@
       let mediaUrl = match[1].replace(/[.,!?;:)\"]+$/, "");
       const cleanText = text.replace(match[1], '').replace(/\s+/g, ' ').trim();
       return { cleanText, mediaUrl };
+    }
+
+    async function resolveMediaUrl(rawUrl) {
+      if (!rawUrl) return null;
+      const postMatch = rawUrl.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)*drisnya\.online\/post\/([A-Za-z0-9_-]+)/i);
+      if (postMatch) {
+        const slug = postMatch[1];
+        try {
+          const res = await fetch(`https://img.drisnya.online/api/posts/${encodeURIComponent(slug)}`);
+          if (res.ok) {
+            const payload = await res.json();
+            const media = Array.isArray(payload.media) ? payload.media[0] : null;
+            if (media) {
+              const cdn = (payload.cdnBase || '').replace(/\/+$/, '');
+              const file = (media.filePath || media.thumbnailPath || '').replace(/^\/+/, '');
+              if (cdn && file) return `${cdn}/${file}`;
+            }
+          }
+        } catch (e) {}
+      }
+      return rawUrl;
     }
 
     function formatTextWithEmotes(text, twitchEmotes = []) {
@@ -150,14 +185,15 @@
       return htmlParts.join('');
     }
 
-    function addMessage(user, rawText, color, twitchEmotes = []) {
+    async function addMessage(user, rawText, color, twitchEmotes = []) {
       if (!chatBody) return;
       if (!hasLiveMessage) {
         chatBody.innerHTML = '';
         hasLiveMessage = true;
       }
 
-      const { cleanText, mediaUrl } = extractMedia(rawText || '');
+      const { cleanText, mediaUrl: rawMediaUrl } = extractMedia(rawText || '');
+      const mediaUrl = rawMediaUrl ? await resolveMediaUrl(rawMediaUrl) : null;
 
       const msg = document.createElement('div');
       msg.className = 'chat__msg';

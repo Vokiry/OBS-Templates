@@ -68,6 +68,14 @@
   overflow-x: hidden;
   flex: 1;
   min-height: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chat__body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .chat__msg {
@@ -76,7 +84,7 @@
   gap: var(--space-2);
   padding: 4px 6px;
   border-radius: var(--radius-none, 0);
-  font-size: var(--text-md);
+  font-size: 16px;
   line-height: 1.45;
   transition: background-color var(--anim-fast) var(--anim-ease);
 }
@@ -122,9 +130,9 @@
 }
 
 .chat__emote {
-  height: 22px;
-  max-width: 52px;
-  vertical-align: -4px;
+  height: 26px;
+  max-width: 56px;
+  vertical-align: -5px;
   display: inline-block;
   margin: 0 2px;
   object-fit: contain;
