@@ -56,13 +56,18 @@ body {
 }
 
 .dock__tag {
-  color: var(--color-accent);
+  color: var(--color-accent, #63E6BE) !important;
+  font-weight: var(--text-weight-semibold);
   transition: color var(--anim-fast) var(--anim-ease);
 }
 
+.dock__tag.is-ok {
+  color: var(--color-accent, #63E6BE) !important;
+}
+
 .dock__tag.is-off {
-  color: var(--color-danger);
-  opacity: 0.85;
+  color: var(--color-danger, #E5484D) !important;
+  opacity: 0.9;
 }
 
 /* Compact Sections */

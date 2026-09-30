@@ -288,7 +288,15 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
                 status=500
             )
 
-    app = web.Application()
+    @web.middleware
+    async def no_cache_middleware(request, handler):
+        response = await handler(request)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    app = web.Application(middlewares=[no_cache_middleware])
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
     app.router.add_get("/events", events)

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../base/fonts.css">
   <link rel="stylesheet" href="../tokens/tokens.css">
   <link rel="stylesheet" href="../base/reset.css">
-  <link rel="stylesheet" href="dock.css">
+  <link rel="stylesheet" href="dock.css?v=4">
 </head>
 <body>
   <div class="dock">
@@ -18,11 +18,11 @@
         <span class="dock__ovl" id="tag-ovl">0 OVL</span>
       </div>
       <div class="dock__status-bar">
-        <span class="dock__tag" id="bridge-status">ONLINE</span>
-        <span class="dock__tag is-off" id="tag-tw" title="Twitch Events">TW</span>
-        <span class="dock__tag is-off" id="tag-chat" title="Twitch Chat">CHAT</span>
-        <span class="dock__tag is-off" id="tag-da" title="DonationAlerts">DA</span>
-        <span class="dock__tag is-off" id="tag-dx" title="DonateX">DX</span>
+        <span class="dock__tag is-ok" id="bridge-status" style="color: #63E6BE;">● ONLINE</span>
+        <span class="dock__tag is-off" id="tag-tw" title="Twitch Events" style="color: #E5484D;">○ TW</span>
+        <span class="dock__tag is-off" id="tag-chat" title="Twitch Chat" style="color: #E5484D;">○ CHAT</span>
+        <span class="dock__tag is-off" id="tag-da" title="DonationAlerts" style="color: #E5484D;">○ DA</span>
+        <span class="dock__tag is-off" id="tag-dx" title="DonateX" style="color: #E5484D;">○ DX</span>
       </div>
     </header>
 
@@ -201,25 +201,32 @@
           const ovl = document.getElementById('tag-ovl');
           if (ovl) ovl.textContent = `${data.overlays ?? 0} OVL`;
 
-          const setTag = (id, active) => {
+          const setTag = (id, label, active) => {
             const el = document.getElementById(id);
             if (!el) return;
+            el.textContent = (active ? '● ' : '○ ') + label;
             el.classList.toggle('is-off', !active);
+            el.classList.toggle('is-ok', !!active);
+            el.style.color = active ? '#63E6BE' : '#E5484D';
           };
 
-          setTag('tag-tw', data.adapters?.twitch);
-          setTag('tag-chat', data.adapters?.twitch_chat);
-          setTag('tag-da', data.adapters?.donationalerts);
-          setTag('tag-dx', data.adapters?.donatex);
+          setTag('tag-tw', 'TW', data.adapters?.twitch);
+          setTag('tag-chat', 'CHAT', data.adapters?.twitch_chat);
+          setTag('tag-da', 'DA', data.adapters?.donationalerts);
+          setTag('tag-dx', 'DX', data.adapters?.donatex);
 
           const badge = document.getElementById('bridge-status');
-          badge.textContent = 'ONLINE';
+          badge.textContent = '● ONLINE';
           badge.classList.remove('is-off');
+          badge.classList.add('is-ok');
+          badge.style.color = '#63E6BE';
         }
       } catch (e) {
         const badge = document.getElementById('bridge-status');
-        badge.textContent = 'OFFLINE';
+        badge.textContent = '○ OFFLINE';
         badge.classList.add('is-off');
+        badge.classList.remove('is-ok');
+        badge.style.color = '#E5484D';
       }
     }
 
