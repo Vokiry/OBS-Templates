@@ -66,8 +66,9 @@ class Broadcaster:
             await self.broadcast(data)
         elif msg_type == "alert_skip":
             log.info("alert skip requested by client")
-            from adapters import donatex
+            from adapters import donatex, donationalerts
             await donatex.skip_donation()
+            await donationalerts.skip_donation()
             await self.broadcast({"type": "alert_skip"})
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
@@ -112,8 +113,9 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
             from adapters import donatex
             await donatex.skip_track()
         elif payload.get("type") == "alert_skip":
-            from adapters import donatex
+            from adapters import donatex, donationalerts
             await donatex.skip_donation()
+            await donationalerts.skip_donation()
 
         await broadcaster.broadcast(payload)
         return web.json_response({"ok": True})
@@ -225,10 +227,11 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
         return web.json_response({"ok": True, "donatex_skipped": skipped}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def donation_skip_api(request):
-        from adapters import donatex
-        skipped = await donatex.skip_donation()
+        from adapters import donatex, donationalerts
+        await donatex.skip_donation()
+        await donationalerts.skip_donation()
         await broadcaster.broadcast({"type": "alert_skip"})
-        return web.json_response({"ok": True, "donatex_skipped": skipped}, headers={"Access-Control-Allow-Origin": "*"})
+        return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def da_callback(request):
         code = request.query.get("code")

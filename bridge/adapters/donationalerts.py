@@ -183,7 +183,18 @@ class DonationAlertsAdapter:
         await self.broadcast(normalize_donation(donation))
 
 
+active_adapter = None
+
+
+async def skip_donation() -> bool:
+    if active_adapter:
+        log.info("donationalerts: alert skip processed")
+        return True
+    return False
+
+
 async def run(config: dict, broadcast) -> None:
+    global active_adapter
     token = config.get("access_token", "").strip()
     client_id = str(config.get("client_id", "")).strip()
     client_secret = str(config.get("client_secret", "")).strip()
@@ -237,7 +248,11 @@ async def run(config: dict, broadcast) -> None:
                 continue
 
             adapter = DonationAlertsAdapter(current_token, broadcast)
-            await adapter.run()
+            active_adapter = adapter
+            try:
+                await adapter.run()
+            finally:
+                active_adapter = None
 
         except asyncio.CancelledError:
             raise

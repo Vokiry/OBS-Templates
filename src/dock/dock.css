@@ -3,96 +3,84 @@ body {
   color: var(--color-text);
   font-family: var(--font-interface);
   font-size: var(--text-xs);
-  padding: var(--space-2);
+  padding: 8px 10px;
   user-select: none;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .dock {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
   max-width: 440px;
   margin: 0 auto;
 }
 
+/* Header with integrated inline telemetry */
 .dock__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-bottom: 4px;
   border-bottom: var(--border-width) solid var(--color-border);
+  font-size: 10px;
+  letter-spacing: var(--letter-spacing-mono);
 }
 
 .dock__title {
   font-family: var(--font-display);
-  font-size: var(--text-sm);
+  font-size: 12px;
   font-weight: var(--text-weight-bold);
-  letter-spacing: var(--letter-spacing-mono);
   color: var(--color-accent);
 }
 
-.dock__status-badge {
+.dock__telemetry {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 10px;
-  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+}
+
+.dock__dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   color: var(--color-accent);
 }
 
-.dock__status-badge::before {
+.dock__dot::before {
   content: "";
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   background: currentColor;
 }
 
-/* Compact Telemetry Bar */
-.dock__telemetry-bar {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+.dock__sep {
+  opacity: 0.35;
 }
 
-.dock__telemetry-pill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border-faint);
-  padding: 3px 2px;
-}
-
-.dock__telemetry-label {
-  font-size: 9px;
-  color: var(--color-muted);
-  letter-spacing: var(--letter-spacing-mono);
-  text-transform: uppercase;
-}
-
-.dock__telemetry-val {
+.dock__tag {
   color: var(--color-accent);
   font-weight: var(--text-weight-semibold);
-  font-size: 10px;
-  letter-spacing: var(--letter-spacing-mono);
+  transition: color var(--anim-fast) var(--anim-ease), opacity var(--anim-fast) var(--anim-ease);
 }
 
-.dock__telemetry-val.is-off {
+.dock__tag.is-off {
   color: var(--color-muted);
-  opacity: 0.5;
+  opacity: 0.35;
+  font-weight: var(--text-weight-normal);
 }
 
-/* Sections */
+/* Compact Sections */
 .dock__section {
   display: flex;
   flex-direction: column;
   gap: 4px;
   border: var(--border-width) solid var(--color-border-faint);
   background: var(--color-surface);
-  padding: 6px 8px;
-  position: relative;
+  padding: 5px 6px;
   transition: border-color var(--border-hover-transition);
 }
 
@@ -101,7 +89,7 @@ body {
 }
 
 .dock__section-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: var(--text-weight-semibold);
   letter-spacing: var(--letter-spacing-mono);
   color: var(--label-color);
@@ -111,13 +99,16 @@ body {
 .dock__section-label::before {
   content: "[ ";
   color: var(--color-muted);
+  opacity: 0.7;
 }
 
 .dock__section-label::after {
   content: " ]";
   color: var(--color-muted);
+  opacity: 0.7;
 }
 
+/* Grids */
 .dock__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -132,11 +123,12 @@ body {
   grid-template-columns: repeat(4, 1fr);
 }
 
+/* Strict TUI Buttons */
 .dock__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 6px;
+  padding: 5px 4px;
   font-family: var(--font-interface);
   font-size: 10px;
   font-weight: var(--text-weight-medium);
@@ -146,6 +138,7 @@ body {
   background: var(--color-surface-raised);
   border: var(--border-width) solid var(--color-border-faint);
   cursor: pointer;
+  white-space: nowrap;
   transition:
     background var(--anim-fast) var(--anim-ease),
     border-color var(--anim-fast) var(--anim-ease),
@@ -166,59 +159,62 @@ body {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: rgba(99, 230, 190, 0.08);
-}
-
-.dock__btn--action {
-  border-color: rgba(99, 230, 190, 0.3);
+  font-weight: var(--text-weight-semibold);
 }
 
 .dock__toast {
-  min-height: 16px;
+  min-height: 14px;
   font-size: 10px;
+  letter-spacing: var(--letter-spacing-mono);
   color: var(--color-accent);
   text-align: center;
   transition: opacity var(--anim-fast) var(--anim-ease);
 }
 
-/* Minimalist Dev & Emulation links at the bottom */
+/* Minimalist Dev Link Strip */
 .dock__dev {
-  margin-top: 4px;
-  padding: 6px 8px;
-  border: 1px dashed var(--color-border-faint);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  background: rgba(11, 15, 20, 0.35);
-}
-
-.dock__dev-header {
-  font-size: 9px;
-  letter-spacing: var(--letter-spacing-mono);
-  color: var(--color-muted);
-  opacity: 0.75;
-}
-
-.dock__dev-links {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border-faint);
   display: flex;
   flex-wrap: wrap;
-  gap: 5px 8px;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-family: var(--font-interface);
+  font-size: 10px;
+  letter-spacing: var(--letter-spacing-mono);
 }
 
-.dock__dev-link {
+.dock__dev-prompt {
+  color: var(--color-muted);
+  opacity: 0.5;
+  font-size: 9px;
+  user-select: none;
+}
+
+.dock__dev-btn {
   background: transparent;
   border: none;
   padding: 0;
   margin: 0;
-  font-family: var(--font-interface);
-  font-size: 10px;
-  letter-spacing: var(--letter-spacing-mono);
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
   color: var(--color-muted);
-  text-decoration: underline dotted;
   cursor: pointer;
   transition: color var(--anim-fast) var(--anim-ease);
 }
 
-.dock__dev-link:hover {
+.dock__dev-btn u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(232, 238, 242, 0.25);
+}
+
+.dock__dev-btn:hover {
   color: var(--color-accent);
-  text-decoration: underline solid;
+}
+
+.dock__dev-btn:hover u {
+  text-decoration-color: var(--color-accent);
 }
