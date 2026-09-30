@@ -34,6 +34,7 @@ class AlertQueue {
     this.soundMap = { ...DEFAULT_SOUNDS, ...(opts.sounds || {}) };
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.queue = [];
+    this.activeAlerts = [];
     this.activeCount = 0;
     this.loadSoundConfig();
   }
@@ -191,6 +192,14 @@ class AlertQueue {
     }
 
     timers.push(setTimeout(() => this.dismiss(el, timers), this.holdMs));
+    this.activeAlerts.push({ el, timers });
+  }
+
+  skipCurrent() {
+    if (this.activeAlerts.length > 0) {
+      const target = this.activeAlerts[0];
+      this.dismiss(target.el, target.timers);
+    }
   }
 
   doneMark() {
@@ -206,6 +215,7 @@ class AlertQueue {
   }
 
   dismiss(el, timers) {
+    this.activeAlerts = this.activeAlerts.filter(a => a.el !== el);
     timers.forEach(clearInterval);
     el.style.height = el.offsetHeight + 'px';
     void el.offsetHeight;

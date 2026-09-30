@@ -77,6 +77,8 @@
             const data = JSON.parse(message.data);
             if (data.type === 'alert' && data.title) {
               queue.enqueue(data);
+            } else if (data.type === 'alert_skip') {
+              queue.skipCurrent();
             }
           } catch (error) {}
         };

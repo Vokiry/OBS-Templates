@@ -72,6 +72,17 @@ class DonateXAdapter:
             log.warning("could not skip track via DonateX API: %s", e)
         return False
 
+    async def skip_current_donation(self) -> bool:
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+                async with session.post("https://donatex.gg/api/v1/donations/skip-current", headers=self.headers) as resp:
+                    if resp.status == 200:
+                        log.info("donatex: current donation skipped via API")
+                        return True
+        except Exception as e:
+            log.warning("could not skip donation via DonateX API: %s", e)
+        return False
+
     async def run_donations_hub(self) -> None:
         """Connects to public-donations-hub for real-time donations & alerts."""
         while True:
@@ -282,6 +293,12 @@ active_adapter = None
 async def skip_track() -> bool:
     if active_adapter:
         return await active_adapter.skip_current_track()
+    return False
+
+
+async def skip_donation() -> bool:
+    if active_adapter:
+        return await active_adapter.skip_current_donation()
     return False
 
 

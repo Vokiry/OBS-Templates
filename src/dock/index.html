@@ -16,34 +16,31 @@
       <span class="dock__status-badge" id="bridge-status">ONLINE</span>
     </header>
 
-    <!-- Telemetry -->
-    <div class="dock__section">
-      <div class="dock__section-label">telemetry</div>
-      <div class="dock__telemetry">
-        <div class="dock__telemetry-row">
-          <span>Overlays attached:</span>
-          <span class="dock__telemetry-val" id="overlay-count">0</span>
-        </div>
-        <div class="dock__telemetry-row">
-          <span>Twitch:</span>
-          <span class="dock__telemetry-val" id="twitch-status">OFF</span>
-        </div>
-        <div class="dock__telemetry-row">
-          <span>Twitch Chat:</span>
-          <span class="dock__telemetry-val" id="chat-status">OFF</span>
-        </div>
-        <div class="dock__telemetry-row">
-          <span>DonationAlerts:</span>
-          <span class="dock__telemetry-val" id="da-status">OFF</span>
-        </div>
-        <div class="dock__telemetry-row">
-          <span>DonateX:</span>
-          <span class="dock__telemetry-val" id="donatex-status">OFF</span>
-        </div>
+    <!-- Compact Horizontal Telemetry Bar -->
+    <div class="dock__telemetry-bar">
+      <div class="dock__telemetry-pill">
+        <span class="dock__telemetry-label">OVL</span>
+        <span class="dock__telemetry-val" id="overlay-count">0</span>
+      </div>
+      <div class="dock__telemetry-pill">
+        <span class="dock__telemetry-label">TW</span>
+        <span class="dock__telemetry-val is-off" id="twitch-status">OFF</span>
+      </div>
+      <div class="dock__telemetry-pill">
+        <span class="dock__telemetry-label">CHAT</span>
+        <span class="dock__telemetry-val is-off" id="chat-status">OFF</span>
+      </div>
+      <div class="dock__telemetry-pill">
+        <span class="dock__telemetry-label">DA</span>
+        <span class="dock__telemetry-val is-off" id="da-status">OFF</span>
+      </div>
+      <div class="dock__telemetry-pill">
+        <span class="dock__telemetry-label">DX</span>
+        <span class="dock__telemetry-val is-off" id="donatex-status">OFF</span>
       </div>
     </div>
 
-    <!-- State Switcher -->
+    <!-- 1. Stream State Switcher -->
     <div class="dock__section">
       <div class="dock__section-label">stream state</div>
       <div class="dock__grid dock__grid--3">
@@ -56,7 +53,7 @@
       </div>
     </div>
 
-    <!-- Countdown Timer Controller -->
+    <!-- 2. Countdown Timer Controller -->
     <div class="dock__section">
       <div class="dock__section-label">timer control</div>
       <div class="dock__grid dock__grid--4">
@@ -65,48 +62,50 @@
         <button class="dock__btn" onclick="setTimer(15)">15m</button>
         <button class="dock__btn" onclick="setTimer(20)">20m</button>
       </div>
-      <div class="dock__grid dock__grid--4" style="margin-top: 6px;">
+      <div class="dock__grid dock__grid--4" style="margin-top: 2px;">
         <button class="dock__btn" onclick="adjustTimer(-60)">-1m</button>
         <button class="dock__btn" onclick="adjustTimer(60)">+1m</button>
-        <button class="dock__btn" onclick="toggleTimerPause()">Pause</button>
+        <button class="dock__btn" id="btn-timer-pause" onclick="toggleTimerPause()">Pause</button>
         <button class="dock__btn" onclick="resetTimer()">Reset</button>
       </div>
     </div>
 
-    <!-- Alert Test Triggers -->
+    <!-- 3. Media & Music (YouTube / DonateX Queue) -->
     <div class="dock__section">
-      <div class="dock__section-label">trigger alert</div>
-      <div class="dock__grid">
-        <button class="dock__btn" onclick="sendAlert('sub', 'alice · tier 1')">+ Sub</button>
-        <button class="dock__btn" onclick="sendAlert('resub', 'bob · 12 months')">+ Resub</button>
-        <button class="dock__btn" onclick="sendAlert('raid', 'carol · 42 viewers')">+ Raid</button>
-        <button class="dock__btn" onclick="sendAlert('donate', 'dave · $25.00', 'Top stream quality! Keep it up!')">+ Donate (Msg)</button>
-        <button class="dock__btn" onclick="sendAlert('cheer', 'erin · 500 bits')">+ Cheer</button>
-        <button class="dock__btn" onclick="sendAlert('follow', 'frank connected')">+ Follow</button>
+      <div class="dock__section-label">media & music</div>
+      <div class="dock__grid dock__grid--3">
+        <button class="dock__btn dock__btn--action" id="btn-media-pause" onclick="toggleMediaPause()">⏯ Pause</button>
+        <button class="dock__btn dock__btn--action" onclick="skipMedia()">⏭ Skip</button>
+        <button class="dock__btn dock__btn--action" onclick="stopMedia()">⏹ Stop</button>
       </div>
     </div>
 
-    <!-- Media / YouTube Request -->
+    <!-- 4. Live Actions (Alerts & Chat) -->
     <div class="dock__section">
-      <div class="dock__section-label">media order (youtube)</div>
-      <div class="dock__grid">
-        <button class="dock__btn" onclick="sendYouTubeTest()">+ Test YT Track</button>
-        <button class="dock__btn" onclick="skipMedia()">Skip Track</button>
-      </div>
-    </div>
-
-    <!-- Chat Test Triggers -->
-    <div class="dock__section">
-      <div class="dock__section-label">chat tools</div>
-      <div class="dock__grid">
-        <button class="dock__btn" onclick="sendChat('Viewer', 'RainTime this stream is awesome!', '#63E6BE')">+ 7TV Emote</button>
-        <button class="dock__btn" onclick="sendChat('MediaUser', 'meme https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif', '#E9B13C')">+ GIF Media</button>
-        <button class="dock__btn" onclick="sendChat('Viewer42', 'gl hf with the stream!')">+ Regular Chat</button>
-        <button class="dock__btn" onclick="clearChat()">Clear Chat</button>
+      <div class="dock__section-label">live actions</div>
+      <div class="dock__grid dock__grid--2">
+        <button class="dock__btn dock__btn--action" onclick="skipAlert()">⏭ Skip Alert</button>
+        <button class="dock__btn dock__btn--action" onclick="clearChat()">🧹 Clear Chat</button>
       </div>
     </div>
 
     <div class="dock__toast" id="toast"></div>
+
+    <!-- 5. Minimalist Dev & Emulation links (Unobtrusive) -->
+    <div class="dock__dev">
+      <div class="dock__dev-header">// dev & test simulation</div>
+      <div class="dock__dev-links">
+        <button class="dock__dev-link" onclick="sendAlert('sub', 'alice · tier 1')">+sub</button>
+        <button class="dock__dev-link" onclick="sendAlert('resub', 'bob · 12 mo')">+resub</button>
+        <button class="dock__dev-link" onclick="sendAlert('raid', 'carol · 42 viewers')">+raid</button>
+        <button class="dock__dev-link" onclick="sendAlert('donate', 'dave · $25.00', 'Top stream vibes!')">+donate</button>
+        <button class="dock__dev-link" onclick="sendAlert('cheer', 'erin · 500 bits')">+cheer</button>
+        <button class="dock__dev-link" onclick="sendAlert('follow', 'frank connected')">+follow</button>
+        <button class="dock__dev-link" onclick="sendYouTubeTest()">+test-yt</button>
+        <button class="dock__dev-link" onclick="sendChat('Viewer', 'RainTime vibes!', '#63E6BE')">+7tv-msg</button>
+        <button class="dock__dev-link" onclick="sendChat('MediaUser', 'meme https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif')">+gif-msg</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -128,7 +127,7 @@
     function showToast(text) {
       const el = document.getElementById('toast');
       el.textContent = `[ ${text} ]`;
-      setTimeout(() => { if (el.textContent === `[ ${text} ]`) el.textContent = ''; }, 2200);
+      setTimeout(() => { if (el.textContent === `[ ${text} ]`) el.textContent = ''; }, 2000);
     }
 
     function setState(state) {
@@ -136,10 +135,6 @@
         b.classList.toggle('dock__btn--active', b.textContent.toLowerCase().includes(state));
       });
       sendNotify({ type: 'status', state });
-    }
-
-    function sendAlert(kind, user, message) {
-      sendNotify({ kind, user, message });
     }
 
     function setTimer(minutes) {
@@ -153,20 +148,58 @@
     let isTimerPaused = false;
     function toggleTimerPause() {
       isTimerPaused = !isTimerPaused;
+      const btn = document.getElementById('btn-timer-pause');
+      if (btn) btn.textContent = isTimerPaused ? 'Resume' : 'Pause';
       sendNotify({ type: 'countdown_control', action: isTimerPaused ? 'pause' : 'resume' });
     }
 
     function resetTimer() {
       isTimerPaused = false;
+      const btn = document.getElementById('btn-timer-pause');
+      if (btn) btn.textContent = 'Pause';
       sendNotify({ type: 'countdown_control', action: 'reset' });
     }
 
-    function sendChat(user, text, color) {
-      sendNotify({ type: 'chat', user, text, color });
+    let isMediaPaused = false;
+    function toggleMediaPause() {
+      isMediaPaused = !isMediaPaused;
+      const btn = document.getElementById('btn-media-pause');
+      if (btn) btn.textContent = isMediaPaused ? '▶ Play' : '⏸ Pause';
+      sendNotify({ type: 'media_control', action: isMediaPaused ? 'pause' : 'resume' });
+    }
+
+    async function skipMedia() {
+      try {
+        const res = await fetch(`${API_BASE}/api/media/skip`, { method: 'POST' });
+        showToast(res.ok ? 'Track skipped' : 'Error skipping track');
+      } catch (e) {
+        sendNotify({ type: 'media_control', action: 'skip' });
+      }
+    }
+
+    function stopMedia() {
+      isMediaPaused = false;
+      const btn = document.getElementById('btn-media-pause');
+      if (btn) btn.textContent = '⏸ Pause';
+      sendNotify({ type: 'media_control', action: 'stop' });
+    }
+
+    async function skipAlert() {
+      try {
+        const res = await fetch(`${API_BASE}/api/donations/skip`, { method: 'POST' });
+        showToast(res.ok ? 'Alert skipped' : 'Error skipping alert');
+      } catch (e) {
+        sendNotify({ type: 'alert_skip' });
+      }
     }
 
     function clearChat() {
       sendNotify({ type: 'chat_clear' });
+    }
+
+    // Dev Simulation Triggers
+    function sendAlert(kind, user, message) {
+      sendNotify({ kind, user, message });
     }
 
     function sendYouTubeTest() {
@@ -180,8 +213,8 @@
       });
     }
 
-    function skipMedia() {
-      sendNotify({ type: 'media_control', action: 'skip' });
+    function sendChat(user, text, color) {
+      sendNotify({ type: 'chat', user, text, color });
     }
 
     async function pollHealth() {
@@ -190,16 +223,27 @@
         if (res.ok) {
           const data = await res.json();
           document.getElementById('overlay-count').textContent = data.overlays ?? 0;
-          document.getElementById('twitch-status').textContent = data.adapters?.twitch ? 'ON' : 'OFF';
-          document.getElementById('chat-status').textContent = data.adapters?.twitch_chat ? 'ON' : 'OFF';
-          document.getElementById('da-status').textContent = data.adapters?.donationalerts ? 'ON' : 'OFF';
-          document.getElementById('donatex-status').textContent = data.adapters?.donatex ? 'ON' : 'OFF';
-          document.getElementById('bridge-status').textContent = 'ONLINE';
-          document.getElementById('bridge-status').style.color = 'var(--color-accent)';
+
+          const setStatus = (id, active) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = active ? 'ON' : 'OFF';
+            el.classList.toggle('is-off', !active);
+          };
+
+          setStatus('twitch-status', data.adapters?.twitch);
+          setStatus('chat-status', data.adapters?.twitch_chat);
+          setStatus('da-status', data.adapters?.donationalerts);
+          setStatus('donatex-status', data.adapters?.donatex);
+
+          const badge = document.getElementById('bridge-status');
+          badge.textContent = 'ONLINE';
+          badge.style.color = 'var(--color-accent)';
         }
       } catch (e) {
-        document.getElementById('bridge-status').textContent = 'OFFLINE';
-        document.getElementById('bridge-status').style.color = 'var(--color-danger)';
+        const badge = document.getElementById('bridge-status');
+        badge.textContent = 'OFFLINE';
+        badge.style.color = 'var(--color-danger)';
       }
     }
 

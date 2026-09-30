@@ -58,11 +58,17 @@ class Broadcaster:
             log.info("media playback finished, notifying DonateX skip...")
             from adapters import donatex
             await donatex.skip_track()
-        elif msg_type == "media_control" and data.get("action") == "skip":
-            log.info("media skip requested by client")
-            from adapters import donatex
-            await donatex.skip_track()
+        elif msg_type == "media_control":
+            if data.get("action") == "skip":
+                log.info("media skip requested by client")
+                from adapters import donatex
+                await donatex.skip_track()
             await self.broadcast(data)
+        elif msg_type == "alert_skip":
+            log.info("alert skip requested by client")
+            from adapters import donatex
+            await donatex.skip_donation()
+            await self.broadcast({"type": "alert_skip"})
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
 
@@ -105,6 +111,9 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
         if payload.get("type") == "media_control" and payload.get("action") == "skip":
             from adapters import donatex
             await donatex.skip_track()
+        elif payload.get("type") == "alert_skip":
+            from adapters import donatex
+            await donatex.skip_donation()
 
         await broadcaster.broadcast(payload)
         return web.json_response({"ok": True})
@@ -215,6 +224,12 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
         await broadcaster.broadcast({"type": "media_control", "action": "skip"})
         return web.json_response({"ok": True, "donatex_skipped": skipped}, headers={"Access-Control-Allow-Origin": "*"})
 
+    async def donation_skip_api(request):
+        from adapters import donatex
+        skipped = await donatex.skip_donation()
+        await broadcaster.broadcast({"type": "alert_skip"})
+        return web.json_response({"ok": True, "donatex_skipped": skipped}, headers={"Access-Control-Allow-Origin": "*"})
+
     async def da_callback(request):
         code = request.query.get("code")
         if not code:
@@ -281,6 +296,7 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     app.router.add_get("/api/7tv/global", proxy_7tv_global)
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
     app.router.add_post("/api/media/skip", media_skip_api)
+    app.router.add_post("/api/donations/skip", donation_skip_api)
     app.router.add_get("/api/da/callback", da_callback)
 
     if src_dir.exists():

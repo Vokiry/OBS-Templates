@@ -359,8 +359,37 @@
       }
     }
 
+    let isPaused = false;
+    function togglePause(forcedAction) {
+      if (!isPlaying) return;
+      if (forcedAction === 'pause') isPaused = true;
+      else if (forcedAction === 'resume' || forcedAction === 'play') isPaused = false;
+      else isPaused = !isPaused;
+
+      if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+        try {
+          if (isPaused) {
+            ytPlayer.pauseVideo();
+            statusEl.textContent = 'PAUSED';
+          } else {
+            ytPlayer.playVideo();
+            statusEl.textContent = 'PLAYING';
+          }
+          return;
+        } catch (e) {}
+      }
+
+      const iframe = container.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        const cmd = isPaused ? 'pauseVideo' : 'playVideo';
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: '' }), '*');
+        statusEl.textContent = isPaused ? 'PAUSED' : 'PLAYING';
+      }
+    }
+
     function stopPlayback() {
       card.classList.remove('is-active');
+      isPaused = false;
       setTimeout(() => {
         if (!isPlaying) {
           container.innerHTML = '';
@@ -408,6 +437,8 @@
             } else if (data.type === 'media_control') {
               if (data.action === 'skip') {
                 skipTrack(data.origin);
+              } else if (data.action === 'toggle_pause' || data.action === 'pause' || data.action === 'resume') {
+                togglePause(data.action);
               } else if (data.action === 'stop') {
                 trackQueue = [];
                 updateQueueBadge();
