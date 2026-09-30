@@ -11,18 +11,18 @@
 </head>
 <body>
   <div class="dock">
-    <!-- Header with Integrated Inline Telemetry -->
+    <!-- Header with 2-line mini status -->
     <header class="dock__header">
-      <span class="dock__title">SYSTEM // DOCK</span>
-      <div class="dock__telemetry">
-        <span class="dock__dot" id="bridge-status">ONLINE</span>
-        <span class="dock__sep">·</span>
-        <span class="dock__tag" id="tag-ovl">0 ovl</span>
-        <span class="dock__sep">·</span>
-        <span class="dock__tag is-off" id="tag-tw" title="Twitch Events">tw</span>
-        <span class="dock__tag is-off" id="tag-chat" title="Twitch Chat">chat</span>
-        <span class="dock__tag is-off" id="tag-da" title="DonationAlerts">da</span>
-        <span class="dock__tag is-off" id="tag-dx" title="DonateX">dx</span>
+      <div class="dock__header-top">
+        <span class="dock__title">SYSTEM // DOCK</span>
+        <span class="dock__ovl" id="tag-ovl">0 OVL</span>
+      </div>
+      <div class="dock__status-bar">
+        <span class="dock__tag" id="bridge-status">ONLINE</span>
+        <span class="dock__tag is-off" id="tag-tw" title="Twitch Events">TW</span>
+        <span class="dock__tag is-off" id="tag-chat" title="Twitch Chat">CHAT</span>
+        <span class="dock__tag is-off" id="tag-da" title="DonationAlerts">DA</span>
+        <span class="dock__tag is-off" id="tag-dx" title="DonateX">DX</span>
       </div>
     </header>
 
@@ -103,7 +103,7 @@
         });
         showToast(res.ok ? 'OK' : 'ERR');
       } catch (err) {
-        showToast('BRIDGE OFFLINE');
+        showToast('OFFLINE');
       }
     }
 
@@ -198,7 +198,8 @@
         const res = await fetch(`${API_BASE}/health`);
         if (res.ok) {
           const data = await res.json();
-          document.getElementById('tag-ovl').textContent = `${data.overlays ?? 0} ovl`;
+          const ovl = document.getElementById('tag-ovl');
+          if (ovl) ovl.textContent = `${data.overlays ?? 0} OVL`;
 
           const setTag = (id, active) => {
             const el = document.getElementById(id);
@@ -213,12 +214,12 @@
 
           const badge = document.getElementById('bridge-status');
           badge.textContent = 'ONLINE';
-          badge.style.color = 'var(--color-accent)';
+          badge.classList.remove('is-off');
         }
       } catch (e) {
         const badge = document.getElementById('bridge-status');
         badge.textContent = 'OFFLINE';
-        badge.style.color = 'var(--color-danger)';
+        badge.classList.add('is-off');
       }
     }
 

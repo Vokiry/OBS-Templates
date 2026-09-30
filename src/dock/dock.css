@@ -3,7 +3,7 @@ body {
   color: var(--color-text);
   font-family: var(--font-interface);
   font-size: var(--text-xs);
-  padding: 8px 10px;
+  padding: 6px 8px;
   user-select: none;
   overflow-y: auto;
   box-sizing: border-box;
@@ -12,75 +12,67 @@ body {
 .dock {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
   max-width: 440px;
   margin: 0 auto;
 }
 
-/* Header with integrated inline telemetry */
+/* Header with 2-line mini status */
 .dock__header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 4px;
+  border-bottom: var(--border-width) solid var(--color-border-faint);
+  letter-spacing: var(--letter-spacing-mono);
+}
+
+.dock__header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 4px;
-  border-bottom: var(--border-width) solid var(--color-border);
-  font-size: 10px;
-  letter-spacing: var(--letter-spacing-mono);
 }
 
 .dock__title {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: var(--text-weight-bold);
-  color: var(--color-accent);
+  color: var(--color-text);
+  letter-spacing: var(--letter-spacing-mono);
 }
 
-.dock__telemetry {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.dock__ovl {
   font-size: 10px;
   color: var(--color-muted);
 }
 
-.dock__dot {
-  display: inline-flex;
+.dock__status-bar {
+  display: flex;
   align-items: center;
-  gap: 3px;
-  color: var(--color-accent);
-}
-
-.dock__dot::before {
-  content: "";
-  width: 4px;
-  height: 4px;
-  background: currentColor;
-}
-
-.dock__sep {
-  opacity: 0.35;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: var(--text-weight-semibold);
+  letter-spacing: var(--letter-spacing-mono);
 }
 
 .dock__tag {
   color: var(--color-accent);
-  font-weight: var(--text-weight-semibold);
-  transition: color var(--anim-fast) var(--anim-ease), opacity var(--anim-fast) var(--anim-ease);
+  transition: color var(--anim-fast) var(--anim-ease);
 }
 
 .dock__tag.is-off {
-  color: var(--color-muted);
-  opacity: 0.35;
-  font-weight: var(--text-weight-normal);
+  color: var(--color-danger);
+  opacity: 0.85;
 }
 
 /* Compact Sections */
 .dock__section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   border: var(--border-width) solid var(--color-border-faint);
   background: var(--color-surface);
-  padding: 5px 6px;
+  padding: 4px 6px;
   transition: border-color var(--border-hover-transition);
 }
 
@@ -112,7 +104,7 @@ body {
 .dock__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 
 .dock__grid--3 {
@@ -128,7 +120,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 4px;
+  height: 22px;
+  padding: 0 4px;
   font-family: var(--font-interface);
   font-size: 10px;
   font-weight: var(--text-weight-medium);
@@ -163,8 +156,8 @@ body {
 }
 
 .dock__toast {
-  min-height: 14px;
-  font-size: 10px;
+  min-height: 12px;
+  font-size: 9px;
   letter-spacing: var(--letter-spacing-mono);
   color: var(--color-accent);
   text-align: center;
@@ -173,13 +166,13 @@ body {
 
 /* Minimalist Dev Link Strip */
 .dock__dev {
-  margin-top: 2px;
-  padding-top: 4px;
+  margin-top: 1px;
+  padding-top: 3px;
   border-top: 1px solid var(--color-border-faint);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 8px;
+  gap: 3px 8px;
   font-family: var(--font-interface);
   font-size: 10px;
   letter-spacing: var(--letter-spacing-mono);
