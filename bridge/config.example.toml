@@ -7,11 +7,19 @@ enabled = false
 client_id = ""
 client_secret = ""
 include_follows = false
+# Редирект URL для разовой авторизации (должен совпадать с указанным в консоли разработчика Twitch):
+redirect_url = "http://localhost:3000"
 
 # Twitch Chat (anonymous IRC connection — no OAuth token required)
 [twitch_chat]
 enabled = false
 channel = ""
+# Источник 7TV смайлов: "direct" | "mirror" | "auto"
+# "direct" - напрямую с 7tv.app / 7tv.io (быстро, рекомендуется при использовании VPN или за пределами РФ)
+# "mirror" - через зеркало JeetBot (для РФ без VPN, если 7tv заблокирован провайдером)
+# "auto"   - сначала direct, при таймауте fallback на mirror
+seven_tv_source = "direct"
+seven_tv_mirror = "https://enhanced.jeetbot.cc"
 
 # 3. ДОНАТЫ DONATIONALERTS
 [donationalerts]

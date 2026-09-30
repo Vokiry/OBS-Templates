@@ -225,8 +225,8 @@ class DonateXAdapter:
             log.info("donatex: %s from %s (%s)", target, user, amount_str)
             await self.broadcast(payload)
 
-            if youtube_id:
-                log.info("donatex: YouTube track detected: %s", youtube_id)
+            if not music_link and youtube_id:
+                log.info("donatex: ad-hoc YouTube link in donation message: %s", youtube_id)
                 await self.broadcast({
                     "type": "media_request",
                     "user": user,
@@ -234,6 +234,7 @@ class DonateXAdapter:
                     "message": message,
                     "youtubeId": youtube_id,
                     "title": "YouTube Track",
+                    "source": "donation_message",
                 })
 
     async def handle_music_message(self, msg: dict, ws) -> None:
@@ -261,12 +262,12 @@ class DonateXAdapter:
                 })
 
         elif target in ("SongSkipped", "SkipSong", "PlayNextSong"):
-            log.info("donatex: music skipped/next event: %s", target)
+            log.info("donatex: music skipped by server dashboard (%s)", target)
             await self.broadcast({
                 "type": "media_control",
                 "action": "skip",
+                "origin": "donatex_server",
             })
-            await self.skip_current_track()
 
     async def run(self) -> None:
         await asyncio.gather(
@@ -275,7 +276,17 @@ class DonateXAdapter:
         )
 
 
+active_adapter = None
+
+
+async def skip_track() -> bool:
+    if active_adapter:
+        return await active_adapter.skip_current_track()
+    return False
+
+
 async def run(config: dict, broadcast) -> None:
+    global active_adapter
     token = config.get("token") or config.get("api_key") or ""
     token = token.strip()
     if not token:
@@ -283,4 +294,8 @@ async def run(config: dict, broadcast) -> None:
         return
 
     adapter = DonateXAdapter(token, broadcast)
-    await adapter.run()
+    active_adapter = adapter
+    try:
+        await adapter.run()
+    finally:
+        active_adapter = None

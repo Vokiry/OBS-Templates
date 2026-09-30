@@ -36,6 +36,10 @@
           <span>DonationAlerts:</span>
           <span class="dock__telemetry-val" id="da-status">OFF</span>
         </div>
+        <div class="dock__telemetry-row">
+          <span>DonateX:</span>
+          <span class="dock__telemetry-val" id="donatex-status">OFF</span>
+        </div>
       </div>
     </div>
 
@@ -189,6 +193,7 @@
           document.getElementById('twitch-status').textContent = data.adapters?.twitch ? 'ON' : 'OFF';
           document.getElementById('chat-status').textContent = data.adapters?.twitch_chat ? 'ON' : 'OFF';
           document.getElementById('da-status').textContent = data.adapters?.donationalerts ? 'ON' : 'OFF';
+          document.getElementById('donatex-status').textContent = data.adapters?.donatex ? 'ON' : 'OFF';
           document.getElementById('bridge-status').textContent = 'ONLINE';
           document.getElementById('bridge-status').style.color = 'var(--color-accent)';
         }

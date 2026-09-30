@@ -5,8 +5,8 @@ from pathlib import Path
 BASE_URL = "http://localhost:8787"
 
 
-def make_uuid() -> str:
-    return str(uuid.uuid4())
+def make_uuid(key: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"SYSTEM:{key}"))
 
 
 def make_browser_source(name: str, path: str, query: str = "") -> dict:
@@ -16,7 +16,7 @@ def make_browser_source(name: str, path: str, query: str = "") -> dict:
     return {
         "prev_ver": 537001985,
         "name": name,
-        "uuid": make_uuid(),
+        "uuid": make_uuid(f"source:{name}:{path}:{query}"),
         "id": "browser_source",
         "versioned_id": "browser_source",
         "settings": {
@@ -50,7 +50,7 @@ def make_browser_source(name: str, path: str, query: str = "") -> dict:
 
 
 def make_scene(name: str, scene_sources: list) -> dict:
-    scene_uuid = make_uuid()
+    scene_uuid = make_uuid(f"scene:{name}")
     items = []
     for idx, item in enumerate(scene_sources):
         if isinstance(item, tuple):

@@ -2,6 +2,8 @@
 Thumbs.db
 *.swp
 __pycache__/
+**/__pycache__/
+*.py[cod]
 bridge/config.toml
 bridge/.venv/
 bridge/*.token

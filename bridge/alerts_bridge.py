@@ -18,22 +18,61 @@ log = logging.getLogger("bridge")
 class Broadcaster:
     def __init__(self):
         self.clients = set()
+        self.last_status = None
+        self.last_7tv_emotes = None
 
     async def attach(self, request) -> web.WebSocketResponse:
         socket = web.WebSocketResponse(heartbeat=20)
         await socket.prepare(request)
         self.clients.add(socket)
         log.info("overlay attached (%d total)", len(self.clients))
+
+        # Immediately send cached state to newly attached overlay
+        try:
+            if self.last_status:
+                await socket.send_str(base.encode(self.last_status))
+            if self.last_7tv_emotes:
+                await socket.send_str(base.encode(self.last_7tv_emotes))
+        except Exception:
+            pass
+
         try:
             async for msg in socket:
-                if msg.type == WSMsgType.ERROR:
+                if msg.type == WSMsgType.TEXT:
+                    try:
+                        data = json.loads(msg.data)
+                        if isinstance(data, dict):
+                            await self.handle_client_event(data)
+                    except Exception:
+                        pass
+                elif msg.type == WSMsgType.ERROR:
                     break
         finally:
             self.clients.discard(socket)
             log.info("overlay detached (%d total)", len(self.clients))
         return socket
 
+    async def handle_client_event(self, data: dict) -> None:
+        msg_type = data.get("type")
+        if msg_type == "media_finished":
+            log.info("media playback finished, notifying DonateX skip...")
+            from adapters import donatex
+            await donatex.skip_track()
+        elif msg_type == "media_control" and data.get("action") == "skip":
+            log.info("media skip requested by client")
+            from adapters import donatex
+            await donatex.skip_track()
+            await self.broadcast(data)
+        elif msg_type in ("status", "countdown_control", "chat_clear"):
+            await self.broadcast(data)
+
     async def broadcast(self, payload: dict) -> None:
+        msg_type = payload.get("type")
+        if msg_type == "status":
+            self.last_status = payload
+        elif msg_type == "7tv_emotes":
+            self.last_7tv_emotes = payload
+
         message = base.encode(payload)
         for socket in list(self.clients):
             try:
@@ -61,6 +100,12 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
             return web.json_response({"error": "invalid json"}, status=400)
         if not isinstance(payload, dict):
             return web.json_response({"error": "object expected"}, status=400)
+
+        # Handle media skip directly if requested
+        if payload.get("type") == "media_control" and payload.get("action") == "skip":
+            from adapters import donatex
+            await donatex.skip_track()
+
         await broadcaster.broadcast(payload)
         return web.json_response({"ok": True})
 
@@ -85,19 +130,47 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
         resolved = await resolve_drisnya_media(url)
         return web.json_response({"url": resolved}, headers={"Access-Control-Allow-Origin": "*"})
 
+    tc_cfg = config.get("twitch_chat", {})
+    tv_source = str(tc_cfg.get("seven_tv_source", "direct")).strip().lower()
+    tv_mirror = str(tc_cfg.get("seven_tv_mirror", "https://enhanced.jeetbot.cc")).strip().rstrip("/")
+
+    async def get_7tv_config(request):
+        cdn = "https://cdn.7tv.app/emote" if tv_source != "mirror" else f"{tv_mirror}/https://cdn.7tv.app/emote"
+        return web.json_response({
+            "source": tv_source,
+            "cdnBase": cdn,
+            "mirror": tv_mirror,
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
     async def proxy_7tv_global(request):
         import aiohttp
-        urls = [
-            "https://enhanced.jeetbot.cc/https://7tv.io/v3/emote-sets/global",
-            "https://7tv.io/v3/emote-sets/global",
-        ]
-        for u in urls:
+        direct_url = "https://7tv.io/v3/emote-sets/global"
+        mirror_url = f"{tv_mirror}/https://7tv.io/v3/emote-sets/global"
+
+        if tv_source == "mirror":
+            urls = [(mirror_url, f"{tv_mirror}/https://cdn.7tv.app/emote")]
+        elif tv_source == "direct":
+            urls = [(direct_url, "https://cdn.7tv.app/emote")]
+        else:  # auto
+            urls = [
+                (direct_url, "https://cdn.7tv.app/emote"),
+                (mirror_url, f"{tv_mirror}/https://cdn.7tv.app/emote"),
+            ]
+
+        for u, cdn in urls:
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as s:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.5)) as s:
                     async with s.get(u) as resp:
                         if resp.status == 200:
                             data = await resp.read()
-                            return web.Response(body=data, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"})
+                            return web.Response(
+                                body=data,
+                                content_type="application/json",
+                                headers={
+                                    "Access-Control-Allow-Origin": "*",
+                                    "X-7TV-CDN-Base": cdn,
+                                }
+                            )
             except Exception:
                 pass
         return web.json_response({"emotes": []}, headers={"Access-Control-Allow-Origin": "*"})
@@ -105,20 +178,42 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     async def proxy_7tv_channel(request):
         import aiohttp
         room_id = request.match_info["room_id"]
-        urls = [
-            f"https://enhanced.jeetbot.cc/https://7tv.io/v3/users/twitch/{room_id}",
-            f"https://7tv.io/v3/users/twitch/{room_id}",
-        ]
-        for u in urls:
+        direct_url = f"https://7tv.io/v3/users/twitch/{room_id}"
+        mirror_url = f"{tv_mirror}/https://7tv.io/v3/users/twitch/{room_id}"
+
+        if tv_source == "mirror":
+            urls = [(mirror_url, f"{tv_mirror}/https://cdn.7tv.app/emote")]
+        elif tv_source == "direct":
+            urls = [(direct_url, "https://cdn.7tv.app/emote")]
+        else:  # auto
+            urls = [
+                (direct_url, "https://cdn.7tv.app/emote"),
+                (mirror_url, f"{tv_mirror}/https://cdn.7tv.app/emote"),
+            ]
+
+        for u, cdn in urls:
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as s:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.5)) as s:
                     async with s.get(u) as resp:
                         if resp.status == 200:
                             data = await resp.read()
-                            return web.Response(body=data, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"})
+                            return web.Response(
+                                body=data,
+                                content_type="application/json",
+                                headers={
+                                    "Access-Control-Allow-Origin": "*",
+                                    "X-7TV-CDN-Base": cdn,
+                                }
+                            )
             except Exception:
                 pass
         return web.json_response({}, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def media_skip_api(request):
+        from adapters import donatex
+        skipped = await donatex.skip_track()
+        await broadcaster.broadcast({"type": "media_control", "action": "skip"})
+        return web.json_response({"ok": True, "donatex_skipped": skipped}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def da_callback(request):
         code = request.query.get("code")
@@ -182,8 +277,10 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)
     app.router.add_get("/api/resolve-media", resolve_media_api)
+    app.router.add_get("/api/7tv/config", get_7tv_config)
     app.router.add_get("/api/7tv/global", proxy_7tv_global)
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
+    app.router.add_post("/api/media/skip", media_skip_api)
     app.router.add_get("/api/da/callback", da_callback)
 
     if src_dir.exists():
@@ -203,6 +300,7 @@ def spawn_adapters(config: dict, broadcast) -> list:
     for name, (module_path, section) in sections.items():
         if not section.get("enabled"):
             continue
+        log.info("starting adapter: %s", name)
         module = __import__(module_path, fromlist=["run"])
         tasks.append(asyncio.create_task(watch(name, module.run(section, broadcast))))
     return tasks
@@ -231,6 +329,8 @@ async def main() -> None:
     host = server_cfg.get("host", "127.0.0.1")
     port = int(server_cfg.get("port", 8787))
 
+    log.info("initializing bridge on http://%s:%d...", host, port)
+
     broadcaster = Broadcaster()
     tasks = spawn_adapters(config, broadcaster.broadcast)
 
@@ -239,13 +339,20 @@ async def main() -> None:
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    log.info("listening on ws://%s:%d/events", host, port)
+    log.info("unified server ready at ws://%s:%d/events", host, port)
 
     await asyncio.gather(*tasks, asyncio.Event().wait())
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+        datefmt="%H:%M:%S"
+    )
+    # Silence repetitive HTTP polling access logs (such as GET /health every 3s)
+    logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
+
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

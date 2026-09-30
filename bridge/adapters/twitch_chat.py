@@ -10,14 +10,27 @@ log = logging.getLogger("bridge.twitch_chat")
 IRC_WS_URL = "wss://irc-ws.chat.twitch.tv:443"
 
 
-async def fetch_7tv_emotes(room_id: str) -> dict:
-    urls = [
-        f"https://enhanced.jeetbot.cc/https://7tv.io/v3/users/twitch/{room_id}",
-        f"https://7tv.io/v3/users/twitch/{room_id}",
-    ]
-    for url in urls:
+async def fetch_7tv_emotes(room_id: str, source: str = "direct", mirror: str = "https://enhanced.jeetbot.cc") -> tuple[dict, str]:
+    source = (source or "direct").lower()
+    mirror_clean = (mirror or "https://enhanced.jeetbot.cc").rstrip("/")
+    direct_api = f"https://7tv.io/v3/users/twitch/{room_id}"
+    mirror_api = f"{mirror_clean}/https://7tv.io/v3/users/twitch/{room_id}"
+    direct_cdn = "https://cdn.7tv.app/emote"
+    mirror_cdn = f"{mirror_clean}/https://cdn.7tv.app/emote"
+
+    if source == "mirror":
+        targets = [(mirror_api, mirror_cdn, "mirror")]
+    elif source == "direct":
+        targets = [(direct_api, direct_cdn, "direct")]
+    else:  # "auto"
+        targets = [
+            (direct_api, direct_cdn, "direct"),
+            (mirror_api, mirror_cdn, "mirror"),
+        ]
+
+    for url, cdn, mode in targets:
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as session:
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -26,12 +39,12 @@ async def fetch_7tv_emotes(room_id: str) -> dict:
                             name = e.get("name")
                             eid = e.get("id")
                             if name and eid:
-                                emotes[name] = f"https://enhanced.jeetbot.cc/https://cdn.7tv.app/emote/{eid}/2x.webp"
-                        log.info("loaded %d 7TV channel emotes for room %s", len(emotes), room_id)
-                        return emotes
+                                emotes[name] = f"{cdn}/{eid}/2x.webp"
+                        log.info("loaded %d 7TV channel emotes for room %s (source: %s)", len(emotes), room_id, mode)
+                        return emotes, cdn
         except Exception as e:
             log.debug("could not fetch 7TV emotes from %s: %s", url, e)
-    return {}
+    return {}, direct_cdn
 
 
 MEDIA_REGEX = re.compile(
@@ -129,10 +142,19 @@ async def run(config: dict, broadcast) -> None:
         log.warning("twitch_chat: channel is not specified in config, chat listener disabled")
         return
 
+    source = config.get("seven_tv_source", "direct")
+    mirror = config.get("seven_tv_mirror", "https://enhanced.jeetbot.cc")
+
     async def broadcast_7tv(room_id: str):
-        emotes = await fetch_7tv_emotes(room_id)
+        emotes, cdn_base = await fetch_7tv_emotes(room_id, source=source, mirror=mirror)
         if emotes:
-            await broadcast({"type": "7tv_emotes", "channel": channel, "emotes": emotes})
+            await broadcast({
+                "type": "7tv_emotes",
+                "channel": channel,
+                "roomId": room_id,
+                "cdnBase": cdn_base,
+                "emotes": emotes,
+            })
 
     while True:
         try:
