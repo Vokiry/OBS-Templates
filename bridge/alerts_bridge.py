@@ -20,6 +20,7 @@ class Broadcaster:
         self.clients = set()
         self.last_status = None
         self.last_7tv_emotes = None
+        self.last_now_playing = None
 
     async def attach(self, request) -> web.WebSocketResponse:
         socket = web.WebSocketResponse(heartbeat=20)
@@ -33,6 +34,8 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_status))
             if self.last_7tv_emotes:
                 await socket.send_str(base.encode(self.last_7tv_emotes))
+            if self.last_now_playing:
+                await socket.send_str(base.encode(self.last_now_playing))
         except Exception:
             pass
 
@@ -79,6 +82,8 @@ class Broadcaster:
             self.last_status = payload
         elif msg_type == "7tv_emotes":
             self.last_7tv_emotes = payload
+        elif msg_type == "now_playing":
+            self.last_now_playing = payload
 
         message = base.encode(payload)
         for socket in list(self.clients):
@@ -94,7 +99,7 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
 
     adapter_states = {
         name: bool(config.get(name, {}).get("enabled"))
-        for name in ("twitch", "twitch_chat", "donationalerts", "donatex")
+        for name in ("twitch", "twitch_chat", "donationalerts", "donatex", "player")
     }
 
     async def events(request):
@@ -288,6 +293,19 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
                 status=500
             )
 
+    async def player_art_api(request):
+        from adapters.player import get_current_cover_bytes, current_cover_url
+        data, mime = get_current_cover_bytes()
+        if data:
+            return web.Response(
+                body=data,
+                content_type=mime,
+                headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=5"}
+            )
+        if current_cover_url:
+            return web.HTTPFound(current_cover_url)
+        return web.Response(status=404)
+
     @web.middleware
     async def no_cache_middleware(request, handler):
         response = await handler(request)
@@ -308,6 +326,7 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
     app.router.add_post("/api/media/skip", media_skip_api)
     app.router.add_post("/api/donations/skip", donation_skip_api)
+    app.router.add_get("/api/player/art", player_art_api)
     app.router.add_get("/api/da/callback", da_callback)
 
     if src_dir.exists():
@@ -323,6 +342,7 @@ def spawn_adapters(config: dict, broadcast) -> list:
         "twitch_chat": ("adapters.twitch_chat", config.get("twitch_chat", {})),
         "donationalerts": ("adapters.donationalerts", config.get("donationalerts", {})),
         "donatex": ("adapters.donatex", config.get("donatex", {})),
+        "player": ("adapters.player", config.get("player", {})),
     }
     for name, (module_path, section) in sections.items():
         if not section.get("enabled"):

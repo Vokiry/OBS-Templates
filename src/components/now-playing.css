@@ -8,7 +8,19 @@
   border-radius: var(--radius-panel);
   font-family: var(--font-interface);
   min-width: 380px;
-  transition: border-color var(--border-hover-transition);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition:
+    opacity var(--anim-normal) var(--anim-ease),
+    transform var(--anim-normal) var(--anim-ease),
+    border-color var(--border-hover-transition);
+}
+
+.now-playing.is-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .now-playing:hover {

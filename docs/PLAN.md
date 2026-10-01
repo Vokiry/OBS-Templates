@@ -12,12 +12,12 @@
 - [x] Сцены Starting soon и Focus; мерж starting+intro в одну сцену
 - [x] Движок алертов в оверлее (очередь, ASCII-анимации, demo-режим)
 - [x] Каркас моста: WebSocket-сервер + twitch/donationalerts адаптеры
-- [ ] Плеер-адаптер: playerctl (MPRIS) → now-playing во всех сценах + LRC
+- [x] Плеер-адаптер: playerctl (MPRIS / SMTC) → now-playing во всех сценах
 - [ ] Переходы между режимами (transitions.css уже подготовлен)
-- [ ] Динамические фоны для starting / break / ending
-- [ ] DonateX-адаптер (сверить SignalR эндпоинты по api-docs)
-- [ ] ending-card как отдельный оверлей
-- [ ] Этап 5 — автоматизация сцен через OBS WebSocket (контроллер состояний)
+- [x] Динамические фоны для starting / break / ending (grid drift, ambient pulse, telemetry ticker)
+- [x] DonateX-адаптер (SignalR donations + music widget queue)
+- [x] ending-card как отдельный оверлей
+- [x] Windows миграция (start.bat, start.ps1, поддержка SMTC)
 - [ ] Этап 6 — визуальный тест на реальном эфире
 
 ## Отложенные решения

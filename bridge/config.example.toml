@@ -37,3 +37,10 @@ access_token = ""
 enabled = false
 # External token из donatex.gg -> Настройки -> Api
 token = ""
+
+# 5. ФОНОВАЯ МУЗЫКА (MPRIS / playerctl: Kopuz, Spotify, Яндекс.Музыка, Cider, браузер)
+[player]
+enabled = true
+# Имя плеера ("kopuz", "spotify", "firefox" или "" для автовыбора)
+player_name = "kopuz"
+poll_interval = 1.0

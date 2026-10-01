@@ -13,9 +13,55 @@
   <div class="hud"></div>
   <script>
     (() => {
-      const fx = new URLSearchParams(location.search).get('fx');
+      const params = new URLSearchParams(location.search);
+      const fx = params.get('fx');
       if (fx && fx !== 'off') {
         document.body.classList.add('fx--' + fx);
+      }
+
+      const explicitAnim = params.get('anim');
+      if (explicitAnim && explicitAnim !== 'off' && explicitAnim !== 'none') {
+        document.body.classList.add('anim--' + explicitAnim);
+      }
+
+      function applyStateAnim(state) {
+        if (explicitAnim) return;
+        document.body.classList.remove('anim--drift', 'anim--pulse', 'anim--matrix');
+        const s = (state || '').toLowerCase();
+        if (s === 'starting') {
+          document.body.classList.add('anim--drift', 'anim--matrix');
+        } else if (s === 'brb' || s === 'ending') {
+          document.body.classList.add('anim--pulse');
+        }
+      }
+
+      const stateParam = params.get('state');
+      if (stateParam) {
+        applyStateAnim(stateParam);
+      }
+
+      const wsParam = params.get('ws');
+      if (wsParam !== 'off' && !explicitAnim) {
+        const wsUrl = wsParam || `ws://${location.host || '127.0.0.1:8787'}/events`;
+        let retryDelay = 1000;
+        const connect = () => {
+          const socket = new WebSocket(wsUrl);
+          socket.onopen = () => { retryDelay = 1000; };
+          socket.onmessage = (msg) => {
+            try {
+              const data = JSON.parse(msg.data);
+              if (data.type === 'status' && data.state) {
+                applyStateAnim(data.state);
+              }
+            } catch (e) {}
+          };
+          socket.onclose = () => {
+            setTimeout(connect, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 10000);
+          };
+          socket.onerror = () => socket.close();
+        };
+        connect();
       }
     })();
   </script>

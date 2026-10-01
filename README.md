@@ -26,7 +26,14 @@ TUI-inspired визуальная система для стрима в стил
 ```bash
 git clone https://github.com/Vokiry/OBS-Templates.git
 cd OBS-Templates
+
+# Linux:
 ./start.sh
+# (или с автозапуском OBS Studio: ./start.sh --obs)
+
+# Windows:
+start.bat
+# (или в PowerShell: .\start.ps1)
 ```
 
 Скрипт автоматически подготовит окружение Python, создаст файл конфигурации и запустит единый сервер.
@@ -81,6 +88,11 @@ access_token = ""
 [donatex]
 enabled = false
 token = ""
+
+# 5. ФОНОВАЯ МУЗЫКА (Kopuz, Spotify, Cider, браузер)
+[player]
+enabled = true
+player_name = "kopuz"
 ```
 
 ---
