@@ -467,142 +467,6 @@
         },
         {
             "prev_ver": 537001985,
-            "name": "SYSTEM: Now Playing",
-            "uuid": "bc1a152f-b5c2-5592-a757-465af729904f",
-            "id": "browser_source",
-            "versioned_id": "browser_source",
-            "settings": {
-                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=compact&pos=top-right",
-                "width": 1920,
-                "height": 1080,
-                "fps": 60,
-                "reroute_audio": true,
-                "restart_when_active": false,
-                "shutdown": false
-            },
-            "mixers": 255,
-            "sync": 0,
-            "flags": 0,
-            "volume": 1.0,
-            "balance": 0.5,
-            "enabled": true,
-            "muted": false,
-            "push-to-mute": false,
-            "push-to-mute-delay": 0,
-            "push-to-talk": false,
-            "push-to-talk-delay": 0,
-            "hotkeys": {
-                "ObsBrowser.Refresh": []
-            },
-            "deinterlace_mode": 0,
-            "deinterlace_field_order": 0,
-            "monitoring_type": 1,
-            "private_settings": {}
-        },
-        {
-            "prev_ver": 537001985,
-            "name": "SYSTEM: Now Playing (Bottom Left)",
-            "uuid": "90510786-ea4a-5418-b9f0-95087e556347",
-            "id": "browser_source",
-            "versioned_id": "browser_source",
-            "settings": {
-                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=compact&pos=bottom-left",
-                "width": 1920,
-                "height": 1080,
-                "fps": 60,
-                "reroute_audio": true,
-                "restart_when_active": false,
-                "shutdown": false
-            },
-            "mixers": 255,
-            "sync": 0,
-            "flags": 0,
-            "volume": 1.0,
-            "balance": 0.5,
-            "enabled": true,
-            "muted": false,
-            "push-to-mute": false,
-            "push-to-mute-delay": 0,
-            "push-to-talk": false,
-            "push-to-talk-delay": 0,
-            "hotkeys": {
-                "ObsBrowser.Refresh": []
-            },
-            "deinterlace_mode": 0,
-            "deinterlace_field_order": 0,
-            "monitoring_type": 1,
-            "private_settings": {}
-        },
-        {
-            "prev_ver": 537001985,
-            "name": "SYSTEM: Now Playing (Top Left)",
-            "uuid": "8efeee2b-ade5-53ee-9de4-56a69e2da122",
-            "id": "browser_source",
-            "versioned_id": "browser_source",
-            "settings": {
-                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=compact&pos=top-left",
-                "width": 1920,
-                "height": 1080,
-                "fps": 60,
-                "reroute_audio": true,
-                "restart_when_active": false,
-                "shutdown": false
-            },
-            "mixers": 255,
-            "sync": 0,
-            "flags": 0,
-            "volume": 1.0,
-            "balance": 0.5,
-            "enabled": true,
-            "muted": false,
-            "push-to-mute": false,
-            "push-to-mute-delay": 0,
-            "push-to-talk": false,
-            "push-to-talk-delay": 0,
-            "hotkeys": {
-                "ObsBrowser.Refresh": []
-            },
-            "deinterlace_mode": 0,
-            "deinterlace_field_order": 0,
-            "monitoring_type": 1,
-            "private_settings": {}
-        },
-        {
-            "prev_ver": 537001985,
-            "name": "SYSTEM: Now Playing (Center)",
-            "uuid": "77d5a3cd-966b-54a8-ac0e-081584e34772",
-            "id": "browser_source",
-            "versioned_id": "browser_source",
-            "settings": {
-                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=compact&pos=center",
-                "width": 1920,
-                "height": 1080,
-                "fps": 60,
-                "reroute_audio": true,
-                "restart_when_active": false,
-                "shutdown": false
-            },
-            "mixers": 255,
-            "sync": 0,
-            "flags": 0,
-            "volume": 1.0,
-            "balance": 0.5,
-            "enabled": true,
-            "muted": false,
-            "push-to-mute": false,
-            "push-to-mute-delay": 0,
-            "push-to-talk": false,
-            "push-to-talk-delay": 0,
-            "hotkeys": {
-                "ObsBrowser.Refresh": []
-            },
-            "deinterlace_mode": 0,
-            "deinterlace_field_order": 0,
-            "monitoring_type": 1,
-            "private_settings": {}
-        },
-        {
-            "prev_ver": 537001985,
             "name": "SYSTEM: Countdown",
             "uuid": "7bc28853-a32a-55be-88c9-ede7c7fc9645",
             "id": "browser_source",
@@ -710,7 +574,7 @@
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
-                "id_counter": 8,
+                "id_counter": 7,
                 "custom_size": false,
                 "items": [
                     {
@@ -771,25 +635,6 @@
                         "id": 3
                     },
                     {
-                        "name": "SYSTEM: Now Playing (Bottom Left)",
-                        "source_uuid": "90510786-ea4a-5418-b9f0-95087e556347",
-                        "visible": true,
-                        "locked": true,
-                        "rot": 0.0,
-                        "pos": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "scale": {
-                            "x": 1.0,
-                            "y": 1.0
-                        },
-                        "scale_filter": "disable",
-                        "blend_method": "default",
-                        "blend_type": "normal",
-                        "id": 4
-                    },
-                    {
                         "name": "SYSTEM: Chat (Starting Soon)",
                         "source_uuid": "d050f07b-b553-5567-99f4-8b8f3027e95c",
                         "visible": true,
@@ -806,7 +651,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 5
+                        "id": 4
                     },
                     {
                         "name": "SYSTEM: Alerts",
@@ -825,7 +670,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 6
+                        "id": 5
                     },
                     {
                         "name": "SYSTEM: Media Request",
@@ -844,7 +689,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 7
+                        "id": 6
                     }
                 ]
             },
@@ -865,7 +710,7 @@
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
-                "id_counter": 7,
+                "id_counter": 6,
                 "custom_size": false,
                 "items": [
                     {
@@ -907,25 +752,6 @@
                         "id": 2
                     },
                     {
-                        "name": "SYSTEM: Now Playing",
-                        "source_uuid": "bc1a152f-b5c2-5592-a757-465af729904f",
-                        "visible": true,
-                        "locked": true,
-                        "rot": 0.0,
-                        "pos": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "scale": {
-                            "x": 1.0,
-                            "y": 1.0
-                        },
-                        "scale_filter": "disable",
-                        "blend_method": "default",
-                        "blend_type": "normal",
-                        "id": 3
-                    },
-                    {
                         "name": "SYSTEM: Chat (Main Sidebar)",
                         "source_uuid": "22184749-872e-5cac-b0a7-356c082b7eeb",
                         "visible": true,
@@ -942,7 +768,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 4
+                        "id": 3
                     },
                     {
                         "name": "SYSTEM: Alerts",
@@ -961,7 +787,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 5
+                        "id": 4
                     },
                     {
                         "name": "SYSTEM: Media Request",
@@ -980,7 +806,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 6
+                        "id": 5
                     }
                 ]
             },
@@ -1001,7 +827,7 @@
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
-                "id_counter": 7,
+                "id_counter": 6,
                 "custom_size": false,
                 "items": [
                     {
@@ -1043,25 +869,6 @@
                         "id": 2
                     },
                     {
-                        "name": "SYSTEM: Now Playing (Top Left)",
-                        "source_uuid": "8efeee2b-ade5-53ee-9de4-56a69e2da122",
-                        "visible": true,
-                        "locked": true,
-                        "rot": 0.0,
-                        "pos": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "scale": {
-                            "x": 1.0,
-                            "y": 1.0
-                        },
-                        "scale_filter": "disable",
-                        "blend_method": "default",
-                        "blend_type": "normal",
-                        "id": 3
-                    },
-                    {
                         "name": "SYSTEM: Chat",
                         "source_uuid": "5ef17f0e-255a-5b7e-bedd-0bfe21799e5d",
                         "visible": true,
@@ -1078,7 +885,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 4
+                        "id": 3
                     },
                     {
                         "name": "SYSTEM: Alerts",
@@ -1097,7 +904,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 5
+                        "id": 4
                     },
                     {
                         "name": "SYSTEM: Media Request",
@@ -1116,7 +923,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 6
+                        "id": 5
                     }
                 ]
             },
@@ -1197,7 +1004,7 @@
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
-                "id_counter": 7,
+                "id_counter": 6,
                 "custom_size": false,
                 "items": [
                     {
@@ -1239,25 +1046,6 @@
                         "id": 2
                     },
                     {
-                        "name": "SYSTEM: Now Playing (Center)",
-                        "source_uuid": "77d5a3cd-966b-54a8-ac0e-081584e34772",
-                        "visible": true,
-                        "locked": true,
-                        "rot": 0.0,
-                        "pos": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "scale": {
-                            "x": 1.0,
-                            "y": 1.0
-                        },
-                        "scale_filter": "disable",
-                        "blend_method": "default",
-                        "blend_type": "normal",
-                        "id": 3
-                    },
-                    {
                         "name": "SYSTEM: Chat",
                         "source_uuid": "5ef17f0e-255a-5b7e-bedd-0bfe21799e5d",
                         "visible": true,
@@ -1274,7 +1062,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 4
+                        "id": 3
                     },
                     {
                         "name": "SYSTEM: Alerts",
@@ -1293,7 +1081,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 5
+                        "id": 4
                     },
                     {
                         "name": "SYSTEM: Media Request",
@@ -1312,7 +1100,7 @@
                         "scale_filter": "disable",
                         "blend_method": "default",
                         "blend_type": "normal",
-                        "id": 6
+                        "id": 5
                     }
                 ]
             },

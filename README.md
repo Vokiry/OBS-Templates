@@ -88,11 +88,6 @@ access_token = ""
 [donatex]
 enabled = false
 token = ""
-
-# 5. ФОНОВАЯ МУЗЫКА (Kopuz, Spotify, Cider, браузер)
-[player]
-enabled = true
-player_name = "kopuz"
 ```
 
 ---

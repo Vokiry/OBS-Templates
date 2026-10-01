@@ -12,7 +12,6 @@
 - [x] Сцены Starting soon и Focus; мерж starting+intro в одну сцену
 - [x] Движок алертов в оверлее (очередь, ASCII-анимации, demo-режим)
 - [x] Каркас моста: WebSocket-сервер + twitch/donationalerts адаптеры
-- [x] Плеер-адаптер: playerctl (MPRIS / SMTC) → now-playing во всех сценах
 - [ ] Переходы между режимами (transitions.css уже подготовлен)
 - [x] Динамические фоны для starting / break / ending (grid drift, ambient pulse, telemetry ticker)
 - [x] DonateX-адаптер (SignalR donations + music widget queue)

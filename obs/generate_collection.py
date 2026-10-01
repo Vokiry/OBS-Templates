@@ -113,11 +113,6 @@ def build_collection() -> dict:
 
     feed_right = make_browser_source("SYSTEM: Activity Feed", "activity-feed.html", "pos=top-right")
 
-    np_compact = make_browser_source("SYSTEM: Now Playing", "now-playing.html", "variant=compact&pos=top-right")
-    np_bottom_left = make_browser_source("SYSTEM: Now Playing (Bottom Left)", "now-playing.html", "variant=compact&pos=bottom-left")
-    np_top_left = make_browser_source("SYSTEM: Now Playing (Top Left)", "now-playing.html", "variant=compact&pos=top-left")
-    np_center = make_browser_source("SYSTEM: Now Playing (Center)", "now-playing.html", "variant=compact&pos=center")
-
     countdown = make_browser_source("SYSTEM: Countdown", "countdown.html", "minutes=10&pos=center-left")
     ending_card = make_browser_source("SYSTEM: Ending Card", "ending-card.html", "pos=center")
     media_request = make_browser_source("SYSTEM: Media Request", "media-request.html", "pos=bottom-left")
@@ -126,25 +121,24 @@ def build_collection() -> dict:
         bg, alerts, pulse,
         ind_starting, ind_main, ind_chatting, ind_focus, ind_brb, ind_ending,
         chat_half, chat_main, chat_standard, (feed_right),
-        np_compact, np_bottom_left, np_top_left, np_center,
         countdown, ending_card, media_request
     ]
 
     # 2. Build Scenes (ordered layers from bottom to top)
     scene_starting = make_scene("SYSTEM: Starting Soon", [
-        bg, ind_starting, countdown, np_bottom_left, chat_half, alerts, media_request
+        bg, ind_starting, countdown, chat_half, alerts, media_request
     ])
     scene_main = make_scene("SYSTEM: Main (Gameplay)", [
-        bg, ind_main, np_compact, chat_main, alerts, media_request
+        bg, ind_main, chat_main, alerts, media_request
     ])
     scene_chatting = make_scene("SYSTEM: Chatting", [
-        bg, ind_chatting, np_top_left, chat_standard, alerts, media_request
+        bg, ind_chatting, chat_standard, alerts, media_request
     ])
     scene_focus = make_scene("SYSTEM: Focus", [
         ind_focus, alerts
     ])
     scene_break = make_scene("SYSTEM: Break (BRB)", [
-        bg, ind_brb, np_center, chat_standard, alerts, media_request
+        bg, ind_brb, chat_standard, alerts, media_request
     ])
     scene_ending = make_scene("SYSTEM: Ending", [
         bg, ind_ending, ending_card
