@@ -30,6 +30,12 @@ def normalize(payload: dict) -> dict:
         res["amount"] = str(payload["amount"])
     if "message" in payload:
         res["message"] = str(payload["message"])
+    if "voiceUrl" in payload:
+        res["voiceUrl"] = str(payload["voiceUrl"])
+    if "aiVoiceUrl" in payload:
+        res["aiVoiceUrl"] = str(payload["aiVoiceUrl"])
+    if "aiResponse" in payload:
+        res["aiResponse"] = str(payload["aiResponse"])
     return res
 
 

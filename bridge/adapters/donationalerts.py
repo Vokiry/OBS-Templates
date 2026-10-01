@@ -20,15 +20,25 @@ def normalize_donation(data: dict) -> dict:
     amount = data.get("amount") or data.get("amount_formatted") or ""
     currency = data.get("currency", "")
     message = (data.get("message") or "").strip()
+    msg_type = (data.get("message_type") or "").strip().lower()
     amount_str = f"{amount} {currency}".strip()
     body = f"{username} · {amount_str}".strip(" ·")
-    return {
+
+    voice_url = data.get("audio_url") or data.get("voice_url")
+    if not voice_url and msg_type == "audio" and message.startswith("http"):
+        voice_url = message
+
+    res = {
         "kind": "donate",
         "user": username,
         "amount": amount_str,
-        "message": message,
+        "message": message if msg_type != "audio" else "(Голосовое сообщение)",
         "body": body,
     }
+    if voice_url:
+        res["voiceUrl"] = voice_url
+        log.info("donationalerts: donation includes audio: %s", voice_url)
+    return res
 
 
 async def exchange_da_code(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:

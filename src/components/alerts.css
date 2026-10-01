@@ -113,6 +113,39 @@
   margin-top: 2px;
 }
 
+.alert__voice-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-warning);
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.alert__voice-badge::before {
+  content: "[ voice // audio ]";
+}
+
+.alert__ai {
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: rgba(99, 230, 190, 0.05);
+  border: var(--border-width) solid var(--color-border-hover);
+  border-left: 2px solid var(--color-accent);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.alert__ai-label {
+  color: var(--color-accent);
+  font-weight: var(--text-weight-semibold);
+  letter-spacing: var(--letter-spacing-mono);
+  margin-right: 4px;
+}
+
 @keyframes alert-cursor-blink {
   0%,
   49% {

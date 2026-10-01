@@ -94,6 +94,7 @@ class AlertQueue {
     const kind = this.resolveKind(event);
     this.playSound(kind);
     const timers = [];
+    const audios = [];
 
     const el = document.createElement('div');
     el.className = 'alert';
@@ -123,9 +124,93 @@ class AlertQueue {
       const msgEl = document.createElement('div');
       msgEl.className = 'alert__message';
       msgEl.textContent = event.message;
-      el.append(title, body, msgEl, progress);
+      el.append(title, body, msgEl);
     } else {
-      el.append(title, body, progress);
+      el.append(title, body);
+    }
+
+    if (event.voiceUrl) {
+      const voiceBadge = document.createElement('span');
+      voiceBadge.className = 'alert__voice-badge';
+      el.append(voiceBadge);
+    }
+
+    if (event.aiResponse) {
+      const aiEl = document.createElement('div');
+      aiEl.className = 'alert__ai';
+      const aiLabel = document.createElement('span');
+      aiLabel.className = 'alert__ai-label';
+      aiLabel.textContent = '[ ai // response ]:';
+      aiEl.append(aiLabel, document.createTextNode(' ' + event.aiResponse));
+      el.append(aiEl);
+    }
+
+    el.append(progress);
+
+    // Dynamic voice & AI audio handling
+    let voiceAudio = null;
+    let aiAudio = null;
+    let activeHoldMs = this.holdMs;
+    let dismissTimeout = null;
+
+    const scheduleDismiss = (ms) => {
+      if (dismissTimeout) clearTimeout(dismissTimeout);
+      dismissTimeout = setTimeout(() => this.dismiss(el, timers, audios), ms);
+      timers.push(dismissTimeout);
+    };
+
+    if (event.voiceUrl && this.masterVolume > 0) {
+      try {
+        voiceAudio = new Audio(event.voiceUrl);
+        voiceAudio.volume = Math.min(1, Math.max(0, this.masterVolume * 0.95));
+        audios.push(voiceAudio);
+
+        voiceAudio.addEventListener('loadedmetadata', () => {
+          if (voiceAudio.duration && isFinite(voiceAudio.duration)) {
+            const neededMs = Math.round(voiceAudio.duration * 1000) + 1200;
+            if (neededMs > activeHoldMs) {
+              activeHoldMs = neededMs;
+              scheduleDismiss(activeHoldMs);
+            }
+          }
+        });
+
+        // Start voice after initial alert sound (450ms)
+        timers.push(setTimeout(() => {
+          voiceAudio.play().catch(() => {});
+        }, 450));
+
+        voiceAudio.addEventListener('ended', () => {
+          if (aiAudio) {
+            aiAudio.play().catch(() => {});
+          } else {
+            scheduleDismiss(800);
+          }
+        });
+
+        voiceAudio.addEventListener('error', () => {
+          scheduleDismiss(this.holdMs);
+        });
+      } catch (e) {}
+    }
+
+    if (event.aiVoiceUrl && this.masterVolume > 0) {
+      try {
+        aiAudio = new Audio(event.aiVoiceUrl);
+        aiAudio.volume = Math.min(1, Math.max(0, this.masterVolume * 0.95));
+        audios.push(aiAudio);
+
+        aiAudio.addEventListener('loadedmetadata', () => {
+          if (aiAudio.duration && isFinite(aiAudio.duration)) {
+            activeHoldMs += Math.round(aiAudio.duration * 1000);
+            scheduleDismiss(activeHoldMs);
+          }
+        });
+
+        aiAudio.addEventListener('ended', () => {
+          scheduleDismiss(800);
+        });
+      } catch (e) {}
     }
 
     // Pre-populate text to measure accurate targetHeight including progress bar and title
@@ -186,19 +271,19 @@ class AlertQueue {
     } else {
       const start = performance.now();
       timers.push(setInterval(() => {
-        const left = Math.max(0, 1 - (performance.now() - start) / this.holdMs);
+        const left = Math.max(0, 1 - (performance.now() - start) / activeHoldMs);
         progress.textContent = this.bar(left);
       }, 100));
     }
 
-    timers.push(setTimeout(() => this.dismiss(el, timers), this.holdMs));
-    this.activeAlerts.push({ el, timers });
+    scheduleDismiss(activeHoldMs);
+    this.activeAlerts.push({ el, timers, audios });
   }
 
   skipCurrent() {
     if (this.activeAlerts.length > 0) {
       const target = this.activeAlerts[0];
-      this.dismiss(target.el, target.timers);
+      this.dismiss(target.el, target.timers, target.audios);
     }
   }
 
@@ -214,9 +299,16 @@ class AlertQueue {
     return '[' + BAR_FILLED.repeat(filled) + BAR_EMPTY.repeat(BAR_WIDTH - filled) + ']';
   }
 
-  dismiss(el, timers) {
+  dismiss(el, timers, audios = []) {
     this.activeAlerts = this.activeAlerts.filter(a => a.el !== el);
     timers.forEach(clearInterval);
+    if (Array.isArray(audios)) {
+      audios.forEach(a => {
+        if (a && typeof a.pause === 'function') {
+          try { a.pause(); a.currentTime = 0; } catch (e) {}
+        }
+      });
+    }
     el.style.height = el.offsetHeight + 'px';
     void el.offsetHeight;
     requestAnimationFrame(() => {

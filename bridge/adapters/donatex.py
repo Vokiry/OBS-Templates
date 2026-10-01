@@ -221,6 +221,10 @@ class DonateXAdapter:
 
             youtube_id = extract_youtube_id(music_link) or extract_youtube_id(message)
 
+            voice_file = data.get("voiceFilePath") or data.get("voice_file_path")
+            ai_voice_file = data.get("aiResponseVoiceFilePath") or data.get("ai_response_voice_file_path")
+            ai_response = data.get("aiResponse") or data.get("ai_response")
+
             payload = {
                 "type": "alert",
                 "kind": "donate",
@@ -232,6 +236,13 @@ class DonateXAdapter:
             }
             if youtube_id:
                 payload["youtubeId"] = youtube_id
+            if voice_file:
+                payload["voiceUrl"] = voice_file
+                log.info("donatex: donation includes voice audio: %s", voice_file)
+            if ai_voice_file:
+                payload["aiVoiceUrl"] = ai_voice_file
+            if ai_response:
+                payload["aiResponse"] = str(ai_response)
 
             log.info("donatex: %s from %s (%s)", target, user, amount_str)
             await self.broadcast(payload)
