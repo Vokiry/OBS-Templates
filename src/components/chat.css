@@ -174,6 +174,189 @@
   color: #c084fc;
 }
 
+/* Channel Points Reward Message */
+.chat__msg--reward {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 5px 8px;
+  background: rgba(99, 230, 190, 0.05);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  margin: 3px 0;
+}
+
+.chat__reward-header {
+  font-size: 11px;
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-accent);
+  text-transform: uppercase;
+}
+
+/* Twitch Badges */
+.chat__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.chat__badge {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  object-fit: contain;
+  border-radius: var(--radius-none, 0);
+  vertical-align: -3px;
+}
+
+/* Pinned Header Container (Polls, Predictions, Pins) */
+.chat__pinned-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.chat__pinned-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  background: rgba(21, 28, 36, 0.95);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  animation: pinned-slide-down var(--anim-normal) var(--anim-ease);
+  margin-top: 6px;
+}
+
+@keyframes pinned-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Poll Styles */
+.chat__poll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-accent);
+  text-transform: uppercase;
+}
+
+.chat__poll-timer {
+  color: var(--color-warning);
+  font-variant-numeric: tabular-nums;
+}
+
+.chat__poll-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.chat__poll-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.chat__poll-choice-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text);
+  font-size: 11px;
+}
+
+.chat__poll-bar {
+  height: 5px;
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border-faint);
+  overflow: hidden;
+}
+
+.chat__poll-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.3s ease;
+}
+
+.chat__poll-choice.is-winner .chat__poll-bar-fill {
+  background: var(--color-warning);
+}
+
+.chat__poll-choice.is-winner .chat__poll-choice-label {
+  color: var(--color-warning);
+  font-weight: var(--text-weight-bold);
+}
+
+/* Prediction Styles */
+.chat__pinned-box--prediction {
+  border-left-color: #c084fc;
+}
+
+.chat__pred-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  color: #c084fc;
+  text-transform: uppercase;
+}
+
+.chat__pred-status {
+  color: var(--color-warning);
+}
+
+.chat__pred-outcomes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.chat__pred-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  background: rgba(11, 15, 20, 0.6);
+  border: var(--border-width) solid var(--color-border-faint);
+  font-size: 11px;
+}
+
+.chat__pred-outcome--blue {
+  border-left: 2px solid #38bdf8;
+}
+
+.chat__pred-outcome--pink {
+  border-left: 2px solid #f472b6;
+}
+
+.chat__pred-outcome.is-winner {
+  border-color: var(--color-warning);
+  background: rgba(233, 177, 60, 0.12);
+}
+
 .chat__user {
   flex: 0 0 auto;
   color: var(--color-accent);

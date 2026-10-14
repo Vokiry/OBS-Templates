@@ -14,6 +14,7 @@
   <div class="overlay">
     <div class="chat">
       <div class="chat__header">chat</div>
+      <div class="chat__pinned-container" id="chat-pinned"></div>
       <div class="chat__body">
         <div class="chat__msg">
           <span class="chat__user">alice</span>
@@ -77,6 +78,21 @@
       }
     }
     refreshSeedEmotes();
+
+    const SEED_BADGES = {
+      "broadcaster/1": "https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309dcb85cc1/2",
+      "moderator/1": "https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2",
+      "vip/1": "https://static-cdn.jtvnw.net/badges/v1/b817aba4-fad8-49e2-b88a-7cc744dfa6ec/2",
+      "subscriber/0": "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4b9e6b4f5/2",
+      "subscriber/1": "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4b9e6b4f5/2",
+      "partner/1": "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/2",
+      "turbo/1": "https://static-cdn.jtvnw.net/badges/v1/bd444ec6-8794-4c9f-8640-f759d9869422/2",
+      "premium/1": "https://static-cdn.jtvnw.net/badges/v1/bbbe0db0-a598-423e-86d0-f9fb98ca1933/2",
+      "sub-gifter/1": "https://static-cdn.jtvnw.net/badges/v1/f1d2543e-a1cf-41c1-be5a-2cb79f1c7d7e/2",
+      "bits/1": "https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-245e-4f5c-add5-bdae25160bdf/2",
+      "artist-badge/1": "https://static-cdn.jtvnw.net/badges/v1/4300a897-d3c8-43e6-ac07-55e2d1eb97d1/2",
+    };
+    const badgesMap = { ...SEED_BADGES };
 
     const chatEl = document.querySelector('.chat');
     if (params.get('width') && chatEl) chatEl.style.width = params.get('width') + 'px';
@@ -242,10 +258,41 @@
         headerEl.className = 'chat__announcement-header';
         headerEl.textContent = `[ ANNOUNCE // ${user} ]`;
         msg.append(headerEl);
+      } else if (subtype === 'reward') {
+        msg.classList.add('chat__msg--reward');
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'chat__reward-header';
+        const costStr = extra.rewardCost ? ` (${extra.rewardCost} pts)` : '';
+        const titleStr = extra.rewardTitle ? `: ${extra.rewardTitle}` : '';
+        headerEl.textContent = `[ REWARD // ${user}${titleStr}${costStr} ]`;
+        msg.append(headerEl);
       } else {
         const userEl = document.createElement('span');
         userEl.className = 'chat__user';
-        userEl.textContent = user;
+
+        // Render graphical Twitch badges
+        if (extra.badges && extra.badges.length > 0) {
+          const badgesEl = document.createElement('span');
+          badgesEl.className = 'chat__badges';
+          for (const b of extra.badges) {
+            const badgeUrl = badgesMap[`${b.set}/${b.version}`] || badgesMap[`${b.set}/1`] || badgesMap[`${b.set}/0`];
+            if (badgeUrl) {
+              const img = document.createElement('img');
+              img.className = 'chat__badge';
+              img.src = badgeUrl;
+              img.alt = b.set;
+              img.title = `${b.set} (${b.version})`;
+              badgesEl.append(img);
+            }
+          }
+          if (badgesEl.childNodes.length > 0) {
+            userEl.prepend(badgesEl);
+          }
+        }
+
+        const nameNode = document.createTextNode(user);
+        userEl.append(nameNode);
         if (color) userEl.style.color = color;
         msg.append(userEl);
       }
@@ -294,6 +341,149 @@
       chatBody.scrollTop = chatBody.scrollHeight;
     }
 
+    const pinnedContainer = document.getElementById('chat-pinned');
+    let pollTimerInterval = null;
+    let pollDismissTimer = null;
+    let predDismissTimer = null;
+
+    function handlePollEvent(data) {
+      if (!pinnedContainer) return;
+      let pollBox = document.getElementById('pinned-poll');
+
+      if (data.action === 'end' || data.status === 'completed' || data.status === 'terminated') {
+        if (!pollBox) return;
+        const choicesContainer = pollBox.querySelector('.chat__poll-choices');
+        if (choicesContainer && data.choices) {
+          const maxVotes = Math.max(...data.choices.map(c => c.votes || 0));
+          choicesContainer.querySelectorAll('.chat__poll-choice').forEach((el, idx) => {
+            const ch = data.choices[idx];
+            if (ch && ch.votes === maxVotes && maxVotes > 0) {
+              el.classList.add('is-winner');
+            }
+          });
+        }
+        const timerEl = pollBox.querySelector('.chat__poll-timer');
+        if (timerEl) timerEl.textContent = '[ ENDED ]';
+        if (pollTimerInterval) {
+          clearInterval(pollTimerInterval);
+          pollTimerInterval = null;
+        }
+
+        if (pollDismissTimer) clearTimeout(pollDismissTimer);
+        pollDismissTimer = setTimeout(() => {
+          if (pollBox) pollBox.remove();
+        }, 10000);
+        return;
+      }
+
+      if (!pollBox) {
+        pollBox = document.createElement('div');
+        pollBox.id = 'pinned-poll';
+        pollBox.className = 'chat__pinned-box chat__pinned-box--poll';
+        pinnedContainer.prepend(pollBox);
+      }
+
+      const totalVotes = data.totalVotes || (data.choices ? data.choices.reduce((a, b) => a + (b.votes || 0), 0) : 0);
+      let endsTimestamp = data.endsAt ? new Date(data.endsAt).getTime() : 0;
+      function formatTimer() {
+        if (!endsTimestamp) return '';
+        const diff = Math.max(0, Math.round((endsTimestamp - Date.now()) / 1000));
+        const m = String(Math.floor(diff / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        return `[ ${m}:${s} ]`;
+      }
+
+      let choicesHtml = '';
+      (data.choices || []).forEach((c, idx) => {
+        const pct = c.percent !== undefined ? c.percent : (totalVotes > 0 ? Math.round((c.votes || 0) / totalVotes * 100) : 0);
+        choicesHtml += `
+          <div class="chat__poll-choice">
+            <div class="chat__poll-choice-label">
+              <span>${idx + 1}. ${c.title}</span>
+              <span>${pct}% (${c.votes || 0})</span>
+            </div>
+            <div class="chat__poll-bar">
+              <div class="chat__poll-bar-fill" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      pollBox.innerHTML = `
+        <div class="chat__poll-header">
+          <span class="chat__poll-title">[ POLL // ${data.title || 'Vote'} ]</span>
+          <span class="chat__poll-timer">${formatTimer()}</span>
+        </div>
+        <div class="chat__poll-choices">${choicesHtml}</div>
+      `;
+
+      if (pollTimerInterval) clearInterval(pollTimerInterval);
+      if (endsTimestamp) {
+        pollTimerInterval = setInterval(() => {
+          const tEl = pollBox.querySelector('.chat__poll-timer');
+          if (tEl) {
+            tEl.textContent = formatTimer();
+          }
+        }, 1000);
+      }
+    }
+
+    function handlePredictionEvent(data) {
+      if (!pinnedContainer) return;
+      let predBox = document.getElementById('pinned-pred');
+
+      if (data.action === 'end' || data.status === 'resolved' || data.status === 'canceled') {
+        if (!predBox) return;
+        const statusEl = predBox.querySelector('.chat__pred-status');
+        if (statusEl) statusEl.textContent = `[ ${String(data.status).toUpperCase()} ]`;
+        
+        if (data.winningOutcomeId) {
+          predBox.querySelectorAll('.chat__pred-outcome').forEach(el => {
+            if (el.dataset.id === data.winningOutcomeId) el.classList.add('is-winner');
+          });
+        }
+
+        if (predDismissTimer) clearTimeout(predDismissTimer);
+        predDismissTimer = setTimeout(() => {
+          if (predBox) predBox.remove();
+        }, 10000);
+        return;
+      }
+
+      if (!predBox) {
+        predBox = document.createElement('div');
+        predBox.id = 'pinned-pred';
+        predBox.className = 'chat__pinned-box chat__pinned-box--prediction';
+        pinnedContainer.prepend(predBox);
+      }
+
+      const totalPoints = data.totalPoints || (data.outcomes ? data.outcomes.reduce((a, b) => a + (b.points || 0), 0) : 0);
+      let outcomesHtml = '';
+      (data.outcomes || []).forEach((o, idx) => {
+        const colorClass = (o.color || (idx === 0 ? 'blue' : 'pink')).toLowerCase();
+        const pct = o.percent !== undefined ? o.percent : (totalPoints > 0 ? Math.round((o.points || 0) / totalPoints * 100) : 0);
+        outcomesHtml += `
+          <div class="chat__pred-outcome chat__pred-outcome--${colorClass}" data-id="${o.id}">
+            <div style="display:flex; justify-content:space-between; font-weight:bold;">
+              <span>${o.title}</span>
+              <span>${pct}%</span>
+            </div>
+            <div style="font-size:10px; color:var(--color-muted);">
+              ${o.points ? o.points.toLocaleString() + ' pts' : '0 pts'}
+            </div>
+          </div>
+        `;
+      });
+
+      predBox.innerHTML = `
+        <div class="chat__pred-header">
+          <span class="chat__pred-title">[ PREDICTION // ${data.title || 'Bet'} ]</span>
+          <span class="chat__pred-status">[ ${(data.status || 'ACTIVE').toUpperCase()} ]</span>
+        </div>
+        <div class="chat__pred-outcomes">${outcomesHtml}</div>
+      `;
+    }
+
     const demoMode = params.get('demo');
     if (demoMode) {
       const DEMO_CHAT = [
@@ -336,11 +526,20 @@
                 Object.assign(emotesMap, data.emotes);
                 refreshSeedEmotes();
               }
+            } else if (data.type === 'twitch_badges' && data.badges) {
+              Object.assign(badgesMap, data.badges);
+            } else if (data.type === 'poll') {
+              handlePollEvent(data);
+            } else if (data.type === 'prediction') {
+              handlePredictionEvent(data);
             } else if (data.type === 'room_info' && data.roomId) {
               loadChannelEmotes(data.roomId);
             } else if (data.type === 'chat' && data.user) {
               addMessage(data.user, data.text || '', data.color, data.emotes, data.subtype || 'message', {
-                announcementColor: data.announcementColor
+                announcementColor: data.announcementColor,
+                rewardTitle: data.rewardTitle,
+                rewardCost: data.rewardCost,
+                badges: data.badges
               });
             }
           } catch (e) {}

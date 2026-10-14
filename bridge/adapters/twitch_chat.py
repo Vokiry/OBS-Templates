@@ -83,6 +83,33 @@ async def resolve_drisnya_media(url: str) -> str:
     return url
 
 
+SEED_BADGES = {
+    "broadcaster/1": "https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309dcb85cc1/2",
+    "moderator/1": "https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2",
+    "vip/1": "https://static-cdn.jtvnw.net/badges/v1/b817aba4-fad8-49e2-b88a-7cc744dfa6ec/2",
+    "subscriber/0": "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4b9e6b4f5/2",
+    "subscriber/1": "https://static-cdn.jtvnw.net/badges/v1/5d9f2208-5dd8-11e7-8513-2ff4b9e6b4f5/2",
+    "partner/1": "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/2",
+    "turbo/1": "https://static-cdn.jtvnw.net/badges/v1/bd444ec6-8794-4c9f-8640-f759d9869422/2",
+    "premium/1": "https://static-cdn.jtvnw.net/badges/v1/bbbe0db0-a598-423e-86d0-f9fb98ca1933/2",
+    "sub-gifter/1": "https://static-cdn.jtvnw.net/badges/v1/f1d2543e-a1cf-41c1-be5a-2cb79f1c7d7e/2",
+    "sub-gift-leader/1": "https://static-cdn.jtvnw.net/badges/v1/f1d2543e-a1cf-41c1-be5a-2cb79f1c7d7e/2",
+    "bits/1": "https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-245e-4f5c-add5-bdae25160bdf/2",
+    "bits-leader/1": "https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-245e-4f5c-add5-bdae25160bdf/2",
+    "artist-badge/1": "https://static-cdn.jtvnw.net/badges/v1/4300a897-d3c8-43e6-ac07-55e2d1eb97d1/2",
+}
+
+
+def parse_badges(badges_tag: str | None) -> list[dict]:
+    badges = []
+    if badges_tag:
+        for item in badges_tag.split(","):
+            if "/" in item:
+                s, v = item.split("/", 1)
+                badges.append({"set": s, "version": v})
+    return badges
+
+
 def parse_emotes(emotes_tag: str | None) -> list[dict]:
     twitch_emotes = []
     if emotes_tag:
@@ -129,15 +156,25 @@ def parse_irc_message(line: str, channel: str) -> dict | None:
         user = tags.get("display-name") or nick
         color = tags.get("color") or None
         twitch_emotes = parse_emotes(tags.get("emotes"))
+        badges = parse_badges(tags.get("badges"))
 
-        return {
+        subtype = "message"
+        custom_reward_id = tags.get("custom-reward-id")
+        if custom_reward_id:
+            subtype = "reward"
+
+        msg_data = {
             "type": "chat",
-            "subtype": "message",
+            "subtype": subtype,
             "user": user,
             "text": text,
             "color": color,
             "emotes": twitch_emotes,
+            "badges": badges,
         }
+        if custom_reward_id:
+            msg_data["customRewardId"] = custom_reward_id
+        return msg_data
 
     # 2. Announcement via USERNOTICE
     if f"USERNOTICE #{channel}" in rest:
@@ -157,6 +194,7 @@ def parse_irc_message(line: str, channel: str) -> dict | None:
             color = tags.get("color") or None
             announcement_color = tags.get("msg-param-color", "PRIMARY").upper()
             twitch_emotes = parse_emotes(tags.get("emotes"))
+            badges = parse_badges(tags.get("badges"))
 
             return {
                 "type": "chat",
@@ -166,6 +204,7 @@ def parse_irc_message(line: str, channel: str) -> dict | None:
                 "color": color,
                 "announcementColor": announcement_color,
                 "emotes": twitch_emotes,
+                "badges": badges,
             }
 
     return None
@@ -181,6 +220,8 @@ async def run(config: dict, broadcast) -> None:
     mirror = config.get("seven_tv_mirror", "https://enhanced.jeetbot.cc")
 
     async def broadcast_7tv(room_id: str):
+        # Broadcast standard Twitch badges map so overlay has it immediately
+        await broadcast({"type": "twitch_badges", "badges": SEED_BADGES})
         emotes, cdn_base = await fetch_7tv_emotes(room_id, source=source, mirror=mirror)
         if emotes:
             await broadcast({

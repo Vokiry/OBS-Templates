@@ -20,6 +20,9 @@ class Broadcaster:
         self.clients = set()
         self.last_status = None
         self.last_7tv_emotes = None
+        self.last_twitch_badges = None
+        self.active_poll = None
+        self.active_prediction = None
 
     async def attach(self, request) -> web.WebSocketResponse:
         socket = web.WebSocketResponse(heartbeat=20)
@@ -33,6 +36,12 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_status))
             if self.last_7tv_emotes:
                 await socket.send_str(base.encode(self.last_7tv_emotes))
+            if self.last_twitch_badges:
+                await socket.send_str(base.encode(self.last_twitch_badges))
+            if self.active_poll:
+                await socket.send_str(base.encode(self.active_poll))
+            if self.active_prediction:
+                await socket.send_str(base.encode(self.active_prediction))
         except Exception:
             pass
 
@@ -73,12 +82,36 @@ class Broadcaster:
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
 
+    async def _clear_poll_delayed(self, delay: float):
+        await asyncio.sleep(delay)
+        self.active_poll = None
+
+    async def _clear_prediction_delayed(self, delay: float):
+        await asyncio.sleep(delay)
+        self.active_prediction = None
+
     async def broadcast(self, payload: dict) -> None:
         msg_type = payload.get("type")
         if msg_type == "status":
             self.last_status = payload
         elif msg_type == "7tv_emotes":
             self.last_7tv_emotes = payload
+        elif msg_type == "twitch_badges":
+            self.last_twitch_badges = payload
+        elif msg_type == "poll":
+            action = payload.get("action")
+            if action in ("begin", "progress"):
+                self.active_poll = payload
+            elif action == "end":
+                self.active_poll = payload
+                asyncio.create_task(self._clear_poll_delayed(12))
+        elif msg_type == "prediction":
+            action = payload.get("action")
+            if action in ("begin", "progress", "lock"):
+                self.active_prediction = payload
+            elif action == "end":
+                self.active_prediction = payload
+                asyncio.create_task(self._clear_prediction_delayed(12))
 
         message = base.encode(payload)
         for socket in list(self.clients):

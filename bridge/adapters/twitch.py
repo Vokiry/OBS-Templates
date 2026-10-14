@@ -20,6 +20,9 @@ async def run(config: dict, broadcast) -> None:
     scopes = [
         AuthScope.BITS_READ,
         AuthScope.CHANNEL_READ_SUBSCRIPTIONS,
+        AuthScope.CHANNEL_READ_POLLS,
+        AuthScope.CHANNEL_READ_PREDICTIONS,
+        AuthScope.CHANNEL_READ_REDEMPTIONS,
     ]
     if config.get("include_follows"):
         scopes.append(AuthScope.MODERATOR_READ_FOLLOWERS)
@@ -63,6 +66,73 @@ async def run(config: dict, broadcast) -> None:
     def follow_event(event):
         return normalize_twitch("follow", event.user_name, "")
 
+    def poll_event(kind):
+        def extractor(event):
+            choices = []
+            total_votes = sum(c.votes for c in event.choices) if event.choices else 0
+            for c in event.choices:
+                pct = round((c.votes / total_votes * 100), 1) if total_votes > 0 else 0
+                choices.append({
+                    "id": c.id,
+                    "title": c.title,
+                    "votes": c.votes,
+                    "percent": pct,
+                })
+            ends_at = event.ends_at.isoformat() if getattr(event, "ends_at", None) else None
+            status = getattr(event, "status", "active")
+            return {
+                "type": "poll",
+                "action": kind,
+                "id": event.id,
+                "title": event.title,
+                "choices": choices,
+                "totalVotes": total_votes,
+                "status": str(status).lower(),
+                "endsAt": ends_at,
+            }
+        return extractor
+
+    def prediction_event(kind):
+        def extractor(event):
+            outcomes = []
+            total_points = sum(o.channel_points for o in event.outcomes) if event.outcomes else 0
+            winning_outcome_id = getattr(event, "winning_outcome_id", None)
+            for o in event.outcomes:
+                pct = round((o.channel_points / total_points * 100), 1) if total_points > 0 else 0
+                outcomes.append({
+                    "id": o.id,
+                    "title": o.title,
+                    "color": getattr(o, "color", "blue"),
+                    "points": o.channel_points,
+                    "users": getattr(o, "users", 0),
+                    "percent": pct,
+                    "isWinner": o.id == winning_outcome_id,
+                })
+            return {
+                "type": "prediction",
+                "action": kind,
+                "id": event.id,
+                "title": event.title,
+                "status": getattr(event, "status", "active"),
+                "outcomes": outcomes,
+                "totalPoints": total_points,
+                "winningOutcomeId": winning_outcome_id,
+            }
+        return extractor
+
+    def redemption_event(event):
+        reward = getattr(event, "reward", None)
+        reward_title = getattr(reward, "title", "Награда") if reward else "Награда"
+        reward_cost = getattr(reward, "cost", 0) if reward else 0
+        return {
+            "type": "chat",
+            "subtype": "reward",
+            "user": event.user_name or event.user_login or "Viewer",
+            "rewardTitle": reward_title,
+            "rewardCost": reward_cost,
+            "text": event.user_input or "",
+        }
+
     while True:
         try:
             twitch = await Twitch(config["client_id"], config["client_secret"])
@@ -101,6 +171,29 @@ async def run(config: dict, broadcast) -> None:
                     await eventsub.listen_channel_follow_v2(user_id, user_id, make_handler("follow", follow_event))
                 except Exception as e:
                     log.warning("twitch follow listener failed: %s", e)
+
+            # 5. Polls (channel:read:polls)
+            try:
+                await eventsub.listen_channel_poll_begin(user_id, make_handler("poll_begin", poll_event("begin")))
+                await eventsub.listen_channel_poll_progress(user_id, make_handler("poll_progress", poll_event("progress")))
+                await eventsub.listen_channel_poll_end(user_id, make_handler("poll_end", poll_event("end")))
+            except Exception as e:
+                log.warning("twitch poll listeners failed (channel may not be affiliate/partner): %s", e)
+
+            # 6. Predictions (channel:read:predictions)
+            try:
+                await eventsub.listen_channel_prediction_begin(user_id, make_handler("pred_begin", prediction_event("begin")))
+                await eventsub.listen_channel_prediction_progress(user_id, make_handler("pred_prog", prediction_event("progress")))
+                await eventsub.listen_channel_prediction_lock(user_id, make_handler("pred_lock", prediction_event("lock")))
+                await eventsub.listen_channel_prediction_end(user_id, make_handler("pred_end", prediction_event("end")))
+            except Exception as e:
+                log.warning("twitch prediction listeners failed: %s", e)
+
+            # 7. Channel Points Redemptions (channel:read:redemptions)
+            try:
+                await eventsub.listen_channel_points_custom_reward_redemption_add(user_id, make_handler("redemption", redemption_event))
+            except Exception as e:
+                log.warning("twitch redemption listener failed: %s", e)
 
             log.info("twitch eventsub active")
             while True:
