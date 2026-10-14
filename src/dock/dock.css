@@ -216,3 +216,16 @@ body {
 .dock__dev-btn:hover u {
   text-decoration-color: var(--color-accent);
 }
+
+.dock__config-link {
+  font-family: var(--font-interface);
+  font-size: 10px;
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color var(--anim-fast);
+}
+
+.dock__config-link:hover {
+  color: var(--color-accent);
+}

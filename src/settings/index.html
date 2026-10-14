@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM // Configuration</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="settings-page">
+    <!-- Header -->
+    <header class="settings-header">
+      <div class="settings-header__title">SYSTEM // CONFIGURATION</div>
+      <div class="settings-header__actions">
+        <a href="/dock" target="_blank" class="settings-link">[ OBS DOCK ]</a>
+        <span class="settings-link" id="server-status" style="color: var(--color-accent);">[ SERVER ONLINE ]</span>
+      </div>
+    </header>
+
+    <!-- Module 1: Twitch Chat & 7TV -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 01 // TWITCH CHAT & 7TV ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-chat-toggle" onclick="toggleModule('chat')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="chat-channel">Twitch Channel</label>
+          <input type="text" id="chat-channel" class="form-input" placeholder="vokkiry">
+          <span class="form-hint">Логин твоего канала Twitch строчными буквами</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="chat-7tv-source">7TV Emotes Source</label>
+          <select id="chat-7tv-source" class="form-select">
+            <option value="direct">Direct (7tv.io & cdn.7tv.app — рекомендуется с VPN)</option>
+            <option value="auto">Auto (Direct с fallback на зеркало при сбое)</option>
+            <option value="mirror">Mirror (Через зеркало JeetBot — для РФ без VPN)</option>
+          </select>
+          <span class="form-hint">Откуда загружать смайлы 7TV</span>
+        </div>
+      </div>
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label class="form-label" for="chat-7tv-mirror">7TV Mirror URL</label>
+          <input type="text" id="chat-7tv-mirror" class="form-input" placeholder="https://enhanced.jeetbot.cc">
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 2: Twitch Events -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 02 // TWITCH EVENTS & SUBS ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-twitch-toggle" onclick="toggleModule('twitch')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="twitch-client-id">Client ID</label>
+          <input type="text" id="twitch-client-id" class="form-input" placeholder="Client ID из dev.twitch.tv">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="twitch-client-secret">Client Secret</label>
+          <div class="form-input-wrap">
+            <input type="password" id="twitch-client-secret" class="form-input" placeholder="Секрет приложения">
+            <button type="button" class="peek-btn" onclick="togglePeek('twitch-client-secret')">SHOW</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 6px;">
+          <input type="checkbox" id="twitch-follows" style="accent-color: var(--color-accent); cursor: pointer;">
+          <label class="form-label" for="twitch-follows" style="cursor: pointer; text-transform: none;">
+            Включить алерты на новые фолловы (Follow Alerts)
+          </label>
+        </div>
+        <div class="form-group" style="align-items: flex-end; justify-content: center;">
+          <span class="btn-action btn-auth-ok" id="twitch-auth-status">[ АВТОРИЗОВАН ]</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 3: DonationAlerts -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 03 // DONATIONALERTS ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-da-toggle" onclick="toggleModule('da')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="da-client-id">DA Client ID</label>
+          <input type="text" id="da-client-id" class="form-input" placeholder="21416">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="da-client-secret">DA Client Secret / Token</label>
+          <div class="form-input-wrap">
+            <input type="password" id="da-client-secret" class="form-input" placeholder="Secret ключ приложения">
+            <button type="button" class="peek-btn" onclick="togglePeek('da-client-secret')">SHOW</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="da-access-token">Manual Access Token (опционально)</label>
+          <div class="form-input-wrap">
+            <input type="password" id="da-access-token" class="form-input" placeholder="Оставьте пустым при использовании Client ID & Secret">
+            <button type="button" class="peek-btn" onclick="togglePeek('da-access-token')">SHOW</button>
+          </div>
+        </div>
+        <div class="form-group" style="align-items: flex-end; justify-content: center;">
+          <button type="button" class="btn-action" id="btn-da-connect" onclick="connectDonationAlerts()">[ ПОДКЛЮЧИТЬ DONATIONALERTS ]</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 4: DonateX -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 04 // DONATEX (ДОНАТЫ И ЗАКАЗ ТРЕКОВ) ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-dx-toggle" onclick="toggleModule('dx')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label class="form-label" for="dx-token">External Token</label>
+          <div class="form-input-wrap">
+            <input type="password" id="dx-token" class="form-input" placeholder="Вставьте токен из donatex.gg -> Settings -> Api">
+            <button type="button" class="peek-btn" onclick="togglePeek('dx-token')">SHOW</button>
+          </div>
+          <span class="form-hint">Бессрочный ключ из настроек API в личном кабинете DonateX</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 5: Alert Sound Files Selection -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 05 // ЗВУКИ ОПОВЕЩЕНИЙ (ALERT AUDIO FILES) ]</span>
+      </div>
+      <span class="form-hint">Выберите файл из папки src/sounds/ для каждого типа события:</span>
+
+      <div class="sounds-grid">
+        <div class="sound-row">
+          <span class="sound-label">Donate</span>
+          <select class="sound-select" id="snd-donate"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-donate')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Sub</span>
+          <select class="sound-select" id="snd-sub"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-sub')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Resub</span>
+          <select class="sound-select" id="snd-resub"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-resub')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Gift</span>
+          <select class="sound-select" id="snd-gift"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-gift')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Raid</span>
+          <select class="sound-select" id="snd-raid"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-raid')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Cheer</span>
+          <select class="sound-select" id="snd-cheer"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-cheer')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Follow</span>
+          <select class="sound-select" id="snd-follow"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-follow')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Default</span>
+          <select class="sound-select" id="snd-default"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-default')">PLAY</button>
+        </div>
+      </div>
+
+      <!-- Upload Custom Sound File -->
+      <div class="upload-box">
+        <div class="upload-box__info">
+          <span>Добавить новый звук (.wav, .mp3, .ogg):</span>
+        </div>
+        <div>
+          <input type="file" id="sound-upload-input" accept=".wav,.mp3,.ogg,.flac" style="display:none;" onchange="handleSoundUpload(this)">
+          <button type="button" class="btn-action" onclick="document.getElementById('sound-upload-input').click()">[ + ВЫБРАТЬ ФАЙЛ ]</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sticky Bottom Save Bar -->
+    <div class="save-bar">
+      <div class="save-bar__inner">
+        <button type="button" class="save-btn" onclick="saveConfiguration()">СОХРАНИТЬ НАСТРОЙКИ</button>
+        <span class="save-status" id="save-status"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let configData = {};
+    let availableSoundFiles = [];
+    let currentPreviewAudio = null;
+
+    // Module toggles
+    const modules = {
+      chat: true,
+      twitch: true,
+      da: true,
+      dx: true
+    };
+
+    function setToggleState(id, isActive) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.textContent = isActive ? 'ON' : 'OFF';
+      btn.classList.toggle('is-active', !!isActive);
+    }
+
+    function toggleModule(mod) {
+      modules[mod] = !modules[mod];
+      const map = {
+        chat: 'btn-chat-toggle',
+        twitch: 'btn-twitch-toggle',
+        da: 'btn-da-toggle',
+        dx: 'btn-dx-toggle'
+      };
+      setToggleState(map[mod], modules[mod]);
+    }
+
+    function togglePeek(inputId) {
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      const isPwd = el.type === 'password';
+      el.type = isPwd ? 'text' : 'password';
+      const btn = el.parentElement ? el.parentElement.querySelector('.peek-btn') : null;
+      if (btn) btn.textContent = isPwd ? 'HIDE' : 'SHOW';
+    }
+
+    function populateSelect(selectId, files, selectedVal) {
+      const el = document.getElementById(selectId);
+      if (!el) return;
+      el.innerHTML = '';
+      files.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        if (f === selectedVal) opt.selected = true;
+        el.appendChild(opt);
+      });
+    }
+
+    function testSound(selectId) {
+      const el = document.getElementById(selectId);
+      if (!el || !el.value) return;
+      if (currentPreviewAudio) {
+        currentPreviewAudio.pause();
+        currentPreviewAudio.currentTime = 0;
+      }
+      currentPreviewAudio = new Audio(`../sounds/${encodeURIComponent(el.value)}`);
+      currentPreviewAudio.play().catch(e => console.warn('Preview error:', e));
+    }
+
+    async function handleSoundUpload(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      showStatus(`Загрузка ${file.name}...`);
+      try {
+        const res = await fetch(`${API_BASE}/api/sounds/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok && data.filename) {
+          showStatus(`[ Файл ${data.filename} успешно добавлен! ]`);
+          if (!availableSoundFiles.includes(data.filename)) {
+            availableSoundFiles.push(data.filename);
+            availableSoundFiles.sort();
+          }
+          // Refresh all selects
+          const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
+          soundTypes.forEach(t => {
+            const sel = document.getElementById(`snd-${t}`);
+            const curVal = sel ? sel.value : null;
+            populateSelect(`snd-${t}`, availableSoundFiles, curVal);
+          });
+        } else {
+          showStatus(`[ Ошибка загрузки: ${data.error || 'неизвестно'} ]`);
+        }
+      } catch (e) {
+        showStatus('[ Ошибка сети при загрузке файла ]');
+      }
+      input.value = '';
+    }
+
+    async function connectDonationAlerts() {
+      try {
+        const res = await fetch(`${API_BASE}/api/da/auth-url`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) {
+            window.open(data.url, '_blank');
+          }
+        }
+      } catch (e) {
+        showStatus('[ Ошибка получения ссылки DonationAlerts ]');
+      }
+    }
+
+    function showStatus(text) {
+      const el = document.getElementById('save-status');
+      if (!el) return;
+      el.textContent = text;
+      el.style.opacity = '1';
+      setTimeout(() => {
+        if (el.textContent === text) {
+          el.style.opacity = '0';
+        }
+      }, 3500);
+    }
+
+    async function loadConfig() {
+      try {
+        const res = await fetch(`${API_BASE}/api/config`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        configData = data.config || {};
+        const sounds = data.sounds || {};
+        availableSoundFiles = sounds.available_files || [];
+        const mapping = sounds.mapping || {};
+
+        // 1. Chat
+        const tc = configData.twitch_chat || {};
+        modules.chat = tc.enabled !== false;
+        setToggleState('btn-chat-toggle', modules.chat);
+        document.getElementById('chat-channel').value = tc.channel || '';
+        document.getElementById('chat-7tv-source').value = tc.seven_tv_source || 'direct';
+        document.getElementById('chat-7tv-mirror').value = tc.seven_tv_mirror || 'https://enhanced.jeetbot.cc';
+
+        // 2. Twitch Events
+        const tw = configData.twitch || {};
+        modules.twitch = tw.enabled !== false;
+        setToggleState('btn-twitch-toggle', modules.twitch);
+        document.getElementById('twitch-client-id').value = tw.client_id || '';
+        document.getElementById('twitch-client-secret').value = tw.client_secret || '';
+        document.getElementById('twitch-follows').checked = !!tw.include_follows;
+
+        const twAuthStatus = document.getElementById('twitch-auth-status');
+        if (data.auth?.twitch) {
+          twAuthStatus.textContent = '[ АВТОРИЗОВАН ]';
+          twAuthStatus.classList.add('btn-auth-ok');
+        } else {
+          twAuthStatus.textContent = '[ ТРЕБУЕТСЯ АВТОРИЗАЦИЯ ]';
+          twAuthStatus.classList.remove('btn-auth-ok');
+        }
+
+        // 3. DonationAlerts
+        const da = configData.donationalerts || {};
+        modules.da = da.enabled !== false;
+        setToggleState('btn-da-toggle', modules.da);
+        document.getElementById('da-client-id').value = da.client_id || '';
+        document.getElementById('da-client-secret').value = da.client_secret || '';
+        document.getElementById('da-access-token').value = da.access_token || '';
+
+        // 4. DonateX
+        const dx = configData.donatex || {};
+        modules.dx = dx.enabled !== false;
+        setToggleState('btn-dx-toggle', modules.dx);
+        document.getElementById('dx-token').value = dx.token || '';
+
+        // 5. Sounds Mapping
+        const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
+        soundTypes.forEach(t => {
+          populateSelect(`snd-${t}`, availableSoundFiles, mapping[t]);
+        });
+
+      } catch (e) {
+        showStatus('[ Ошибка загрузки конфигурации ]');
+        console.error('Config load failed:', e);
+      }
+    }
+
+    async function saveConfiguration() {
+      showStatus('Сохранение настроек...');
+      const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
+      const soundMapping = {};
+      soundTypes.forEach(t => {
+        const sel = document.getElementById(`snd-${t}`);
+        if (sel && sel.value) soundMapping[t] = sel.value;
+      });
+
+      const payload = {
+        server: {
+          host: configData.server?.host || '127.0.0.1',
+          port: configData.server?.port || 8787
+        },
+        twitch_chat: {
+          enabled: modules.chat,
+          channel: document.getElementById('chat-channel').value.trim(),
+          seven_tv_source: document.getElementById('chat-7tv-source').value,
+          seven_tv_mirror: document.getElementById('chat-7tv-mirror').value.trim()
+        },
+        twitch: {
+          enabled: modules.twitch,
+          client_id: document.getElementById('twitch-client-id').value.trim(),
+          client_secret: document.getElementById('twitch-client-secret').value.trim(),
+          include_follows: document.getElementById('twitch-follows').checked,
+          redirect_url: configData.twitch?.redirect_url || 'http://localhost:3000'
+        },
+        donationalerts: {
+          enabled: modules.da,
+          client_id: document.getElementById('da-client-id').value.trim(),
+          client_secret: document.getElementById('da-client-secret').value.trim(),
+          access_token: document.getElementById('da-access-token').value.trim()
+        },
+        donatex: {
+          enabled: modules.dx,
+          token: document.getElementById('dx-token').value.trim()
+        },
+        sounds: {
+          mapping: soundMapping
+        }
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showStatus('[ НАСТРОЙКИ УСПЕШНО СОХРАНЕНЫ ]');
+        } else {
+          showStatus(`[ Ошибка сохранения: ${data.error || 'неизвестно'} ]`);
+        }
+      } catch (e) {
+        showStatus('[ Ошибка сети при сохранении ]');
+        console.error('Save failed:', e);
+      }
+    }
+
+    loadConfig();
+  </script>
+</body>
+</html>

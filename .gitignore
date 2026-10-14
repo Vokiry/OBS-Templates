@@ -11,3 +11,5 @@ bridge/.*token*
 bridge/.*cache*
 .twitch*
 bridge/.twitch*
+*.bak
+bridge/*.bak

@@ -1,3 +1,4 @@
+import re
 import asyncio
 import argparse
 import json
@@ -121,6 +122,87 @@ class Broadcaster:
                 self.clients.discard(socket)
 
 
+
+def serialize_toml(cfg: dict) -> str:
+    lines = [
+        "[server]",
+        f'host = "{cfg.get("server", {}).get("host", "127.0.0.1")}"',
+        f'port = {int(cfg.get("server", {}).get("port", 8787))}',
+        "",
+        "[twitch]",
+        f'enabled = {str(cfg.get("twitch", {}).get("enabled", False)).lower()}',
+        f'client_id = "{cfg.get("twitch", {}).get("client_id", "")}"',
+        f'client_secret = "{cfg.get("twitch", {}).get("client_secret", "")}"',
+        f'include_follows = {str(cfg.get("twitch", {}).get("include_follows", False)).lower()}',
+        f'redirect_url = "{cfg.get("twitch", {}).get("redirect_url", "http://localhost:3000")}"',
+        "",
+        "[twitch_chat]",
+        f'enabled = {str(cfg.get("twitch_chat", {}).get("enabled", False)).lower()}',
+        f'channel = "{cfg.get("twitch_chat", {}).get("channel", "")}"',
+        f'seven_tv_source = "{cfg.get("twitch_chat", {}).get("seven_tv_source", "direct")}"',
+        f'seven_tv_mirror = "{cfg.get("twitch_chat", {}).get("seven_tv_mirror", "https://enhanced.jeetbot.cc")}"',
+        "",
+        "[donationalerts]",
+        f'enabled = {str(cfg.get("donationalerts", {}).get("enabled", False)).lower()}',
+        f'client_id = "{cfg.get("donationalerts", {}).get("client_id", "")}"',
+        f'client_secret = "{cfg.get("donationalerts", {}).get("client_secret", "")}"',
+        f'access_token = "{cfg.get("donationalerts", {}).get("access_token", "")}"',
+        "",
+        "[donatex]",
+        f'enabled = {str(cfg.get("donatex", {}).get("enabled", False)).lower()}',
+        f'token = "{cfg.get("donatex", {}).get("token", "")}"',
+        ""
+    ]
+    return "\n".join(lines)
+
+
+def get_sounds_catalog(src_dir: Path) -> dict:
+    sounds_dir = src_dir / "sounds"
+    audio_exts = {".wav", ".mp3", ".ogg", ".flac"}
+    available_files = []
+    if sounds_dir.exists():
+        available_files = sorted([f.name for f in sounds_dir.iterdir() if f.suffix.lower() in audio_exts])
+
+    mapping = {
+        "donate": "donate.wav",
+        "sub": "sub.wav",
+        "resub": "sub.wav",
+        "gift": "sub.wav",
+        "raid": "raid.wav",
+        "cheer": "cheer.wav",
+        "follow": "follow.wav",
+        "default": "default.wav",
+    }
+    sounds_json_path = sounds_dir / "sounds.json"
+    if sounds_json_path.exists():
+        try:
+            raw = json.loads(sounds_json_path.read_text("utf-8"))
+            for k, v in raw.get("sounds", {}).items():
+                f = v.get("file", "")
+                if "/" in f:
+                    f = f.split("/")[-1]
+                mapping[k] = f
+        except Exception:
+            pass
+
+    return {
+        "available_files": available_files,
+        "mapping": mapping,
+    }
+
+
+def save_sounds_catalog(src_dir: Path, mapping: dict) -> None:
+    sounds_dir = src_dir / "sounds"
+    sounds_json_path = sounds_dir / "sounds.json"
+    data = {
+        "masterVolume": 0.7,
+        "sounds": {
+            k: {"file": f"../sounds/{fname}", "volume": 0.8}
+            for k, fname in mapping.items()
+        }
+    }
+    sounds_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), "utf-8")
+
 def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     project_root = Path(__file__).parent.parent
     src_dir = project_root / "src"
@@ -162,6 +244,107 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
 
     async def root_redirect(request):
         return web.HTTPFound("/dock")
+
+    async def settings_redirect(request):
+        return web.HTTPFound("/src/settings/index.html")
+
+    async def get_config_api(request):
+        project_root = Path(__file__).parent.parent
+        src_dir = project_root / "src"
+        sounds_info = get_sounds_catalog(src_dir)
+
+        # Check auth tokens
+        has_twitch_token = (project_root / "bridge" / ".twitch_token.json").exists()
+        has_da_token = (project_root / "bridge" / ".da_token.json").exists()
+
+        return web.json_response({
+            "config": config,
+            "sounds": sounds_info,
+            "auth": {
+                "twitch": has_twitch_token,
+                "donationalerts": has_da_token,
+            }
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def save_config_api(request):
+        project_root = Path(__file__).parent.parent
+        src_dir = project_root / "src"
+        config_path = project_root / "bridge" / "config.toml"
+        backup_path = project_root / "bridge" / "config.toml.bak"
+
+        try:
+            payload = await request.json()
+        except Exception:
+            return web.json_response({"error": "invalid json"}, status=400)
+
+        # 1. Update config dict
+        if "server" in payload:
+            config.setdefault("server", {}).update(payload["server"])
+        if "twitch" in payload:
+            config.setdefault("twitch", {}).update(payload["twitch"])
+        if "twitch_chat" in payload:
+            config.setdefault("twitch_chat", {}).update(payload["twitch_chat"])
+        if "donationalerts" in payload:
+            config.setdefault("donationalerts", {}).update(payload["donationalerts"])
+        if "donatex" in payload:
+            config.setdefault("donatex", {}).update(payload["donatex"])
+
+        # Backup existing config
+        if config_path.exists():
+            backup_path.write_bytes(config_path.read_bytes())
+
+        # Write clean TOML
+        toml_str = serialize_toml(config)
+        config_path.write_text(toml_str, encoding="utf-8")
+
+        # 2. Save sound mappings if provided
+        if "sounds" in payload and "mapping" in payload["sounds"]:
+            save_sounds_catalog(src_dir, payload["sounds"]["mapping"])
+
+        log.info("configuration saved via web settings panel")
+        return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def upload_sound_api(request):
+        project_root = Path(__file__).parent.parent
+        sounds_dir = project_root / "src" / "sounds"
+        reader = await request.multipart()
+        field = await reader.next()
+        if not field or not field.filename:
+            return web.json_response({"error": "no file uploaded"}, status=400)
+
+        raw_filename = field.filename
+        ext = Path(raw_filename).suffix.lower()
+        if ext not in {".wav", ".mp3", ".ogg", ".flac"}:
+            return web.json_response({"error": "unsupported audio format (use .wav, .mp3, .ogg)"}, status=400)
+
+        # Sanitize filename
+        safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", raw_filename)
+        dest = sounds_dir / safe_name
+        size = 0
+        with open(dest, "wb") as f:
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > 15 * 1024 * 1024:  # 15MB limit
+                    dest.unlink(missing_ok=True)
+                    return web.json_response({"error": "file exceeds 15MB limit"}, status=400)
+                f.write(chunk)
+
+        log.info("uploaded new sound file: %s (%d bytes)", safe_name, size)
+        return web.json_response({"ok": True, "filename": safe_name}, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def get_da_auth_url(request):
+        da_cfg = config.get("donationalerts", {})
+        cid = str(da_cfg.get("client_id", "")).strip()
+        redirect_uri = "http://localhost:8787/api/da/callback"
+        url = (
+            f"https://www.donationalerts.com/oauth/authorize?"
+            f"client_id={cid}&redirect_uri={redirect_uri}&response_type=code&"
+            f"scope=oauth-user-show%20oauth-donation-subscribe"
+        )
+        return web.json_response({"url": url}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def dock_redirect(request):
         return web.HTTPFound("/src/dock/index.html")
@@ -337,6 +520,11 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     app = web.Application(middlewares=[no_cache_middleware])
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
+    app.router.add_get("/settings", settings_redirect)
+    app.router.add_get("/api/config", get_config_api)
+    app.router.add_post("/api/config", save_config_api)
+    app.router.add_post("/api/sounds/upload", upload_sound_api)
+    app.router.add_get("/api/da/auth-url", get_da_auth_url)
     app.router.add_get("/events", events)
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)
