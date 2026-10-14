@@ -159,6 +159,16 @@
     }
     loadGlobalEmotes();
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     async function loadChannelEmotes(roomId) {
       if (!roomId) return;
       const urls = [
@@ -412,7 +422,7 @@
         choicesHtml += `
           <div class="chat__poll-choice">
             <div class="chat__poll-choice-label">
-              <span>${idx + 1}. ${c.title}</span>
+              <span>${idx + 1}. ${escapeHtml(c.title)}</span>
               <span>${pct}% (${c.votes || 0})</span>
             </div>
             <div class="chat__poll-bar">
@@ -424,7 +434,7 @@
 
       pollBox.innerHTML = `
         <div class="chat__poll-header">
-          <span class="chat__poll-title">[ POLL // ${data.title || 'Vote'} ]</span>
+          <span class="chat__poll-title">[ POLL // ${escapeHtml(data.title || 'Vote')} ]</span>
           <span class="chat__poll-timer">${formatTimer()}</span>
         </div>
         <div class="chat__poll-choices">${choicesHtml}</div>
@@ -478,7 +488,7 @@
         outcomesHtml += `
           <div class="chat__pred-outcome chat__pred-outcome--${colorClass}" data-id="${o.id}">
             <div style="display:flex; justify-content:space-between; font-weight:bold;">
-              <span>${o.title}</span>
+              <span>${escapeHtml(o.title)}</span>
               <span>${pct}%</span>
             </div>
             <div style="font-size:10px; color:var(--color-muted);">
@@ -490,7 +500,7 @@
 
       predBox.innerHTML = `
         <div class="chat__pred-header">
-          <span class="chat__pred-title">[ PREDICTION // ${data.title || 'Bet'} ]</span>
+          <span class="chat__pred-title">[ PREDICTION // ${escapeHtml(data.title || 'Bet')} ]</span>
           <span class="chat__pred-status">[ ${(data.status || 'ACTIVE').toUpperCase()} ]</span>
         </div>
         <div class="chat__pred-outcomes">${outcomesHtml}</div>
