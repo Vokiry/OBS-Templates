@@ -8,4 +8,6 @@ bridge/config.toml
 bridge/.venv/
 bridge/*.token
 bridge/.*token*
+bridge/.*cache*
 .twitch*
+bridge/.twitch*

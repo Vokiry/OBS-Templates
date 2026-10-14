@@ -107,6 +107,19 @@
       }
     }
 
+    let hasLoadedTwitchBadges = false;
+    async function loadTwitchBadges() {
+      try {
+        const resp = await fetch('/api/twitch/badges');
+        if (resp.ok) {
+          const data = await resp.json();
+          Object.assign(badgesMap, data);
+          hasLoadedTwitchBadges = true;
+        }
+      } catch (e) {}
+    }
+    loadTwitchBadges();
+
     let hasLoadedGlobalEmotes = false;
     async function loadGlobalEmotes() {
       try {
@@ -487,17 +500,17 @@
     const demoMode = params.get('demo');
     if (demoMode) {
       const DEMO_CHAT = [
-        ['alice', 'lets goooo! RainTime Kappa'],
-        ['bob', 'look at this https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif LUL'],
-        ['carol', 'hype for the stream! PogChamp'],
-        ['dave', 'greetings from berlin'],
-        ['erin', 'system24 aesthetic is amazing VoHiYo'],
+        ['vokiry', 'welcome everyone to the stream! RainTime', '#63E6BE', [], 'message', { badges: [{ set: 'broadcaster', version: '1' }, { set: 'elden-ring-recluse', version: '1' }] }],
+        ['alice', 'hey chat! PogChamp', '#38BDF8', [], 'message', { badges: [{ set: 'moderator', version: '1' }] }],
+        ['bob', 'look at this https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif LUL', '#F472B6', [], 'message', { badges: [{ set: 'vip', version: '1' }, { set: 'subscriber', version: '12' }] }],
+        ['carol', 'hype for the stream! KEKW', '#A78BFA', [], 'message', { badges: [{ set: 'fallout-season-2-ghoul', version: '1' }] }],
+        ['dave', 'greetings from berlin', '#E8EEF2', [], 'message', { badges: [{ set: 'borderlands-4-badge---vault-symbol', version: '1' }] }],
       ];
       let i = 0;
       setInterval(() => {
-        const [u, t] = DEMO_CHAT[i % DEMO_CHAT.length];
+        const item = DEMO_CHAT[i % DEMO_CHAT.length];
         i++;
-        addMessage(u, t);
+        addMessage(item[0], item[1], item[2], item[3], item[4], item[5]);
       }, 3500);
     }
 
@@ -511,6 +524,9 @@
           retryDelay = 1000;
           if (!hasLoadedGlobalEmotes) {
             loadGlobalEmotes();
+          }
+          if (!hasLoadedTwitchBadges) {
+            loadTwitchBadges();
           }
         };
         socket.onmessage = (msg) => {

@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+from pathlib import Path
 import random
 import re
 import aiohttp
@@ -98,6 +100,75 @@ SEED_BADGES = {
     "bits-leader/1": "https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-245e-4f5c-add5-bdae25160bdf/2",
     "artist-badge/1": "https://static-cdn.jtvnw.net/badges/v1/4300a897-d3c8-43e6-ac07-55e2d1eb97d1/2",
 }
+
+
+BADGES_CACHE_FILE = Path(__file__).parent.parent / ".twitch_badges_cache.json"
+cached_badge_map = dict(SEED_BADGES)
+
+if BADGES_CACHE_FILE.exists():
+    try:
+        loaded_cached = json.loads(BADGES_CACHE_FILE.read_text("utf-8"))
+        cached_badge_map.update(loaded_cached)
+    except Exception:
+        pass
+
+
+def get_cached_badges() -> dict:
+    return cached_badge_map
+
+
+async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", room_id: str | None = None) -> dict:
+    global cached_badge_map
+
+    if not client_id or not client_secret:
+        return cached_badge_map
+
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+            # 1. Get Twitch App Access Token
+            token_url = f"https://id.twitch.tv/oauth2/token?client_id={client_id}&client_secret={client_secret}&grant_type=client_credentials"
+            async with session.post(token_url) as r:
+                if r.status != 200:
+                    return cached_badge_map
+                app_token = (await r.json()).get("access_token")
+
+            if not app_token:
+                return cached_badge_map
+
+            headers = {"Client-Id": client_id, "Authorization": f"Bearer {app_token}"}
+
+            # 2. Fetch ALL global chat badges (Staff, Admin, VIP, Founder, partner, and EVERY drop / event badge)
+            async with session.get("https://api.twitch.tv/helix/chat/badges/global", headers=headers) as r:
+                if r.status == 200:
+                    global_data = await r.json()
+                    for b in global_data.get("data", []):
+                        set_id = b.get("set_id")
+                        for v in b.get("versions", []):
+                            v_id = v.get("id")
+                            img_url = v.get("image_url_2x") or v.get("image_url_1x") or v.get("image_url_4x")
+                            if set_id and v_id and img_url:
+                                cached_badge_map[f"{set_id}/{v_id}"] = img_url
+                    log.info("loaded %d Twitch global badge versions from Helix API", len(cached_badge_map))
+
+            # 3. Fetch channel-specific badges if room_id is known (subscriber tiers, bits, etc.)
+            if room_id:
+                async with session.get(f"https://api.twitch.tv/helix/chat/badges?broadcaster_id={room_id}", headers=headers) as r:
+                    if r.status == 200:
+                        chan_data = await r.json()
+                        for b in chan_data.get("data", []):
+                            set_id = b.get("set_id")
+                            for v in b.get("versions", []):
+                                v_id = v.get("id")
+                                img_url = v.get("image_url_2x") or v.get("image_url_1x") or v.get("image_url_4x")
+                                if set_id and v_id and img_url:
+                                    cached_badge_map[f"{set_id}/{v_id}"] = img_url
+                        log.info("loaded channel badges for room %s", room_id)
+
+            BADGES_CACHE_FILE.write_text(json.dumps(cached_badge_map), "utf-8")
+    except Exception as e:
+        log.debug("could not fetch Twitch badges from Helix: %s", e)
+
+    return cached_badge_map
 
 
 def parse_badges(badges_tag: str | None) -> list[dict]:
@@ -218,10 +289,17 @@ async def run(config: dict, broadcast) -> None:
 
     source = config.get("seven_tv_source", "direct")
     mirror = config.get("seven_tv_mirror", "https://enhanced.jeetbot.cc")
+    client_id = config.get("client_id", "")
+    client_secret = config.get("client_secret", "")
 
-    async def broadcast_7tv(room_id: str):
-        # Broadcast standard Twitch badges map so overlay has it immediately
-        await broadcast({"type": "twitch_badges", "badges": SEED_BADGES})
+    # Preload and broadcast all global badges (including all game drops and event badges)
+    all_badges = await fetch_all_twitch_badges(client_id, client_secret)
+    await broadcast({"type": "twitch_badges", "badges": all_badges})
+
+    async def broadcast_badges_and_7tv(room_id: str):
+        # Fetch channel-specific badges (subscriber tiers, bits, etc.)
+        badges = await fetch_all_twitch_badges(client_id, client_secret, room_id)
+        await broadcast({"type": "twitch_badges", "badges": badges})
         emotes, cdn_base = await fetch_7tv_emotes(room_id, source=source, mirror=mirror)
         if emotes:
             await broadcast({
@@ -257,7 +335,7 @@ async def run(config: dict, broadcast) -> None:
                                     try:
                                         val = item.split("room-id=")[1].split()[0]
                                         room_id_fetched = True
-                                        asyncio.create_task(broadcast_7tv(val))
+                                        asyncio.create_task(broadcast_badges_and_7tv(val))
                                     except Exception:
                                         pass
                                     break

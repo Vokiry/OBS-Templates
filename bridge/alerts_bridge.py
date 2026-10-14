@@ -321,6 +321,11 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
                 status=500
             )
 
+    async def get_twitch_badges(request):
+        from adapters.twitch_chat import get_cached_badges
+        badges = get_cached_badges()
+        return web.json_response(badges, headers={"Access-Control-Allow-Origin": "*"})
+
     @web.middleware
     async def no_cache_middleware(request, handler):
         response = await handler(request)
@@ -341,6 +346,7 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
     app.router.add_post("/api/media/skip", media_skip_api)
     app.router.add_post("/api/donations/skip", donation_skip_api)
+    app.router.add_get("/api/twitch/badges", get_twitch_badges)
     app.router.add_get("/api/da/callback", da_callback)
 
     if src_dir.exists():
@@ -351,9 +357,15 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
 
 def spawn_adapters(config: dict, broadcast) -> list:
     tasks = []
+    tc_cfg = dict(config.get("twitch_chat", {}))
+    tw_cfg = config.get("twitch", {})
+    if tw_cfg.get("client_id") and not tc_cfg.get("client_id"):
+        tc_cfg["client_id"] = tw_cfg["client_id"]
+        tc_cfg["client_secret"] = tw_cfg.get("client_secret", "")
+
     sections = {
         "twitch": ("adapters.twitch", config.get("twitch", {})),
-        "twitch_chat": ("adapters.twitch_chat", config.get("twitch_chat", {})),
+        "twitch_chat": ("adapters.twitch_chat", tc_cfg),
         "donationalerts": ("adapters.donationalerts", config.get("donationalerts", {})),
         "donatex": ("adapters.donatex", config.get("donatex", {})),
     }
