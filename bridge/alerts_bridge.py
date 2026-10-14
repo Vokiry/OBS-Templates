@@ -203,7 +203,7 @@ def save_sounds_catalog(src_dir: Path, mapping: dict) -> None:
     }
     sounds_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), "utf-8")
 
-def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
+def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = False) -> web.Application:
     project_root = Path(__file__).parent.parent
     src_dir = project_root / "src"
 
@@ -240,6 +240,7 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
             "status": "running",
             "overlays": len(broadcaster.clients),
             "adapters": adapter_states,
+            "settings_enabled": enable_settings,
         })
 
     async def root_redirect(request):
@@ -520,11 +521,12 @@ def build_app(broadcaster: Broadcaster, config: dict) -> web.Application:
     app = web.Application(middlewares=[no_cache_middleware])
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
-    app.router.add_get("/settings", settings_redirect)
-    app.router.add_get("/api/config", get_config_api)
-    app.router.add_post("/api/config", save_config_api)
-    app.router.add_post("/api/sounds/upload", upload_sound_api)
-    app.router.add_get("/api/da/auth-url", get_da_auth_url)
+    if enable_settings:
+        app.router.add_get("/settings", settings_redirect)
+        app.router.add_get("/api/config", get_config_api)
+        app.router.add_post("/api/config", save_config_api)
+        app.router.add_post("/api/sounds/upload", upload_sound_api)
+        app.router.add_get("/api/da/auth-url", get_da_auth_url)
     app.router.add_get("/events", events)
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)
@@ -576,6 +578,7 @@ async def watch(name: str, coro) -> None:
 async def main() -> None:
     parser = argparse.ArgumentParser(description="SYSTEM alerts bridge")
     parser.add_argument("--config", default=str(Path(__file__).parent / "config.toml"))
+    parser.add_argument("--settings", action="store_true", help="Enable web settings panel and configuration API")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -594,7 +597,11 @@ async def main() -> None:
     broadcaster = Broadcaster()
     tasks = spawn_adapters(config, broadcaster.broadcast)
 
-    app = build_app(broadcaster, config)
+    app = build_app(broadcaster, config, enable_settings=args.settings)
+    if args.settings:
+        log.info("SETTINGS MODE ACTIVE: web dashboard at http://%s:%d/settings", host, port)
+    else:
+        log.info("STREAM MODE ACTIVE: lightweight broadcast server (use --settings to configure)")
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)

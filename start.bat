@@ -62,4 +62,4 @@ echo ==================================================
 echo [*] Starting SYSTEM server... (Press Ctrl+C to stop)
 echo.
 
-bridge\.venv\Scripts\python.exe bridge\alerts_bridge.py
+bridge\.venv\Scripts\python.exe bridge\alerts_bridge.py %*

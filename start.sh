@@ -6,6 +6,7 @@ cd "$DIR"
 
 LAUNCH_OBS=false
 RESET_SCENES=false
+ENABLE_SETTINGS=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -15,6 +16,9 @@ for arg in "$@"; do
     --reset-scenes)
       RESET_SCENES=true
       ;;
+    --settings)
+      ENABLE_SETTINGS=true
+      ;;
     -h|--help)
       echo "SYSTEM Broadcast Templates — Launcher"
       echo ""
@@ -22,6 +26,7 @@ for arg in "$@"; do
       echo ""
       echo "Options:"
       echo "  --obs           Start OBS Studio (with QT_QPA_PLATFORM=xcb) once bridge is ready"
+      echo "  --settings      Launch web configuration panel at http://localhost:8787/settings"
       echo "  --reset-scenes  Force restore OBS scenes from template (backs up existing SYSTEM.json)"
       echo "  -h, --help      Show this help message"
       exit 0
@@ -79,6 +84,9 @@ echo ""
 echo "  [✓] Unified Server:   http://localhost:8787/"
 echo "  [✓] Control Dock:     http://localhost:8787/dock"
 echo "  [✓] Event WebSocket:  ws://localhost:8787/events"
+if [ "$ENABLE_SETTINGS" = true ]; then
+  echo "  [✓] Settings Panel:   http://localhost:8787/settings"
+fi
 echo ""
 echo "  [!] In OBS Studio:"
 echo "      1. Scene Collection -> select 'SYSTEM Broadcast Templates'"
@@ -89,7 +97,9 @@ echo "=================================================="
 
 if [ "$LAUNCH_OBS" = true ]; then
   echo "[*] Starting SYSTEM server in background..."
-  ./bridge/.venv/bin/python bridge/alerts_bridge.py &
+  EXTRA_FLAGS=()
+  if [ "$ENABLE_SETTINGS" = true ]; then EXTRA_FLAGS+=("--settings"); fi
+  ./bridge/.venv/bin/python bridge/alerts_bridge.py "${EXTRA_FLAGS[@]}" &
   SERVER_PID=$!
 
   cleanup() {
@@ -127,5 +137,7 @@ if [ "$LAUNCH_OBS" = true ]; then
 else
   echo "[*] Starting SYSTEM server... (Press Ctrl+C to stop, or pass --obs to launch OBS)"
   echo ""
-  exec ./bridge/.venv/bin/python bridge/alerts_bridge.py
+  EXTRA_FLAGS=()
+  if [ "$ENABLE_SETTINGS" = true ]; then EXTRA_FLAGS+=("--settings"); fi
+  exec ./bridge/.venv/bin/python bridge/alerts_bridge.py "${EXTRA_FLAGS[@]}"
 fi

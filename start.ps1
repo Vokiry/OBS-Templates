@@ -54,4 +54,4 @@ Write-Host "==================================================" -ForegroundColor
 Write-Host "[*] Starting SYSTEM server... (Press Ctrl+C to stop)"
 Write-Host ""
 
-& $VenvPython "bridge\alerts_bridge.py"
+& $VenvPython "bridge\alerts_bridge.py" $args
