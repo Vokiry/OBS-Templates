@@ -449,7 +449,7 @@
         });
         const data = await res.json();
         if (res.ok && data.ok) {
-          showStatus('[ НАСТРОЙКИ УСПЕШНО СОХРАНЕНЫ ]');
+          showStatus('[ НАСТРОЙКИ СОХРАНЕНЫ // Перезапустите сервер для обновления адаптеров ]');
         } else {
           showStatus(`[ Ошибка сохранения: ${data.error || 'неизвестно'} ]`);
         }

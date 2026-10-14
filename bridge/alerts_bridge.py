@@ -123,34 +123,40 @@ class Broadcaster:
 
 
 
+def toml_escape(val) -> str:
+    if val is None:
+        return ""
+    return str(val).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "").replace("\r", "")
+
+
 def serialize_toml(cfg: dict) -> str:
     lines = [
         "[server]",
-        f'host = "{cfg.get("server", {}).get("host", "127.0.0.1")}"',
+        f'host = "{toml_escape(cfg.get("server", {}).get("host", "127.0.0.1"))}"',
         f'port = {int(cfg.get("server", {}).get("port", 8787))}',
         "",
         "[twitch]",
         f'enabled = {str(cfg.get("twitch", {}).get("enabled", False)).lower()}',
-        f'client_id = "{cfg.get("twitch", {}).get("client_id", "")}"',
-        f'client_secret = "{cfg.get("twitch", {}).get("client_secret", "")}"',
+        f'client_id = "{toml_escape(cfg.get("twitch", {}).get("client_id", ""))}"',
+        f'client_secret = "{toml_escape(cfg.get("twitch", {}).get("client_secret", ""))}"',
         f'include_follows = {str(cfg.get("twitch", {}).get("include_follows", False)).lower()}',
-        f'redirect_url = "{cfg.get("twitch", {}).get("redirect_url", "http://localhost:3000")}"',
+        f'redirect_url = "{toml_escape(cfg.get("twitch", {}).get("redirect_url", "http://localhost:3000"))}"',
         "",
         "[twitch_chat]",
         f'enabled = {str(cfg.get("twitch_chat", {}).get("enabled", False)).lower()}',
-        f'channel = "{cfg.get("twitch_chat", {}).get("channel", "")}"',
-        f'seven_tv_source = "{cfg.get("twitch_chat", {}).get("seven_tv_source", "direct")}"',
-        f'seven_tv_mirror = "{cfg.get("twitch_chat", {}).get("seven_tv_mirror", "https://enhanced.jeetbot.cc")}"',
+        f'channel = "{toml_escape(cfg.get("twitch_chat", {}).get("channel", ""))}"',
+        f'seven_tv_source = "{toml_escape(cfg.get("twitch_chat", {}).get("seven_tv_source", "direct"))}"',
+        f'seven_tv_mirror = "{toml_escape(cfg.get("twitch_chat", {}).get("seven_tv_mirror", "https://enhanced.jeetbot.cc"))}"',
         "",
         "[donationalerts]",
         f'enabled = {str(cfg.get("donationalerts", {}).get("enabled", False)).lower()}',
-        f'client_id = "{cfg.get("donationalerts", {}).get("client_id", "")}"',
-        f'client_secret = "{cfg.get("donationalerts", {}).get("client_secret", "")}"',
-        f'access_token = "{cfg.get("donationalerts", {}).get("access_token", "")}"',
+        f'client_id = "{toml_escape(cfg.get("donationalerts", {}).get("client_id", ""))}"',
+        f'client_secret = "{toml_escape(cfg.get("donationalerts", {}).get("client_secret", ""))}"',
+        f'access_token = "{toml_escape(cfg.get("donationalerts", {}).get("access_token", ""))}"',
         "",
         "[donatex]",
         f'enabled = {str(cfg.get("donatex", {}).get("enabled", False)).lower()}',
-        f'token = "{cfg.get("donatex", {}).get("token", "")}"',
+        f'token = "{toml_escape(cfg.get("donatex", {}).get("token", ""))}"',
         ""
     ]
     return "\n".join(lines)
@@ -318,10 +324,14 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         if ext not in {".wav", ".mp3", ".ogg", ".flac"}:
             return web.json_response({"error": "unsupported audio format (use .wav, .mp3, .ogg)"}, status=400)
 
-        # Sanitize filename
-        safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", raw_filename)
+        # Sanitize filename against path traversal
+        clean_name = Path(raw_filename).name
+        safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", clean_name)
+        if not safe_name.strip("._"):
+            safe_name = f"sound_{int(time.time())}{ext}"
         dest = sounds_dir / safe_name
         size = 0
+        exceeded = False
         with open(dest, "wb") as f:
             while True:
                 chunk = await field.read_chunk()
@@ -329,9 +339,13 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
                     break
                 size += len(chunk)
                 if size > 15 * 1024 * 1024:  # 15MB limit
-                    dest.unlink(missing_ok=True)
-                    return web.json_response({"error": "file exceeds 15MB limit"}, status=400)
+                    exceeded = True
+                    break
                 f.write(chunk)
+
+        if exceeded:
+            dest.unlink(missing_ok=True)
+            return web.json_response({"error": "file exceeds 15MB limit"}, status=400)
 
         log.info("uploaded new sound file: %s (%d bytes)", safe_name, size)
         return web.json_response({"ok": True, "filename": safe_name}, headers={"Access-Control-Allow-Origin": "*"})
