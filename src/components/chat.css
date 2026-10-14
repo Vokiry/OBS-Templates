@@ -114,6 +114,66 @@
   background-color: rgba(232, 238, 242, 0.04);
 }
 
+/* Announcement Messages (/announce) */
+.chat__msg--announcement {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(21, 28, 36, 0.75);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  margin: 4px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.chat__announcement-header {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-accent);
+  text-transform: uppercase;
+}
+
+/* Color variations from Twitch announcement API: PRIMARY, BLUE, GREEN, ORANGE, PURPLE */
+.chat__msg--announcement[data-color="primary"],
+.chat__msg--announcement:not([data-color]) {
+  border-left-color: var(--color-accent);
+}
+.chat__msg--announcement[data-color="primary"] .chat__announcement-header {
+  color: var(--color-accent);
+}
+
+.chat__msg--announcement[data-color="blue"] {
+  border-left-color: #38bdf8;
+}
+.chat__msg--announcement[data-color="blue"] .chat__announcement-header {
+  color: #38bdf8;
+}
+
+.chat__msg--announcement[data-color="green"] {
+  border-left-color: #4ade80;
+}
+.chat__msg--announcement[data-color="green"] .chat__announcement-header {
+  color: #4ade80;
+}
+
+.chat__msg--announcement[data-color="orange"] {
+  border-left-color: var(--color-warning);
+}
+.chat__msg--announcement[data-color="orange"] .chat__announcement-header {
+  color: var(--color-warning);
+}
+
+.chat__msg--announcement[data-color="purple"] {
+  border-left-color: #c084fc;
+}
+.chat__msg--announcement[data-color="purple"] .chat__announcement-header {
+  color: #c084fc;
+}
+
 .chat__user {
   flex: 0 0 auto;
   color: var(--color-accent);

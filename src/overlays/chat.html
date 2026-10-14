@@ -220,7 +220,7 @@
       return htmlParts.join('');
     }
 
-    async function addMessage(user, rawText, color, twitchEmotes = []) {
+    async function addMessage(user, rawText, color, twitchEmotes = [], subtype = 'message', extra = {}) {
       if (!chatBody) return;
       if (!hasLiveMessage) {
         chatBody.innerHTML = '';
@@ -233,10 +233,22 @@
       const msg = document.createElement('div');
       msg.className = 'chat__msg';
 
-      const userEl = document.createElement('span');
-      userEl.className = 'chat__user';
-      userEl.textContent = user;
-      if (color) userEl.style.color = color;
+      if (subtype === 'announcement') {
+        msg.classList.add('chat__msg--announcement');
+        const annColor = (extra.announcementColor || 'primary').toLowerCase();
+        msg.dataset.color = annColor;
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'chat__announcement-header';
+        headerEl.textContent = `[ ANNOUNCE // ${user} ]`;
+        msg.append(headerEl);
+      } else {
+        const userEl = document.createElement('span');
+        userEl.className = 'chat__user';
+        userEl.textContent = user;
+        if (color) userEl.style.color = color;
+        msg.append(userEl);
+      }
 
       const contentEl = document.createElement('div');
       contentEl.className = 'chat__content';
@@ -327,7 +339,9 @@
             } else if (data.type === 'room_info' && data.roomId) {
               loadChannelEmotes(data.roomId);
             } else if (data.type === 'chat' && data.user) {
-              addMessage(data.user, data.text || '', data.color, data.emotes);
+              addMessage(data.user, data.text || '', data.color, data.emotes, data.subtype || 'message', {
+                announcementColor: data.announcementColor
+              });
             }
           } catch (e) {}
         };

@@ -83,33 +83,8 @@ async def resolve_drisnya_media(url: str) -> str:
     return url
 
 
-def parse_privmsg(line: str, channel: str) -> dict | None:
-    if f"PRIVMSG #{channel}" not in line:
-        return None
-    tags = {}
-    if line.startswith("@"):
-        try:
-            tag_str, rest = line[1:].split(" ", 1)
-            for pair in tag_str.split(";"):
-                if "=" in pair:
-                    k, v = pair.split("=", 1)
-                    tags[k] = v
-        except ValueError:
-            rest = line
-    else:
-        rest = line
-
-    parts = rest.split(f"PRIVMSG #{channel} :", 1)
-    if len(parts) < 2:
-        return None
-    text = parts[1].rstrip("\r\n")
-    prefix = parts[0].strip()
-    nick = prefix.split("!")[0].lstrip(":")
-    user = tags.get("display-name") or nick
-    color = tags.get("color") or None
-
+def parse_emotes(emotes_tag: str | None) -> list[dict]:
     twitch_emotes = []
-    emotes_tag = tags.get("emotes")
     if emotes_tag:
         for group in emotes_tag.split("/"):
             if ":" in group:
@@ -126,14 +101,74 @@ def parse_privmsg(line: str, channel: str) -> dict | None:
                             })
                         except ValueError:
                             pass
+    return twitch_emotes
 
-    return {
-        "type": "chat",
-        "user": user,
-        "text": text,
-        "color": color,
-        "emotes": twitch_emotes,
-    }
+
+def parse_irc_message(line: str, channel: str) -> dict | None:
+    tags = {}
+    rest = line
+    if line.startswith("@"):
+        try:
+            tag_str, rest = line[1:].split(" ", 1)
+            for pair in tag_str.split(";"):
+                if "=" in pair:
+                    k, v = pair.split("=", 1)
+                    v = v.replace(r"\s", " ").replace(r"\:", ";").replace(r"\r", "\r").replace(r"\n", "\n").replace(r"\\", "\\")
+                    tags[k] = v
+        except ValueError:
+            rest = line
+
+    # 1. Standard Chat PRIVMSG
+    if f"PRIVMSG #{channel}" in rest:
+        parts = rest.split(f"PRIVMSG #{channel} :", 1)
+        if len(parts) < 2:
+            return None
+        text = parts[1].rstrip("\r\n")
+        prefix = parts[0].strip()
+        nick = prefix.split("!")[0].lstrip(":")
+        user = tags.get("display-name") or nick
+        color = tags.get("color") or None
+        twitch_emotes = parse_emotes(tags.get("emotes"))
+
+        return {
+            "type": "chat",
+            "subtype": "message",
+            "user": user,
+            "text": text,
+            "color": color,
+            "emotes": twitch_emotes,
+        }
+
+    # 2. Announcement via USERNOTICE
+    if f"USERNOTICE #{channel}" in rest:
+        msg_id = tags.get("msg-id", "").lower()
+        if msg_id == "announcement":
+            parts = rest.split(f"USERNOTICE #{channel}", 1)
+            after = parts[1].strip()
+            text = ""
+            if after.startswith(":"):
+                text = after[1:].rstrip("\r\n")
+            elif " :" in after:
+                text = after.split(" :", 1)[1].rstrip("\r\n")
+
+            prefix = parts[0].strip()
+            nick = prefix.split("!")[0].lstrip(":") if "!" in prefix else tags.get("login", "")
+            user = tags.get("display-name") or nick or "announcement"
+            color = tags.get("color") or None
+            announcement_color = tags.get("msg-param-color", "PRIMARY").upper()
+            twitch_emotes = parse_emotes(tags.get("emotes"))
+
+            return {
+                "type": "chat",
+                "subtype": "announcement",
+                "user": user,
+                "text": text,
+                "color": color,
+                "announcementColor": announcement_color,
+                "emotes": twitch_emotes,
+            }
+
+    return None
 
 
 async def run(config: dict, broadcast) -> None:
@@ -185,7 +220,7 @@ async def run(config: dict, broadcast) -> None:
                                     except Exception:
                                         pass
                                     break
-                        msg = parse_privmsg(line, channel)
+                        msg = parse_irc_message(line, channel)
                         if msg:
                             m_match = MEDIA_REGEX.search(msg["text"])
                             if m_match:

@@ -86,6 +86,7 @@
       <button class="dock__dev-btn" onclick="sendAlert('cheer', 'erin · 500 bits')"><u>cheer</u></button>
       <button class="dock__dev-btn" onclick="sendAlert('follow', 'frank connected')"><u>follow</u></button>
       <button class="dock__dev-btn" onclick="sendYouTubeTest()"><u>yt</u></button>
+      <button class="dock__dev-btn" onclick="sendAnnouncement('Streamer', 'Important announcement for chat!', 'PRIMARY')"><u>ann</u></button>
       <button class="dock__dev-btn" onclick="sendChat('Viewer', 'RainTime vibes!', '#63E6BE')"><u>7tv</u></button>
       <button class="dock__dev-btn" onclick="sendChat('MediaUser', 'meme https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif')"><u>gif</u></button>
     </footer>
@@ -191,6 +192,16 @@
 
     function sendChat(user, text, color) {
       sendNotify({ type: 'chat', user, text, color });
+    }
+
+    function sendAnnouncement(user, text, color = 'PRIMARY') {
+      sendNotify({
+        type: 'chat',
+        subtype: 'announcement',
+        user: user,
+        text: text,
+        announcementColor: color
+      });
     }
 
     async function pollHealth() {
