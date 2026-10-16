@@ -106,8 +106,8 @@
   padding: 2px 4px;
   border-radius: var(--radius-none, 0);
   font-family: var(--font-chat);
-  font-size: 14.5px;
-  line-height: 1.28;
+  font-size: 16px;
+  line-height: 1.3;
   transition: background-color var(--anim-fast) var(--anim-ease);
 }
 
@@ -205,12 +205,12 @@
 }
 
 .chat__badge {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   display: inline-block;
   object-fit: contain;
   border-radius: var(--radius-none, 0);
-  vertical-align: -2.5px;
+  vertical-align: -3px;
 }
 
 /* Pinned Header Container (Polls, Predictions, Pins) */
@@ -361,8 +361,8 @@
 .chat__user {
   flex: 0 0 auto;
   font-family: var(--font-chat);
-  font-size: 14.5px;
-  line-height: 1.28;
+  font-size: 16px;
+  line-height: 1.3;
   font-weight: 600;
   color: var(--color-accent);
 }
@@ -392,17 +392,17 @@
 
 .chat__text {
   font-family: var(--font-chat);
-  font-size: 14.5px;
-  line-height: 1.28;
+  font-size: 16px;
+  line-height: 1.3;
   color: var(--color-text);
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
 .chat__emote {
-  height: 23px;
-  max-width: 52px;
-  vertical-align: -3px;
+  height: 25px;
+  max-width: 54px;
+  vertical-align: -4px;
   display: inline-block;
   margin: 0 2px;
   object-fit: contain;
