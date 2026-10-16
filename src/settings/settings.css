@@ -1,3 +1,12 @@
+html,
+body {
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--color-base);
   color: var(--color-text);
@@ -6,6 +15,26 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  user-select: text;
+}
+
+/* Sleek Terminal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-faint);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
 }
 
 .settings-page {
