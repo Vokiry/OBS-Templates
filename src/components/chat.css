@@ -83,8 +83,8 @@
 .chat__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: 3px;
+  padding: var(--space-2) var(--space-3);
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
@@ -102,11 +102,12 @@
 .chat__msg {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
-  padding: 4px 6px;
+  gap: 6px;
+  padding: 2px 4px;
   border-radius: var(--radius-none, 0);
-  font-size: 16px;
-  line-height: 1.45;
+  font-family: var(--font-chat);
+  font-size: 14.5px;
+  line-height: 1.28;
   transition: background-color var(--anim-fast) var(--anim-ease);
 }
 
@@ -204,12 +205,12 @@
 }
 
 .chat__badge {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   display: inline-block;
   object-fit: contain;
   border-radius: var(--radius-none, 0);
-  vertical-align: -3px;
+  vertical-align: -2.5px;
 }
 
 /* Pinned Header Container (Polls, Predictions, Pins) */
@@ -359,8 +360,11 @@
 
 .chat__user {
   flex: 0 0 auto;
+  font-family: var(--font-chat);
+  font-size: 14.5px;
+  line-height: 1.28;
+  font-weight: 600;
   color: var(--color-accent);
-  font-weight: var(--text-weight-semibold);
 }
 
 .chat__user::before {
@@ -387,16 +391,18 @@
 }
 
 .chat__text {
+  font-family: var(--font-chat);
+  font-size: 14.5px;
+  line-height: 1.28;
   color: var(--color-text);
   word-break: break-word;
   overflow-wrap: anywhere;
-  line-height: 1.45;
 }
 
 .chat__emote {
-  height: 26px;
-  max-width: 56px;
-  vertical-align: -5px;
+  height: 23px;
+  max-width: 52px;
+  vertical-align: -3px;
   display: inline-block;
   margin: 0 2px;
   object-fit: contain;
