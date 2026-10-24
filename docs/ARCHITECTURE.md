@@ -11,14 +11,16 @@ obs-templates/
 ├── src/
 │   ├── tokens/          # Дизайн-токены (цвет, типографика, геометрия system24)
 │   ├── base/            # Базовые стили: fonts / reset / overlay / typography
-│   ├── components/      # Визуальные модули (chat, alerts, countdown и др.)
-│   ├── overlays/        # Прозрачные browser sources (1920×1080) для OBS
-│   ├── dock/            # Встроенная OBS док-панель управления
+│   ├── components/      # Визуальные модули (chat, alerts, countdown, background)
+│   ├── overlays/        # Прозрачные browser sources (1920×1080) для OBS Studio
+│   ├── dock/            # Встроенная OBS док-панель управления (Stream Mode)
+│   ├── settings/        # Веб-панель конфигурации и аудиофайлов (Config Mode)
 │   ├── sounds/          # Локальные аудиофайлы и sounds.json
-│   └── fonts/           # Локальные woff2 шрифты (IBM Plex Mono, Space Grotesk)
-├── bridge/              # Локальный асинхронный мост событий (Python, aiohttp)
+│   └── fonts/           # Локальные woff2 шрифты (IBM Plex Sans, IBM Plex Mono, Space Grotesk)
+├── bridge/              # Локальный асинхронный мост событий (Python, aiohttp, websockets)
 │   ├── alerts_bridge.py # HTTP сервер + WebSocket broadcaster
-│   └── adapters/        # Адаптеры внешних сервисов (Twitch, Chat, DA, DonateX)
+│   ├── config.toml      # Локальная конфигурация пользователя
+│   └── adapters/        # Адаптеры внешних сервисов (Twitch, Twitch Chat, DA, DonateX)
 ├── obs/                 # Генератор и коллекции сцен для импорта в OBS Studio
 └── docs/                # Внутренняя документация проекта
 ```
@@ -27,12 +29,24 @@ obs-templates/
 
 ## 2. Единый сервер (`alerts_bridge.py`)
 
-Демон моста объединяет раздачу статических файлов и вещание событий в реальном времени на едином порту (`8787` по умолчанию):
+Демон моста объединяет раздачу статических файлов и вещание событий в реальном времени на едином порту (`8787` по умолчанию) и работает в двух режимах:
 
-- **`/`** — автоматический редирект на панель управления (`/dock`).
+### Режимы работы:
+- **Stream Mode (по умолчанию)**: чистый сервер прямого эфира. В памяти работают только оверлеи, WebSocket-шина и док-панель. Нагрузка на память и CPU сведена к абсолютному минимуму.
+- **Config Mode (`--settings`)**: режим настройки стрима до эфира. Дополнительно монтирует веб-панель `/settings` и API безопасного изменения конфигурационных файлов.
+
+### Маршруты HTTP:
+- **`/`** — автоматический редирект на пульт управления (`/dock`).
 - **`/dock`** — веб-интерфейс панели управления для Custom Browser Docks в OBS.
-- **`/src/...`** — раздача оверлеев, стилей, компонентов и медиа.
-- **`/events`** — WebSocket-шина (`ws://127.0.0.1:8787/events`). Поддерживает многопоточную рассылку подключённым оверлеям.
+- **`/settings`** — графическая веб-панель настроек (доступна при запуске с флагом `--settings`).
+- **`/src/...`** — раздача оверлеев, стилей, компонентов, локальных шрифтов и звуков.
+- **`/events`** — WebSocket-шина (`ws://127.0.0.1:8787/events`). Поддерживает многопоточную рассылку и кэширование состояний (статус сцены, активный опрос, прогноз, смайлы и бейджи) для мгновенной доставки новым оверлеям.
+- **`GET /health`** — JSON-статус работы сервера, количества подключённых оверлеев, активных адаптеров и режима настроек.
+- **`GET /api/config` / `POST /api/config`** — чтение и безопасное сохранение настроек в `config.toml` (с созданием `.bak` бэкапа) и `sounds.json`.
+- **`POST /api/sounds/upload`** — загрузка пользовательских аудиофайлов (`.wav`, `.mp3`, `.ogg`) в `src/sounds/`.
+- **`GET /api/twitch/badges`** — полный каталог 540+ официальных графических бейджей Twitch (включая все Drops).
+- **`POST /api/media/skip`** — пропуск текущего трека в YouTube плеере и DonateX API.
+- **`POST /api/donations/skip`** — моментальный скип доната в DonateX, DonationAlerts и гашение алерта на экране.
 - **`POST /notify`** — HTTP API для эмуляции или внешней отправки событий:
   ```bash
   # Пример отправки алерта:
@@ -50,7 +64,6 @@ obs-templates/
     -H 'Content-Type: application/json' \
     -d '{"type": "status", "state": "brb"}'
   ```
-- **`GET /health`** — JSON-статус работы сервера, количества подключённых оверлеев и адаптеров.
 
 ---
 
@@ -67,7 +80,10 @@ obs-templates/
   "body": "username · $25.00",
   "user": "username",
   "amount": "$25.00",
-  "message": "Привет стримеру!"
+  "message": "Привет стримеру!",
+  "voiceUrl": "https://cdn.donatex.gg/donation-voices/123.mp3",
+  "aiVoiceUrl": "https://cdn.donatex.gg/ai/456.mp3",
+  "aiResponse": "Капитан на связи! Спасибо за донат."
 }
 ```
 
@@ -75,9 +91,17 @@ obs-templates/
 ```json
 {
   "type": "chat",
+  "subtype": "message | announcement | reward",
   "user": "ViewerNick",
   "text": "Hello world RainTime",
   "color": "#63E6BE",
+  "announcementColor": "PRIMARY | BLUE | GREEN | ORANGE | PURPLE",
+  "rewardTitle": "Попить воды",
+  "rewardCost": 350,
+  "badges": [
+    { "set": "broadcaster", "version": "1" },
+    { "set": "elden-ring-recluse", "version": "1" }
+  ],
   "emotes": [
     {
       "id": "25",
@@ -85,6 +109,40 @@ obs-templates/
       "end": 5,
       "url": "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0"
     }
+  ]
+}
+```
+
+### Голосование / Опрос (`type: "poll"`):
+```json
+{
+  "type": "poll",
+  "action": "begin | progress | end",
+  "id": "poll-uuid",
+  "title": "Играем сегодня в хоррор?",
+  "status": "active | completed | terminated",
+  "totalVotes": 42,
+  "endsAt": "2026-10-24T18:30:00Z",
+  "choices": [
+    { "id": "1", "title": "Да, обязательно!", "votes": 30, "percent": 71.4 },
+    { "id": "2", "title": "Нет, давай чилл", "votes": 12, "percent": 28.6 }
+  ]
+}
+```
+
+### Прогноз / Ставки (`type: "prediction"`):
+```json
+{
+  "type": "prediction",
+  "action": "begin | progress | lock | end",
+  "id": "pred-uuid",
+  "title": "Выиграем следующую катку?",
+  "status": "ACTIVE | LOCKED | RESOLVED",
+  "totalPoints": 75300,
+  "winningOutcomeId": "1",
+  "outcomes": [
+    { "id": "1", "title": "Победа", "color": "blue", "points": 51200, "percent": 68, "users": 70, "isWinner": true },
+    { "id": "2", "title": "Поражение", "color": "pink", "points": 24100, "percent": 32, "users": 35 }
   ]
 }
 ```
