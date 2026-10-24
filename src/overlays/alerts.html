@@ -71,6 +71,7 @@
         const socket = new WebSocket(wsUrl);
         socket.onopen = () => {
           retryDelay = 1000;
+          queue.loadSoundConfig();
         };
         socket.onmessage = (message) => {
           try {
@@ -79,6 +80,8 @@
               queue.enqueue(data);
             } else if (data.type === 'alert_skip') {
               queue.skipCurrent();
+            } else if (data.type === 'sounds_update') {
+              queue.updateSoundConfig(data);
             }
           } catch (error) {}
         };

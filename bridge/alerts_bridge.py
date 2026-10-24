@@ -22,6 +22,7 @@ class Broadcaster:
         self.last_status = None
         self.last_7tv_emotes = None
         self.last_twitch_badges = None
+        self.last_sounds_config = None
         self.active_poll = None
         self.active_prediction = None
 
@@ -39,6 +40,8 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_7tv_emotes))
             if self.last_twitch_badges:
                 await socket.send_str(base.encode(self.last_twitch_badges))
+            if self.last_sounds_config:
+                await socket.send_str(base.encode(self.last_sounds_config))
             if self.active_poll:
                 await socket.send_str(base.encode(self.active_poll))
             if self.active_prediction:
@@ -99,6 +102,8 @@ class Broadcaster:
             self.last_7tv_emotes = payload
         elif msg_type == "twitch_badges":
             self.last_twitch_badges = payload
+        elif msg_type == "sounds_update":
+            self.last_sounds_config = payload
         elif msg_type == "poll":
             action = payload.get("action")
             if action in ("begin", "progress"):
@@ -197,7 +202,7 @@ def get_sounds_catalog(src_dir: Path) -> dict:
     }
 
 
-def save_sounds_catalog(src_dir: Path, mapping: dict) -> None:
+def save_sounds_catalog(src_dir: Path, mapping: dict) -> dict:
     sounds_dir = src_dir / "sounds"
     sounds_json_path = sounds_dir / "sounds.json"
     data = {
@@ -208,10 +213,24 @@ def save_sounds_catalog(src_dir: Path, mapping: dict) -> None:
         }
     }
     sounds_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), "utf-8")
+    return data
 
 def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = False) -> web.Application:
     project_root = Path(__file__).parent.parent
     src_dir = project_root / "src"
+
+    # Pre-cache current sounds so connecting overlays receive them instantly
+    sounds_json_path = src_dir / "sounds" / "sounds.json"
+    if sounds_json_path.exists():
+        try:
+            raw_sounds = json.loads(sounds_json_path.read_text("utf-8"))
+            broadcaster.last_sounds_config = {
+                "type": "sounds_update",
+                "sounds": raw_sounds.get("sounds", {}),
+                "masterVolume": raw_sounds.get("masterVolume", 0.7)
+            }
+        except Exception:
+            pass
 
     adapter_states = {
         name: bool(config.get(name, {}).get("enabled"))
@@ -306,7 +325,12 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
 
         # 2. Save sound mappings if provided
         if "sounds" in payload and "mapping" in payload["sounds"]:
-            save_sounds_catalog(src_dir, payload["sounds"]["mapping"])
+            sound_data = save_sounds_catalog(src_dir, payload["sounds"]["mapping"])
+            await broadcaster.broadcast({
+                "type": "sounds_update",
+                "sounds": sound_data.get("sounds", {}),
+                "masterVolume": sound_data.get("masterVolume", 0.7)
+            })
 
         log.info("configuration saved via web settings panel")
         return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})

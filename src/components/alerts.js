@@ -41,17 +41,22 @@ class AlertQueue {
 
   async loadSoundConfig() {
     try {
-      const resp = await fetch('../sounds/sounds.json');
+      const resp = await fetch('../sounds/sounds.json?t=' + Date.now(), { cache: 'no-store' });
       if (resp.ok) {
         const data = await resp.json();
-        if (typeof data.masterVolume === 'number' && this.masterVolume === 0.7) {
-          this.masterVolume = data.masterVolume;
-        }
-        if (data.sounds) {
-          this.soundMap = { ...this.soundMap, ...data.sounds };
-        }
+        this.updateSoundConfig(data);
       }
     } catch (e) {}
+  }
+
+  updateSoundConfig(data) {
+    if (!data) return;
+    if (typeof data.masterVolume === 'number') {
+      this.masterVolume = data.masterVolume;
+    }
+    if (data.sounds) {
+      this.soundMap = { ...this.soundMap, ...data.sounds };
+    }
   }
 
   resolveKind(event) {
@@ -73,9 +78,9 @@ class AlertQueue {
     if (!soundConfig || !soundConfig.file) return;
     try {
       const audio = new Audio(soundConfig.file);
-      const vol = (soundConfig.volume ?? 0.7) * this.masterVolume;
+      const vol = (soundConfig.volume ?? 0.8) * this.masterVolume;
       audio.volume = Math.max(0, Math.min(1, vol));
-      audio.play().catch(() => {});
+      audio.play().catch(e => console.warn('[SYSTEM alerts] audio play failed:', soundConfig.file, e));
     } catch (e) {}
   }
 
