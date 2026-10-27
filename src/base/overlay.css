@@ -55,7 +55,7 @@ body {
 }
 
 .overlay--main-right {
-  align-items: stretch;
+  align-items: flex-start;
   justify-content: flex-end;
 }
 

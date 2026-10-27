@@ -42,9 +42,6 @@
         canvas.style.opacity = toggle ? '0.01' : '0.02';
       }
     }
-    if (document.body) {
-      document.body.style.transform = toggle ? 'translateZ(0)' : 'translateZ(0.01px)';
-    }
   }
 
   function triggerWakeup() {

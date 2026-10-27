@@ -32,11 +32,11 @@
 .overlay--main-right .chat,
 .chat--main-sidebar {
   margin-top: 86px;
-  margin-bottom: 240px;
   width: 400px;
   max-width: 400px;
   flex: 0 0 400px;
   height: calc(1080px - var(--safe-area) * 2 - 86px - 240px);
+  max-height: calc(1080px - var(--safe-area) * 2 - 86px - 240px);
 }
 
 .chat__header {
