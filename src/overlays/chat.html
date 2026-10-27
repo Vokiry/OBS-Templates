@@ -15,20 +15,7 @@
     <div class="chat">
       <div class="chat__header">chat</div>
       <div class="chat__pinned-container" id="chat-pinned"></div>
-      <div class="chat__body">
-        <div class="chat__msg">
-          <span class="chat__user">alice</span>
-          <span class="chat__text">gl hf!</span>
-        </div>
-        <div class="chat__msg">
-          <span class="chat__user">bob</span>
-          <span class="chat__text">that intro was sick</span>
-        </div>
-        <div class="chat__msg">
-          <span class="chat__user">carol</span>
-          <span class="chat__text">what's the next game?</span>
-        </div>
-      </div>
+      <div class="chat__body"></div>
     </div>
   </div>
   <script src="overlay.js"></script>
@@ -544,6 +531,19 @@
             const data = JSON.parse(msg.data);
             if (data.type === 'chat_clear') {
               chatBody.innerHTML = '';
+            } else if (data.type === 'chat_history' && Array.isArray(data.messages)) {
+              chatBody.innerHTML = '';
+              hasLiveMessage = true;
+              for (const m of data.messages) {
+                if (m && m.user) {
+                  addMessage(m.user, m.text || '', m.color, m.emotes, m.subtype || 'message', {
+                    announcementColor: m.announcementColor,
+                    rewardTitle: m.rewardTitle,
+                    rewardCost: m.rewardCost,
+                    badges: m.badges
+                  });
+                }
+              }
             } else if (data.type === '7tv_emotes') {
               if (data.cdnBase && !params.get('source')) {
                 cdnBase = data.cdnBase;

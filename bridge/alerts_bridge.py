@@ -18,6 +18,7 @@ log = logging.getLogger("bridge")
 
 class Broadcaster:
     def __init__(self):
+        from collections import deque
         self.clients = set()
         self.last_status = None
         self.last_7tv_emotes = None
@@ -25,6 +26,7 @@ class Broadcaster:
         self.last_sounds_config = None
         self.active_poll = None
         self.active_prediction = None
+        self.chat_history = deque(maxlen=30)
 
     async def attach(self, request) -> web.WebSocketResponse:
         socket = web.WebSocketResponse(heartbeat=20)
@@ -46,6 +48,11 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.active_poll))
             if self.active_prediction:
                 await socket.send_str(base.encode(self.active_prediction))
+            if self.chat_history:
+                await socket.send_str(base.encode({
+                    "type": "chat_history",
+                    "messages": list(self.chat_history)
+                }))
         except Exception:
             pass
 
@@ -104,6 +111,10 @@ class Broadcaster:
             self.last_twitch_badges = payload
         elif msg_type == "sounds_update":
             self.last_sounds_config = payload
+        elif msg_type == "chat":
+            self.chat_history.append(payload)
+        elif msg_type == "chat_clear":
+            self.chat_history.clear()
         elif msg_type == "poll":
             action = payload.get("action")
             if action in ("begin", "progress"):

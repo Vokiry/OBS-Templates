@@ -25,7 +25,7 @@ def make_browser_source(name: str, path: str, query: str = "") -> dict:
             "height": 1080,
             "fps": 60,
             "reroute_audio": True,
-            "restart_when_active": False,
+            "restart_when_active": True,
             "shutdown": False,
         },
         "mixers": 255,
