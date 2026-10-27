@@ -1,9 +1,11 @@
 import re
 import asyncio
 import argparse
+import html as html_mod
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 from tomllib import load as toml_load
 
@@ -504,8 +506,9 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         if not code:
             error = request.query.get("error_description") or request.query.get("error") or "Код авторизации не найден"
             log.error("DonationAlerts OAuth error: %s", error)
+            safe_error = html_mod.escape(str(error))
             return web.Response(
-                text=f"<h1>[ SYSTEM ]</h1><p style='font-family: monospace;'>Ошибка от DonationAlerts: {error}</p>",
+                text=f"<h1>[ SYSTEM ]</h1><p style='font-family: monospace;'>Ошибка от DonationAlerts: {safe_error}</p>",
                 content_type="text/html",
                 status=400
             )
@@ -542,12 +545,13 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             )
         except Exception as e:
             log.error("DonationAlerts auth callback error: %s", e)
+            safe_err = html_mod.escape(str(e))
             return web.Response(
                 text=(
                     f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>SYSTEM // DA ERROR</title></head>"
                     f"<body style='background:#0B0F14;color:#E5484D;font-family:monospace;padding:40px;'>"
                     f"<h1>[ Ошибка авторизации DonationAlerts ]</h1>"
-                    f"<p style='color:#E8EEF2;'>{e}</p>"
+                    f"<p style='color:#E8EEF2;'>{safe_err}</p>"
                     f"</body></html>"
                 ),
                 content_type="text/html",

@@ -2,7 +2,7 @@
   "masterVolume": 0.7,
   "sounds": {
     "donate": {
-      "file": "../sounds/donate.wav",
+      "file": "../sounds/burn.wav",
       "volume": 0.8
     },
     "sub": {
@@ -26,7 +26,7 @@
       "volume": 0.8
     },
     "follow": {
-      "file": "../sounds/follow.wav",
+      "file": "../sounds/magic_sound.wav",
       "volume": 0.8
     },
     "default": {
