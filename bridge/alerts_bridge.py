@@ -35,6 +35,8 @@ class Broadcaster:
         self.chat_history = deque(maxlen=30)
         self._background_tasks = set()  # prevent GC of fire-and-forget tasks
 
+    MAX_CLIENTS = 50  # prevent memory exhaustion from too many WebSocket connections
+
     async def attach(self, request) -> web.WebSocketResponse:
         # Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
         origin = request.headers.get("Origin", "")
@@ -49,6 +51,10 @@ class Broadcaster:
             if origin_host not in allowed_hosts and parsed.hostname not in ("localhost", "127.0.0.1"):
                 log.warning("WebSocket connection rejected: origin %s not allowed", origin)
                 return web.Response(status=403, text="Origin not allowed")
+
+        if len(self.clients) >= self.MAX_CLIENTS:
+            log.warning("WebSocket connection rejected: max %d clients reached", self.MAX_CLIENTS)
+            return web.Response(status=503, text="Too many connections")
 
         socket = web.WebSocketResponse(heartbeat=20)
         await socket.prepare(request)
