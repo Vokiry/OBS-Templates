@@ -23,6 +23,7 @@ async def run(config: dict, broadcast) -> None:
         AuthScope.CHANNEL_READ_POLLS,
         AuthScope.CHANNEL_READ_PREDICTIONS,
         AuthScope.CHANNEL_READ_REDEMPTIONS,
+        AuthScope.MODERATOR_READ_CHATTERS,
     ]
     if config.get("include_follows"):
         scopes.append(AuthScope.MODERATOR_READ_FOLLOWERS)
@@ -196,8 +197,46 @@ async def run(config: dict, broadcast) -> None:
                 log.warning("twitch redemption listener failed: %s", e)
 
             log.info("twitch eventsub active")
-            while True:
-                await asyncio.sleep(3600)
+
+            async def poll_stream_stats():
+                while True:
+                    try:
+                        stream = await first(twitch.get_streams(user_id=[user_id]))
+                        if stream:
+                            viewers = getattr(stream, "viewer_count", 0)
+                            st_at = getattr(stream, "started_at", None)
+                            started_at = st_at.isoformat() if hasattr(st_at, "isoformat") else (str(st_at) if st_at else None)
+                            chatters = None
+                            try:
+                                c_resp = await twitch.get_chatters(broadcaster_id=user_id, moderator_id=user_id, first=1)
+                                chatters = getattr(c_resp, "total", None)
+                            except Exception:
+                                pass
+                            await broadcast({
+                                "type": "stream_stats",
+                                "live": True,
+                                "viewers": viewers,
+                                "chatters": chatters,
+                                "started_at": started_at
+                            })
+                        else:
+                            await broadcast({
+                                "type": "stream_stats",
+                                "live": False,
+                                "viewers": 0,
+                                "chatters": 0,
+                                "started_at": None
+                            })
+                    except Exception as poll_err:
+                        log.debug("twitch stream stats poll error: %s", poll_err)
+                    await asyncio.sleep(45)
+
+            stats_task = asyncio.create_task(poll_stream_stats())
+            try:
+                while True:
+                    await asyncio.sleep(3600)
+            finally:
+                stats_task.cancel()
         except asyncio.CancelledError:
             raise
         except Exception as exc:

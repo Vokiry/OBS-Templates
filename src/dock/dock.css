@@ -70,6 +70,20 @@ body {
   opacity: 0.9;
 }
 
+.dock__stream-stats {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-interface);
+  font-weight: var(--text-weight-semibold);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+  transition: color var(--anim-fast) var(--anim-ease);
+}
+
+.dock__stream-stats.is-live {
+  color: var(--color-accent, #63E6BE);
+}
+
 /* Compact Sections */
 .dock__section {
   display: flex;

@@ -33,6 +33,7 @@ class Broadcaster:
         self.active_poll = None
         self.active_prediction = None
         self.chat_history = deque(maxlen=30)
+        self.last_stream_stats = None
         self._background_tasks = set()  # prevent GC of fire-and-forget tasks
 
     MAX_CLIENTS = 50  # prevent memory exhaustion from too many WebSocket connections
@@ -80,6 +81,8 @@ class Broadcaster:
                     "type": "chat_history",
                     "messages": list(self.chat_history)
                 }))
+            if self.last_stream_stats:
+                await socket.send_str(base.encode(self.last_stream_stats))
         except Exception:
             pass
 
@@ -144,6 +147,8 @@ class Broadcaster:
             self.last_twitch_badges = payload
         elif msg_type == "sounds_update":
             self.last_sounds_config = payload
+        elif msg_type == "stream_stats":
+            self.last_stream_stats = payload
         elif msg_type == "chat":
             self.chat_history.append(payload)
         elif msg_type == "chat_clear":
@@ -315,6 +320,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             "overlays": len(broadcaster.clients),
             "adapters": adapter_states,
             "settings_enabled": enable_settings,
+            "stream_stats": broadcaster.last_stream_stats,
         })
 
     async def root_redirect(request):

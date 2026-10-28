@@ -26,6 +26,7 @@
         <span class="dock__tag is-off" id="tag-chat" title="Twitch Chat" style="color: #E5484D;">○ CHAT</span>
         <span class="dock__tag is-off" id="tag-da" title="DonationAlerts" style="color: #E5484D;">○ DA</span>
         <span class="dock__tag is-off" id="tag-dx" title="DonateX" style="color: #E5484D;">○ DX</span>
+        <span class="dock__stream-stats" id="stream-stats">[ OFFLINE ]</span>
       </div>
     </header>
 
@@ -354,8 +355,15 @@
           badge.classList.remove('is-off');
           badge.classList.add('is-ok');
           badge.style.color = '#63E6BE';
+
+          if (data.stream_stats !== undefined) {
+            currentStreamStats = data.stream_stats;
+            updateStatsDisplay();
+          }
         }
       } catch (e) {
+        currentStreamStats = null;
+        updateStatsDisplay();
         const badge = document.getElementById('bridge-status');
         badge.textContent = '○ OFFLINE';
         badge.classList.add('is-off');
@@ -364,8 +372,38 @@
       }
     }
 
+    let currentStreamStats = null;
+
+    function formatUptime(startedAt) {
+      if (!startedAt) return '00:00:00';
+      const startMs = Date.parse(startedAt);
+      if (isNaN(startMs)) return '00:00:00';
+      const diffSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+      const h = String(Math.floor(diffSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
+      const s = String(diffSec % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function updateStatsDisplay() {
+      const el = document.getElementById('stream-stats');
+      if (!el) return;
+      if (!currentStreamStats || !currentStreamStats.live) {
+        el.textContent = '[ OFFLINE ]';
+        el.classList.remove('is-live');
+        return;
+      }
+      const v = currentStreamStats.viewers ?? 0;
+      const c = currentStreamStats.chatters;
+      const audience = (c !== null && c !== undefined) ? `${v} [${c}]` : `${v}`;
+      const uptime = formatUptime(currentStreamStats.started_at);
+      el.textContent = `[ LIVE // ${audience} // ${uptime} ]`;
+      el.classList.add('is-live');
+    }
+
     pollHealth();
     setInterval(pollHealth, 3000);
+    setInterval(updateStatsDisplay, 1000);
   </script>
 </body>
 </html>
