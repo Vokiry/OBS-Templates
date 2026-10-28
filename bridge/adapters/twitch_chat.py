@@ -338,7 +338,7 @@ async def run(config: dict, broadcast) -> None:
                         if not line:
                             continue
                         if line.startswith("PING"):
-                            await ws.send(line.replace("PING", "PONG"))
+                            await ws.send("PONG" + line[4:])
                             continue
                         if not room_id_fetched and "room-id=" in line:
                             for item in line.split(";"):

@@ -158,10 +158,15 @@ class Broadcaster:
                 self._create_background_task(self._clear_prediction_delayed(12))
 
         message = base.encode(payload)
-        for socket in list(self.clients):
-            try:
-                await socket.send_str(message)
-            except Exception:
+        clients = list(self.clients)
+        if not clients:
+            return
+        results = await asyncio.gather(
+            *(socket.send_str(message) for socket in clients),
+            return_exceptions=True
+        )
+        for socket, result in zip(clients, results):
+            if isinstance(result, Exception):
                 self.clients.discard(socket)
 
 

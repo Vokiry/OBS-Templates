@@ -306,7 +306,8 @@ class AlertQueue {
 
   dismiss(el, timers, audios = []) {
     this.activeAlerts = this.activeAlerts.filter(a => a.el !== el);
-    timers.forEach(clearInterval);
+    // clearTimeout works for both setTimeout and setInterval IDs (shared ID pool)
+    timers.forEach(id => clearTimeout(id));
     if (Array.isArray(audios)) {
       audios.forEach(a => {
         if (a && typeof a.pause === 'function') {
