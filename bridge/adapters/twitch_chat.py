@@ -125,9 +125,15 @@ async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", 
 
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
-            # 1. Get Twitch App Access Token
-            token_url = f"https://id.twitch.tv/oauth2/token?client_id={client_id}&client_secret={client_secret}&grant_type=client_credentials"
-            async with session.post(token_url) as r:
+            # 1. Get Twitch App Access Token (POST body, not URL params — per OWASP)
+            async with session.post(
+                "https://id.twitch.tv/oauth2/token",
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "grant_type": "client_credentials",
+                }
+            ) as r:
                 if r.status != 200:
                     return cached_badge_map
                 app_token = (await r.json()).get("access_token")
