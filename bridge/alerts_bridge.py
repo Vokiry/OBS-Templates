@@ -4,6 +4,7 @@ import argparse
 import html as html_mod
 import json
 import logging
+import secrets
 import sys
 import time
 from pathlib import Path
@@ -16,6 +17,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from adapters import base
 
 log = logging.getLogger("bridge")
+
+# API key for protecting state-changing endpoints (generated at startup)
+API_KEY: str = ""
 
 
 class Broadcaster:
@@ -31,6 +35,20 @@ class Broadcaster:
         self.chat_history = deque(maxlen=30)
 
     async def attach(self, request) -> web.WebSocketResponse:
+        # Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
+        origin = request.headers.get("Origin", "")
+        host_header = request.headers.get("Host", "")
+        if origin:
+            from urllib.parse import urlparse
+            parsed = urlparse(origin)
+            origin_host = f"{parsed.hostname}:{parsed.port}" if parsed.port else parsed.hostname
+            # Allow same-origin, localhost variants, and OBS browser sources (no origin)
+            allowed_hosts = {host_header, "localhost", "127.0.0.1",
+                             f"localhost:{request.url.port}", f"127.0.0.1:{request.url.port}"}
+            if origin_host not in allowed_hosts and parsed.hostname not in ("localhost", "127.0.0.1"):
+                log.warning("WebSocket connection rejected: origin %s not allowed", origin)
+                return web.Response(status=403, text="Origin not allowed")
+
         socket = web.WebSocketResponse(heartbeat=20)
         await socket.prepare(request)
         self.clients.add(socket)
@@ -563,6 +581,29 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         badges = get_cached_badges()
         return web.json_response(badges, headers={"Access-Control-Allow-Origin": "*"})
 
+    # Endpoints that require API key authentication (state-changing)
+    PROTECTED_PATHS = {"/notify", "/api/config", "/api/sounds/upload",
+                       "/api/media/skip", "/api/donations/skip"}
+
+    @web.middleware
+    async def auth_middleware(request, handler):
+        if request.method == "POST" and request.path in PROTECTED_PATHS:
+            # Allow requests from same-origin pages (Referer check) or with valid API key
+            referer = request.headers.get("Referer", "")
+            host_header = request.headers.get("Host", "")
+            from urllib.parse import urlparse
+            ref_parsed = urlparse(referer)
+            ref_host = f"{ref_parsed.hostname}:{ref_parsed.port}" if ref_parsed.port else (ref_parsed.hostname or "")
+            is_same_origin = ref_host == host_header or ref_parsed.hostname in ("localhost", "127.0.0.1")
+
+            auth_header = request.headers.get("Authorization", "")
+            has_valid_key = auth_header == f"Bearer {API_KEY}" if API_KEY else False
+
+            if not is_same_origin and not has_valid_key:
+                log.warning("Unauthorized POST to %s from referer %s", request.path, referer)
+                return web.json_response({"error": "unauthorized"}, status=401)
+        return await handler(request)
+
     @web.middleware
     async def no_cache_middleware(request, handler):
         response = await handler(request)
@@ -571,7 +612,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         response.headers["Expires"] = "0"
         return response
 
-    app = web.Application(middlewares=[no_cache_middleware])
+    app = web.Application(middlewares=[auth_middleware, no_cache_middleware])
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
     if enable_settings:
@@ -647,6 +688,10 @@ async def main() -> None:
 
     log.info("initializing bridge on http://%s:%d...", host, port)
 
+    # Generate session API key for protecting state-changing endpoints
+    global API_KEY
+    API_KEY = secrets.token_urlsafe(24)
+
     broadcaster = Broadcaster()
     tasks = spawn_adapters(config, broadcaster.broadcast)
 
@@ -660,6 +705,8 @@ async def main() -> None:
     site = web.TCPSite(runner, host, port)
     await site.start()
     log.info("unified server ready at ws://%s:%d/events", host, port)
+    if host != "127.0.0.1":
+        log.info("API key for external access: %s", API_KEY)
 
     await asyncio.gather(*tasks, asyncio.Event().wait())
 
