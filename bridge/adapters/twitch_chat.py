@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 import random
 import re
@@ -170,7 +171,11 @@ async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", 
                                     cached_badge_map[f"{set_id}/{v_id}"] = img_url
                         log.info("loaded channel badges for room %s", room_id)
 
-            BADGES_CACHE_FILE.write_text(json.dumps(cached_badge_map), "utf-8")
+            fd = os.open(str(BADGES_CACHE_FILE), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            try:
+                os.write(fd, json.dumps(cached_badge_map).encode("utf-8"))
+            finally:
+                os.close(fd)
     except Exception as e:
         log.debug("could not fetch Twitch badges from Helix: %s", e)
 
@@ -341,7 +346,8 @@ async def run(config: dict, broadcast) -> None:
                                     try:
                                         val = item.split("room-id=")[1].split()[0]
                                         room_id_fetched = True
-                                        asyncio.create_task(broadcast_badges_and_7tv(val))
+                                        _task = asyncio.create_task(broadcast_badges_and_7tv(val))
+                                        _task.add_done_callback(lambda t: t.result() if not t.cancelled() and not t.exception() else None)
                                     except Exception:
                                         pass
                                     break

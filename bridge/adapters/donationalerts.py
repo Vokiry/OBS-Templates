@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 import aiohttp
 import websockets
@@ -13,6 +14,16 @@ TOKEN_API = "https://www.donationalerts.com/oauth/token"
 WS_URL = "wss://centrifugo.donationalerts.com/connection/websocket"
 
 TOKEN_FILE = Path(__file__).parent.parent / ".da_token.json"
+
+
+def _write_token_file(path: Path, data: dict) -> None:
+    """Write token JSON with restricted file permissions (owner-only)."""
+    content = json.dumps(data, ensure_ascii=False)
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, content.encode("utf-8"))
+    finally:
+        os.close(fd)
 
 
 def normalize_donation(data: dict) -> dict:
@@ -56,8 +67,7 @@ async def exchange_da_code(client_id: str, client_secret: str, redirect_uri: str
                 log.error("DonationAlerts token exchange failed (HTTP %s): %s", resp.status, text)
                 raise ValueError(f"DonationAlerts error ({resp.status}): {text}")
             tokens = json.loads(text)
-            with open(TOKEN_FILE, "w", encoding="utf-8") as f:
-                json.dump(tokens, f)
+            _write_token_file(TOKEN_FILE, tokens)
             log.info("donationalerts tokens saved to %s", TOKEN_FILE)
             return tokens
 
@@ -74,8 +84,7 @@ async def refresh_da_token(client_id: str, client_secret: str, refresh_token: st
         async with session.post(TOKEN_API, data=data) as resp:
             resp.raise_for_status()
             tokens = await resp.json()
-            with open(TOKEN_FILE, "w", encoding="utf-8") as f:
-                json.dump(tokens, f)
+            _write_token_file(TOKEN_FILE, tokens)
             log.info("donationalerts tokens refreshed and saved")
             return tokens
 

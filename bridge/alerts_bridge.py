@@ -33,6 +33,7 @@ class Broadcaster:
         self.active_poll = None
         self.active_prediction = None
         self.chat_history = deque(maxlen=30)
+        self._background_tasks = set()  # prevent GC of fire-and-forget tasks
 
     async def attach(self, request) -> web.WebSocketResponse:
         # Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
@@ -113,6 +114,12 @@ class Broadcaster:
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
 
+    def _create_background_task(self, coro):
+        """Create a background task with proper reference tracking and error logging."""
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
     async def _clear_poll_delayed(self, delay: float):
         await asyncio.sleep(delay)
         self.active_poll = None
@@ -141,14 +148,14 @@ class Broadcaster:
                 self.active_poll = payload
             elif action == "end":
                 self.active_poll = payload
-                asyncio.create_task(self._clear_poll_delayed(12))
+                self._create_background_task(self._clear_poll_delayed(12))
         elif msg_type == "prediction":
             action = payload.get("action")
             if action in ("begin", "progress", "lock"):
                 self.active_prediction = payload
             elif action == "end":
                 self.active_prediction = payload
-                asyncio.create_task(self._clear_prediction_delayed(12))
+                self._create_background_task(self._clear_prediction_delayed(12))
 
         message = base.encode(payload)
         for socket in list(self.clients):
