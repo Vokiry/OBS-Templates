@@ -89,7 +89,7 @@ class DonateXAdapter:
             try:
                 log.info("donatex: negotiating public donations hub...")
                 async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
-                    async with session.post(f"{PUBLIC_HUB_NEGOTIATE}&access_token={self.token}", headers=self.headers) as resp:
+                    async with session.post(PUBLIC_HUB_NEGOTIATE, headers=self.headers) as resp:
                         if resp.status == 401:
                             log.error("donatex: 401 Unauthorized. Check External token in donatex.gg -> Settings -> Api")
                             await asyncio.sleep(25)
