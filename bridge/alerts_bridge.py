@@ -726,7 +726,31 @@ async def main() -> None:
     if host != "127.0.0.1":
         log.info("API key for external access: %s", API_KEY)
 
-    await asyncio.gather(*tasks, asyncio.Event().wait())
+    stop_event = asyncio.Event()
+    loop = asyncio.get_event_loop()
+    try:
+        loop.add_signal_handler(__import__("signal").SIGINT, stop_event.set)
+        loop.add_signal_handler(__import__("signal").SIGTERM, stop_event.set)
+    except NotImplementedError:
+        pass  # Windows doesn't support add_signal_handler
+
+    try:
+        await asyncio.gather(*tasks, stop_event.wait())
+    except asyncio.CancelledError:
+        pass
+    finally:
+        log.info("shutting down...")
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        # Close all WebSocket connections cleanly
+        for ws in list(broadcaster.clients):
+            try:
+                await ws.close()
+            except Exception:
+                pass
+        await runner.cleanup()
+        log.info("shutdown complete")
 
 
 if __name__ == "__main__":
