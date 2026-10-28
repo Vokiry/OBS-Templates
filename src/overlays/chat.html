@@ -98,6 +98,39 @@
       }
     }
 
+    // Inactivity Auto-Fade (hides chat when idle, reveals on new message)
+    const defaultFade = layout === 'half' ? 0 : 45;
+    const fadeParam = params.get('fade');
+    const fadeSeconds = fadeParam !== null
+      ? (fadeParam === 'off' || fadeParam === '0' ? 0 : Math.max(5, parseInt(fadeParam, 10) || defaultFade))
+      : defaultFade;
+
+    let idleTimer = null;
+
+    function hasActivePinnedWidget() {
+      return !!(document.getElementById('pinned-poll') || document.getElementById('pinned-prediction'));
+    }
+
+    function resetIdleTimer() {
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+      if (chatEl) {
+        chatEl.classList.remove('is-idle');
+      }
+      if (fadeSeconds > 0 && chatEl && !hasActivePinnedWidget()) {
+        idleTimer = setTimeout(() => {
+          if (!hasActivePinnedWidget() && chatEl) {
+            chatEl.classList.add('is-idle');
+          }
+        }, fadeSeconds * 1000);
+      }
+    }
+
+    resetIdleTimer();
+    window.addEventListener('pointermove', resetIdleTimer, { passive: true });
+
     let hasLoadedTwitchBadges = false;
     async function loadTwitchBadges() {
       try {
@@ -353,6 +386,7 @@
         chatBody.firstElementChild.remove();
       }
       chatBody.scrollTop = chatBody.scrollHeight;
+      resetIdleTimer();
     }
 
     const pinnedContainer = document.getElementById('chat-pinned');
@@ -386,6 +420,7 @@
         if (pollDismissTimer) clearTimeout(pollDismissTimer);
         pollDismissTimer = setTimeout(() => {
           if (pollBox) pollBox.remove();
+          resetIdleTimer();
         }, 10000);
         return;
       }
@@ -396,6 +431,7 @@
         pollBox.className = 'chat__pinned-box chat__pinned-box--poll';
         pinnedContainer.prepend(pollBox);
       }
+      resetIdleTimer();
 
       const totalVotes = data.totalVotes || (data.choices ? data.choices.reduce((a, b) => a + (b.votes || 0), 0) : 0);
       let endsTimestamp = data.endsAt ? new Date(data.endsAt).getTime() : 0;
@@ -460,6 +496,7 @@
         if (predDismissTimer) clearTimeout(predDismissTimer);
         predDismissTimer = setTimeout(() => {
           if (predBox) predBox.remove();
+          resetIdleTimer();
         }, 10000);
         return;
       }
@@ -470,6 +507,7 @@
         predBox.className = 'chat__pinned-box chat__pinned-box--prediction';
         pinnedContainer.prepend(predBox);
       }
+      resetIdleTimer();
 
       const totalPoints = data.totalPoints || (data.outcomes ? data.outcomes.reduce((a, b) => a + (b.points || 0), 0) : 0);
       let outcomesHtml = '';

@@ -369,6 +369,57 @@ body {
   transition: opacity var(--anim-fast);
 }
 
+/* Test Alerts Module */
+.test-alerts-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.test-alert-btn {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-interface);
+  font-size: 11px;
+  letter-spacing: var(--letter-spacing-mono);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all var(--anim-fast);
+}
+
+.test-alert-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(99, 230, 190, 0.06);
+}
+
+.test-alert-btn:active {
+  transform: translateY(1px);
+}
+
+.test-status-line {
+  margin-top: 10px;
+  font-size: 11px;
+  letter-spacing: var(--letter-spacing-mono);
+  min-height: 16px;
+  font-family: var(--font-interface);
+  transition: color var(--anim-fast);
+}
+
+.test-status-line.is-pending {
+  color: var(--color-warning);
+}
+
+.test-status-line.is-success {
+  color: var(--color-accent);
+}
+
+.test-status-line.is-error {
+  color: var(--color-danger);
+}
+
 @media (max-width: 640px) {
   .form-grid {
     grid-template-columns: 1fr;

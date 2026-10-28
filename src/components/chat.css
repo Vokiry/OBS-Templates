@@ -11,7 +11,12 @@
   border-radius: var(--radius-panel);
   font-family: var(--font-interface);
   overflow: hidden;
-  transition: border-color var(--border-hover-transition);
+  transition: border-color var(--border-hover-transition), opacity var(--anim-scene, 500ms) var(--anim-ease);
+}
+
+.chat.is-idle {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .chat:hover {

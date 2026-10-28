@@ -203,6 +203,25 @@
       </div>
     </section>
 
+    <!-- Module 6: Test Alerts Broadcast -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 06 // ТЕСТИРОВАНИЕ АЛЕРТОВ (FIRE TEST ALERTS) ]</span>
+      </div>
+      <span class="form-hint">Запуск тестовых оповещений в прямом эфире OBS с реальным звуком и ASCII-анимацией:</span>
+
+      <div class="test-alerts-grid">
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('donate')">[ TEST DONATE ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('sub')">[ TEST SUB ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('resub')">[ TEST RESUB ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('gift')">[ TEST GIFT SUB ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('raid')">[ TEST RAID ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('cheer')">[ TEST CHEER ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('follow')">[ TEST FOLLOW ]</button>
+      </div>
+      <div class="test-status-line" id="test-alert-status"></div>
+    </section>
+
     <!-- Sticky Bottom Save Bar -->
     <div class="save-bar">
       <div class="save-bar__inner">
@@ -336,6 +355,56 @@
           el.style.opacity = '0';
         }
       }, 3500);
+    }
+
+    const TEST_ALERT_PAYLOADS = {
+      donate: { type: 'alert', kind: 'donate', user: 'system_dev', amount: '500 ₽', message: 'Тестовый донат из панели настроек' },
+      sub: { type: 'alert', kind: 'sub', user: 'subscriber_test', body: 'subscriber_test · tier 1' },
+      resub: { type: 'alert', kind: 'resub', user: 'veteran_viewer', body: 'veteran_viewer · 12 months' },
+      gift: { type: 'alert', kind: 'gift', user: 'generous_gifter', body: 'generous_gifter × 5' },
+      raid: { type: 'alert', kind: 'raid', user: 'streamer_friend', body: 'streamer_friend · 84 viewers' },
+      cheer: { type: 'alert', kind: 'cheer', user: 'bits_hero', body: 'bits_hero · 500 bits' },
+      follow: { type: 'alert', kind: 'follow', user: 'new_follower', body: 'new_follower' }
+    };
+
+    let testAlertDebounce = false;
+
+    async function fireTestAlert(kind) {
+      if (testAlertDebounce) return;
+      const payload = TEST_ALERT_PAYLOADS[kind];
+      if (!payload) return;
+
+      testAlertDebounce = true;
+      setTimeout(() => { testAlertDebounce = false; }, 800);
+
+      const statusEl = document.getElementById('test-alert-status');
+      try {
+        if (statusEl) {
+          statusEl.textContent = `[ ОТПРАВКА: ${kind.toUpperCase()}... ]`;
+          statusEl.className = 'test-status-line is-pending';
+        }
+        const res = await fetch(`${API_BASE}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          if (statusEl) {
+            statusEl.textContent = `[ ✓ АЛЕРТ ${kind.toUpperCase()} ОТПРАВЛЕН В OBS ]`;
+            statusEl.className = 'test-status-line is-success';
+            setTimeout(() => {
+              if (statusEl.textContent.includes('✓')) statusEl.textContent = '';
+            }, 3500);
+          }
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = `[ ✗ ОШИБКА ОТПРАВКИ: ${err.message} ]`;
+          statusEl.className = 'test-status-line is-error';
+        }
+      }
     }
 
     async function loadConfig() {
