@@ -222,6 +222,38 @@
       <div class="test-status-line" id="test-alert-status"></div>
     </section>
 
+    <!-- Module 7: Donation Goal Widget Configuration -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 07 // ЦЕЛЬ СБОРА (DONATION GOAL) ]</span>
+        <button type="button" class="toggle-btn" id="btn-goal-toggle" onclick="toggleModule('goal')">ON</button>
+      </div>
+      <span class="form-hint">Независимый сбор средств, автоматически суммирующий донаты с DonationAlerts и DonateX:</span>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="goal-title">Название сбора</label>
+          <input type="text" id="goal-title" class="form-input" placeholder="Например: Новый микрофон">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-currency">Валюта</label>
+          <input type="text" id="goal-currency" class="form-input" placeholder="RUB" value="RUB">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-current">Собрано сейчас</label>
+          <input type="number" id="goal-current" class="form-input" placeholder="0" step="10">
+          <span class="form-hint">Автоматически увеличивается при каждом новом донате</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-target">Целевая сумма</label>
+          <input type="number" id="goal-target" class="form-input" placeholder="10000" step="100">
+        </div>
+      </div>
+      <div class="form-hint" style="margin-top: 8px;">
+        URL для оверлея в OBS: <code>http://localhost:8787/src/overlays/goal.html?pos=top-left</code> (или <code>?variant=compact</code>)
+      </div>
+    </section>
+
     <!-- Sticky Bottom Save Bar -->
     <div class="save-bar">
       <div class="save-bar__inner">
@@ -242,7 +274,8 @@
       chat: true,
       twitch: true,
       da: true,
-      dx: true
+      dx: true,
+      goal: true
     };
 
     function setToggleState(id, isActive) {
@@ -258,7 +291,8 @@
         chat: 'btn-chat-toggle',
         twitch: 'btn-twitch-toggle',
         da: 'btn-da-toggle',
-        dx: 'btn-dx-toggle'
+        dx: 'btn-dx-toggle',
+        goal: 'btn-goal-toggle'
       };
       setToggleState(map[mod], modules[mod]);
     }
@@ -459,7 +493,16 @@
         document.getElementById('dx-token').value = dx.token || '';
         maskedSecrets['dx-token'] = dx.token || '';
 
-        // 5. Sounds Mapping
+        // 5. Goal
+        const goal = configData.goal || {};
+        modules.goal = goal.enabled !== false;
+        setToggleState('btn-goal-toggle', modules.goal);
+        document.getElementById('goal-title').value = goal.title || 'Сбор на цель';
+        document.getElementById('goal-currency').value = goal.currency || 'RUB';
+        document.getElementById('goal-current').value = goal.current !== undefined ? goal.current : 0;
+        document.getElementById('goal-target').value = goal.target !== undefined ? goal.target : 10000;
+
+        // 6. Sounds Mapping
         const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
         soundTypes.forEach(t => {
           populateSelect(`snd-${t}`, availableSoundFiles, mapping[t]);
@@ -513,6 +556,13 @@
         },
         donatex: {
           enabled: modules.dx,
+        },
+        goal: {
+          enabled: modules.goal,
+          title: document.getElementById('goal-title').value.trim() || 'Сбор на цель',
+          currency: document.getElementById('goal-currency').value.trim() || 'RUB',
+          current: parseFloat(document.getElementById('goal-current').value || 0),
+          target: Math.max(0.01, parseFloat(document.getElementById('goal-target').value || 10000))
         },
         sounds: {
           mapping: soundMapping

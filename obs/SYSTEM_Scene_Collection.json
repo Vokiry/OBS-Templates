@@ -569,6 +569,40 @@
         },
         {
             "prev_ver": 537001985,
+            "name": "SYSTEM: Goal",
+            "uuid": "986a1d77-0f03-567b-9ee3-db4eeab47e44",
+            "id": "browser_source",
+            "versioned_id": "browser_source",
+            "settings": {
+                "url": "http://localhost:8787/src/overlays/goal.html?pos=bottom-left",
+                "width": 1920,
+                "height": 1080,
+                "fps": 60,
+                "reroute_audio": true,
+                "restart_when_active": true,
+                "shutdown": false
+            },
+            "mixers": 255,
+            "sync": 0,
+            "flags": 0,
+            "volume": 1.0,
+            "balance": 0.5,
+            "enabled": true,
+            "muted": false,
+            "push-to-mute": false,
+            "push-to-mute-delay": 0,
+            "push-to-talk": false,
+            "push-to-talk-delay": 0,
+            "hotkeys": {
+                "ObsBrowser.Refresh": []
+            },
+            "deinterlace_mode": 0,
+            "deinterlace_field_order": 0,
+            "monitoring_type": 1,
+            "private_settings": {}
+        },
+        {
+            "prev_ver": 537001985,
             "name": "SYSTEM: Starting Soon",
             "uuid": "ff04439b-9ebe-52d0-b3e1-bd5fcc2ae5c0",
             "id": "scene",

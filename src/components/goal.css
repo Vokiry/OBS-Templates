@@ -1,0 +1,114 @@
+/* SYSTEM Broadcast Templates — Donation Goal Widget (system24 TUI style) */
+
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 420px;
+  max-width: 100%;
+  padding: 10px 14px;
+  background: var(--color-overlay);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-none, 0);
+  font-family: var(--font-interface);
+  color: var(--color-text);
+  box-sizing: border-box;
+  transition: border-color var(--border-hover-transition);
+}
+
+.goal:hover {
+  border-color: var(--color-border-hover);
+}
+
+.goal.is-completed {
+  border-color: var(--color-accent);
+}
+
+.goal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  font-weight: var(--text-weight-medium);
+  letter-spacing: var(--letter-spacing-mono);
+  text-transform: uppercase;
+  color: var(--label-color);
+}
+
+.goal__title {
+  color: var(--color-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.goal__amounts {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  font-weight: var(--text-weight-semibold);
+  letter-spacing: var(--letter-spacing-mono);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.goal__current {
+  color: var(--color-text);
+}
+
+.goal__target {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.goal__bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--text-weight-medium);
+  letter-spacing: var(--letter-spacing-mono);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.goal__ascii-bar {
+  flex: 1;
+  font-family: var(--font-interface);
+  color: var(--color-accent);
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+.goal__percent {
+  color: var(--color-accent);
+  font-weight: var(--text-weight-bold);
+  min-width: 42px;
+  text-align: right;
+}
+
+/* Compact Variant */
+.goal--compact {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+}
+
+.goal--compact .goal__header {
+  font-size: inherit;
+}
+
+.goal--compact .goal__amounts {
+  margin: 0;
+  font-size: inherit;
+}
+
+.goal--compact .goal__bar-wrap {
+  margin: 0;
+  font-size: inherit;
+}

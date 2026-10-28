@@ -37,3 +37,11 @@ access_token = ""
 enabled = false
 # External token из donatex.gg -> Настройки -> Api
 token = ""
+
+# 5. ЦЕЛЬ СБОРА (DONATION GOAL)
+[goal]
+enabled = false
+title = "Сбор на цель"
+current = 0.0
+target = 10000.0
+currency = "RUB"

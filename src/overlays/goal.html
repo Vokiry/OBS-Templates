@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — donation goal</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/overlay.css">
+  <link rel="stylesheet" href="../components/goal.css">
+</head>
+<body>
+  <div class="overlay">
+    <div class="goal" id="goal-box">
+      <div class="goal__header">
+        <span class="goal__title" id="goal-title">[ GOAL // СБОР НА ЦЕЛЬ ]</span>
+      </div>
+      <div class="goal__amounts">
+        <span class="goal__current" id="goal-current">0 ₽</span>
+        <span class="goal__target" id="goal-target">/ 10,000 ₽</span>
+      </div>
+      <div class="goal__bar-wrap">
+        <span class="goal__ascii-bar" id="goal-bar">[----------------------------]</span>
+        <span class="goal__percent" id="goal-pct">0.0%</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="overlay.js"></script>
+  <script>
+    (() => {
+    const params = new URLSearchParams(location.search);
+    const goalBox = document.getElementById('goal-box');
+    const titleEl = document.getElementById('goal-title');
+    const currentEl = document.getElementById('goal-current');
+    const targetEl = document.getElementById('goal-target');
+    const barEl = document.getElementById('goal-bar');
+    const pctEl = document.getElementById('goal-pct');
+
+    const BAR_WIDTH = params.get('variant') === 'compact' ? 14 : 26;
+
+    if (params.get('variant') === 'compact') {
+      goalBox.classList.add('goal--compact');
+    }
+
+    let state = {
+      title: params.get('title') || 'Сбор на цель',
+      current: parseFloat(params.get('current') || 0),
+      target: Math.max(0.01, parseFloat(params.get('target') || 10000)),
+      currency: params.get('currency') || 'RUB',
+      percent: 0
+    };
+
+    function formatNumber(num) {
+      return Number(num).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+    }
+
+    function formatCurrency(curr) {
+      if (curr === 'RUB' || curr === '₽') return '₽';
+      if (curr === 'USD' || curr === '$') return '$';
+      if (curr === 'EUR' || curr === '€') return '€';
+      return curr;
+    }
+
+    function renderAsciiBar(pct) {
+      const clampedPct = Math.max(0, Math.min(100, pct));
+      const filledCount = Math.round((clampedPct / 100) * BAR_WIDTH);
+      const emptyCount = Math.max(0, BAR_WIDTH - filledCount);
+      return `[${'#'.repeat(filledCount)}${'-'.repeat(emptyCount)}]`;
+    }
+
+    let animFrame = null;
+    function updateDisplay(targetState) {
+      Object.assign(state, targetState);
+
+      const pct = Math.max(0, (state.current / state.target) * 100);
+      state.percent = pct;
+
+      const currSign = formatCurrency(state.currency);
+
+      if (params.get('variant') === 'compact') {
+        titleEl.textContent = `[ GOAL // ${state.title.toUpperCase()} ]`;
+        currentEl.textContent = `${formatNumber(state.current)} ${currSign}`;
+        targetEl.textContent = `/ ${formatNumber(state.target)} ${currSign}`;
+      } else {
+        titleEl.textContent = `[ GOAL // ${state.title.toUpperCase()} ]`;
+        currentEl.textContent = `${formatNumber(state.current)} ${currSign}`;
+        targetEl.textContent = `/ ${formatNumber(state.target)} ${currSign}`;
+      }
+
+      barEl.textContent = renderAsciiBar(pct);
+      pctEl.textContent = `${pct.toFixed(1)}%`;
+
+      goalBox.classList.toggle('is-completed', pct >= 100);
+    }
+
+    // Initial render
+    updateDisplay({});
+
+    const wsParam = params.get('ws');
+    if (wsParam !== 'off') {
+      const wsUrl = wsParam || `ws://${location.host || '127.0.0.1:8787'}/events`;
+      let retryDelay = 1000;
+
+      const connect = () => {
+        const socket = new WebSocket(wsUrl);
+        socket.onopen = () => {
+          retryDelay = 1000;
+        };
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'goal_update') {
+              if (data.enabled === false) {
+                goalBox.style.display = 'none';
+              } else {
+                goalBox.style.display = '';
+                updateDisplay({
+                  title: data.title || state.title,
+                  current: typeof data.current === 'number' ? data.current : state.current,
+                  target: typeof data.target === 'number' ? data.target : state.target,
+                  currency: data.currency || state.currency
+                });
+              }
+            }
+          } catch (e) {}
+        };
+        socket.onclose = () => {
+          setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 10000);
+        };
+        socket.onerror = () => socket.close();
+      };
+
+      connect();
+    }
+    })();
+  </script>
+</body>
+</html>

@@ -34,9 +34,42 @@ class Broadcaster:
         self.active_prediction = None
         self.chat_history = deque(maxlen=30)
         self.last_stream_stats = None
+        self.goal_config = None
+        self.last_goal = None
+        self.config_path = None
         self._background_tasks = set()  # prevent GC of fire-and-forget tasks
 
     MAX_CLIENTS = 50  # prevent memory exhaustion from too many WebSocket connections
+
+    def init_goal(self, goal_cfg: dict, config_path: Path | None = None) -> None:
+        self.goal_config = dict(goal_cfg)
+        if config_path:
+            self.config_path = config_path
+        cur = float(self.goal_config.get("current", 0.0))
+        tgt = max(0.01, float(self.goal_config.get("target", 10000.0)))
+        pct = round(min(100.0, (cur / tgt) * 100), 1)
+        self.last_goal = {
+            "type": "goal_update",
+            "enabled": bool(self.goal_config.get("enabled", True)),
+            "title": str(self.goal_config.get("title", "Сбор на цель")),
+            "current": cur,
+            "target": tgt,
+            "currency": str(self.goal_config.get("currency", "RUB")),
+            "percent": pct,
+        }
+
+    def _persist_goal_current(self) -> None:
+        if not self.config_path or not self.config_path.exists() or not self.goal_config:
+            return
+        try:
+            txt = self.config_path.read_text("utf-8")
+            import re
+            new_cur = f'{float(self.goal_config["current"]):.1f}'
+            new_txt = re.sub(r'(?m)^(current\s*=\s*)[0-9.]+', rf'\g<1>{new_cur}', txt)
+            if new_txt != txt:
+                self.config_path.write_text(new_txt, "utf-8")
+        except Exception as e:
+            log.warning("failed to persist goal progress to config.toml: %s", e)
 
     async def attach(self, request) -> web.WebSocketResponse:
         # Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
@@ -83,6 +116,8 @@ class Broadcaster:
                 }))
             if self.last_stream_stats:
                 await socket.send_str(base.encode(self.last_stream_stats))
+            if self.last_goal:
+                await socket.send_str(base.encode(self.last_goal))
         except Exception:
             pass
 
@@ -149,6 +184,28 @@ class Broadcaster:
             self.last_sounds_config = payload
         elif msg_type == "stream_stats":
             self.last_stream_stats = payload
+        elif msg_type == "goal_update":
+            self.last_goal = payload
+        elif msg_type == "alert" and payload.get("kind") == "donate":
+            if self.goal_config and self.goal_config.get("enabled"):
+                amount_val = parse_amount(payload.get("amount"))
+                if amount_val > 0:
+                    self.goal_config["current"] = round(float(self.goal_config.get("current", 0.0)) + amount_val, 2)
+                    cur = self.goal_config["current"]
+                    tgt = max(0.01, float(self.goal_config.get("target", 10000.0)))
+                    pct = round(min(100.0, (cur / tgt) * 100), 1)
+                    goal_payload = {
+                        "type": "goal_update",
+                        "enabled": bool(self.goal_config.get("enabled", True)),
+                        "title": str(self.goal_config.get("title", "Сбор на цель")),
+                        "current": cur,
+                        "target": tgt,
+                        "currency": str(self.goal_config.get("currency", "RUB")),
+                        "percent": pct,
+                    }
+                    self.last_goal = goal_payload
+                    self._create_background_task(self.broadcast(goal_payload))
+                    self._persist_goal_current()
         elif msg_type == "chat":
             self.chat_history.append(payload)
         elif msg_type == "chat_clear":
@@ -180,6 +237,23 @@ class Broadcaster:
             if isinstance(result, Exception):
                 self.clients.discard(socket)
 
+
+
+def parse_amount(val) -> float:
+    """Extract numeric float from strings like '500 ₽', '1 500,50 RUB', or raw numbers."""
+    if val is None:
+        return 0.0
+    if isinstance(val, (int, float)):
+        return float(val)
+    s = str(val).replace(" ", "").replace("\xa0", "").replace(",", ".")
+    import re
+    match = re.search(r"[-+]?\d*\.?\d+", s)
+    if match:
+        try:
+            return float(match.group(0))
+        except ValueError:
+            pass
+    return 0.0
 
 
 def toml_escape(val) -> str:
@@ -216,6 +290,13 @@ def serialize_toml(cfg: dict) -> str:
         "[donatex]",
         f'enabled = {str(cfg.get("donatex", {}).get("enabled", False)).lower()}',
         f'token = "{toml_escape(cfg.get("donatex", {}).get("token", ""))}"',
+        "",
+        "[goal]",
+        f'enabled = {str(cfg.get("goal", {}).get("enabled", False)).lower()}',
+        f'title = "{toml_escape(cfg.get("goal", {}).get("title", "Сбор на цель"))}"',
+        f'current = {float(cfg.get("goal", {}).get("current", 0.0)):.1f}',
+        f'target = {float(cfg.get("goal", {}).get("target", 10000.0)):.1f}',
+        f'currency = "{toml_escape(cfg.get("goal", {}).get("currency", "RUB"))}"',
         ""
     ]
     return "\n".join(lines)
@@ -285,6 +366,11 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             }
         except Exception:
             pass
+
+    # Pre-cache donation goal
+    goal_cfg = dict(config.get("goal", {}))
+    default_config_path = project_root / "bridge" / "config.toml"
+    broadcaster.init_goal(goal_cfg, broadcaster.config_path or default_config_path)
 
     adapter_states = {
         name: bool(config.get(name, {}).get("enabled"))
@@ -369,6 +455,11 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             config.setdefault("donationalerts", {}).update(payload["donationalerts"])
         if "donatex" in payload:
             config.setdefault("donatex", {}).update(payload["donatex"])
+        if "goal" in payload:
+            config.setdefault("goal", {}).update(payload["goal"])
+            broadcaster.init_goal(config["goal"], config_path)
+            if broadcaster.last_goal:
+                await broadcaster.broadcast(broadcaster.last_goal)
 
         # Backup existing config
         if config_path.exists():

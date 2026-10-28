@@ -116,12 +116,13 @@ def build_collection() -> dict:
     countdown = make_browser_source("SYSTEM: Countdown", "countdown.html", "minutes=10&pos=center-left")
     ending_card = make_browser_source("SYSTEM: Ending Card", "ending-card.html", "pos=center")
     media_request = make_browser_source("SYSTEM: Media Request", "media-request.html", "pos=bottom-left")
+    goal = make_browser_source("SYSTEM: Goal", "goal.html", "pos=bottom-left")
 
     all_browser_sources = [
         bg, alerts, pulse,
         ind_starting, ind_main, ind_chatting, ind_focus, ind_brb, ind_ending,
         chat_half, chat_main, chat_standard, (feed_right),
-        countdown, ending_card, media_request
+        countdown, ending_card, media_request, goal
     ]
 
     # 2. Build Scenes (ordered layers from bottom to top)
