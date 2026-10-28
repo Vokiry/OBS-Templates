@@ -379,13 +379,16 @@
         setToggleState('btn-da-toggle', modules.da);
         document.getElementById('da-client-id').value = da.client_id || '';
         document.getElementById('da-client-secret').value = da.client_secret || '';
+        maskedSecrets['da-client-secret'] = da.client_secret || '';
         document.getElementById('da-access-token').value = da.access_token || '';
+        maskedSecrets['da-access-token'] = da.access_token || '';
 
         // 4. DonateX
         const dx = configData.donatex || {};
         modules.dx = dx.enabled !== false;
         setToggleState('btn-dx-toggle', modules.dx);
         document.getElementById('dx-token').value = dx.token || '';
+        maskedSecrets['dx-token'] = dx.token || '';
 
         // 5. Sounds Mapping
         const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
@@ -397,6 +400,16 @@
         showStatus('[ Ошибка загрузки конфигурации ]');
         console.error('Config load failed:', e);
       }
+    }
+
+    // Return the field value only if the user actually changed it from the masked version.
+    // If unchanged, return undefined so the server preserves the original secret.
+    function getSecretValue(inputId) {
+      const el = document.getElementById(inputId);
+      if (!el) return undefined;
+      const val = el.value.trim();
+      if (val === maskedSecrets[inputId]) return undefined;  // still masked — skip
+      return val;
     }
 
     async function saveConfiguration() {
@@ -422,24 +435,33 @@
         twitch: {
           enabled: modules.twitch,
           client_id: document.getElementById('twitch-client-id').value.trim(),
-          client_secret: document.getElementById('twitch-client-secret').value.trim(),
           include_follows: document.getElementById('twitch-follows').checked,
           redirect_url: configData.twitch?.redirect_url || 'http://localhost:3000'
         },
         donationalerts: {
           enabled: modules.da,
           client_id: document.getElementById('da-client-id').value.trim(),
-          client_secret: document.getElementById('da-client-secret').value.trim(),
-          access_token: document.getElementById('da-access-token').value.trim()
         },
         donatex: {
           enabled: modules.dx,
-          token: document.getElementById('dx-token').value.trim()
         },
         sounds: {
           mapping: soundMapping
         }
       };
+
+      // Only include secrets that were actually changed by the user
+      const twSecret = getSecretValue('twitch-client-secret');
+      if (twSecret !== undefined) payload.twitch.client_secret = twSecret;
+
+      const daSecret = getSecretValue('da-client-secret');
+      if (daSecret !== undefined) payload.donationalerts.client_secret = daSecret;
+
+      const daToken = getSecretValue('da-access-token');
+      if (daToken !== undefined) payload.donationalerts.access_token = daToken;
+
+      const dxToken = getSecretValue('dx-token');
+      if (dxToken !== undefined) payload.donatex.token = dxToken;
 
       try {
         const res = await fetch(`${API_BASE}/api/config`, {
