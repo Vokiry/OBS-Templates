@@ -579,9 +579,11 @@ class AdapterManager:
         self.tasks.clear()
 
 
-def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = False, adapter_mgr: AdapterManager | None = None) -> web.Application:
+def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = False, adapter_mgr: AdapterManager | None = None, config_path: Path | None = None) -> web.Application:
     project_root = Path(__file__).parent.parent
     src_dir = project_root / "src"
+    target_config_path = config_path or (project_root / "bridge" / "config.toml")
+    target_backup_path = target_config_path.with_name(f"{target_config_path.name}.bak")
 
     # Pre-cache current sounds so connecting overlays receive them instantly
     sounds_json_path = src_dir / "sounds" / "sounds.json"
@@ -598,8 +600,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
 
     # Pre-cache donation goal
     goal_cfg = dict(config.get("goal", {}))
-    default_config_path = project_root / "bridge" / "config.toml"
-    broadcaster.init_goal(goal_cfg, broadcaster.config_path or default_config_path)
+    broadcaster.init_goal(goal_cfg, broadcaster.config_path or target_config_path)
 
     # Initialize TTS
     tts_cfg = dict(config.get("tts", {}))
@@ -684,8 +685,8 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
     async def save_config_api(request):
         project_root = Path(__file__).parent.parent
         src_dir = project_root / "src"
-        config_path = project_root / "bridge" / "config.toml"
-        backup_path = project_root / "bridge" / "config.toml.bak"
+        config_path = target_config_path
+        backup_path = target_backup_path
 
         try:
             payload = await request.json()

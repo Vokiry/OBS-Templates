@@ -113,7 +113,9 @@ async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
     mgr = AdapterManager(b.broadcast)
     await mgr.start_all(config)
     
-    app = build_app(b, config, enable_settings=True, adapter_mgr=mgr)
+    test_cfg_path = tmp_path / "test_config.toml"
+    test_cfg_path.write_text("[server]\nhost = \"127.0.0.1\"\nport = 8787\n")
+    app = build_app(b, config, enable_settings=True, adapter_mgr=mgr, config_path=test_cfg_path)
     client = await aiohttp_client(app)
     
     headers = {"Referer": "http://127.0.0.1:8787/settings"}

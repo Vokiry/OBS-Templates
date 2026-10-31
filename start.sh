@@ -115,12 +115,12 @@ if [ "$LAUNCH_OBS" = true ]; then
 
   echo "[*] Waiting for server on http://localhost:8787/health..."
   READY=false
-  for i in {1..20}; do
-    if curl -s http://127.0.0.1:8787/health | grep -q '"status":"running"'; then
+  for i in {1..30}; do
+    if curl -s http://127.0.0.1:8787/health | grep -E -q '"status"[[:space:]]*:[[:space:]]*"running"'; then
       READY=true
       break
     fi
-    sleep 0.5
+    sleep 0.2
   done
 
   if [ "$READY" = true ]; then
