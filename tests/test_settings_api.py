@@ -47,15 +47,17 @@ def test_sounds_catalog_save_and_load(tmp_path):
         "follow": "magic_sound.wav"
     }
 
-    data = save_sounds_catalog(src_dir, mapping)
+    data = save_sounds_catalog(src_dir, mapping, master_volume=0.85)
     assert data["sounds"]["donate"]["file"] == "../sounds/burn.wav"
     assert data["sounds"]["follow"]["file"] == "../sounds/magic_sound.wav"
+    assert data["masterVolume"] == 0.85
 
     catalog = get_sounds_catalog(src_dir)
     assert "burn.wav" in catalog["available_files"]
     assert "magic_sound.wav" in catalog["available_files"]
     assert catalog["mapping"]["donate"] == "burn.wav"
     assert catalog["mapping"]["follow"] == "magic_sound.wav"
+    assert catalog["masterVolume"] == 0.85
 
 
 @pytest.mark.asyncio

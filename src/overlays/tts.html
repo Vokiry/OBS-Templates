@@ -70,7 +70,8 @@
       const url = URL.createObjectURL(blob);
       currentAudio = new Audio();
       currentAudio.preload = 'auto';
-      currentAudio.volume = 1.0;
+      const itemVol = typeof item.volume === 'number' ? item.volume : 0.8;
+      currentAudio.volume = Math.max(0, Math.min(1, itemVol));
       currentAudio.src = url;
 
       let started = false;

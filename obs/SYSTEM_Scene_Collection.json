@@ -34,7 +34,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -68,7 +68,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -102,7 +102,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -136,7 +136,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -170,7 +170,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -204,7 +204,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -238,7 +238,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -272,7 +272,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -306,7 +306,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -340,7 +340,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -374,7 +374,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -408,7 +408,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -442,7 +442,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -476,7 +476,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -510,7 +510,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -544,7 +544,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -578,7 +578,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },
@@ -612,7 +612,7 @@
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
-                "reroute_audio": true,
+                "reroute_audio": false,
                 "restart_when_active": true,
                 "shutdown": false
             },

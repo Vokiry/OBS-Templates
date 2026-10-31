@@ -153,6 +153,7 @@ class Broadcaster:
                         "nickname": item["username"],
                         "text": item["text"],
                         "show_card": item["show_card"],
+                        "volume": float(self.tts_config.get("volume", 0.8)),
                     }
                     await self.broadcast(payload)
                     # Minimum gap between TTS generations (rate-limit protection)
@@ -427,6 +428,7 @@ def serialize_toml(cfg: dict) -> str:
         f'voice = "{toml_escape(cfg.get("tts", {}).get("voice", "shitova.us"))}"',
         f'speed = "{toml_escape(cfg.get("tts", {}).get("speed", "1"))}"',
         f'emotion = "{toml_escape(cfg.get("tts", {}).get("emotion", "neutral"))}"',
+        f'volume = {float(cfg.get("tts", {}).get("volume", 0.8)):.2f}',
         f'max_length = {int(cfg.get("tts", {}).get("max_length", 200))}',
         f'reward_name = "{toml_escape(cfg.get("tts", {}).get("reward_name", "TTS"))}"',
         f'auth_token = "{toml_escape(cfg.get("tts", {}).get("auth_token", yandex_tts.DEFAULT_AUTH_TOKEN))}"',
@@ -466,10 +468,13 @@ def get_sounds_catalog(src_dir: Path) -> dict:
         "follow": "follow.wav",
         "default": "default.wav",
     }
+    master_volume = 0.7
     sounds_json_path = sounds_dir / "sounds.json"
     if sounds_json_path.exists():
         try:
             raw = json.loads(sounds_json_path.read_text("utf-8"))
+            if "masterVolume" in raw:
+                master_volume = float(raw["masterVolume"])
             for k, v in raw.get("sounds", {}).items():
                 f = v.get("file", "")
                 if "/" in f:
@@ -481,14 +486,15 @@ def get_sounds_catalog(src_dir: Path) -> dict:
     return {
         "available_files": available_files,
         "mapping": mapping,
+        "masterVolume": master_volume,
     }
 
 
-def save_sounds_catalog(src_dir: Path, mapping: dict) -> dict:
+def save_sounds_catalog(src_dir: Path, mapping: dict, master_volume: float = 0.7) -> dict:
     sounds_dir = src_dir / "sounds"
     sounds_json_path = sounds_dir / "sounds.json"
     data = {
-        "masterVolume": 0.7,
+        "masterVolume": max(0.0, min(1.0, float(master_volume))),
         "sounds": {
             k: {"file": f"../sounds/{fname}", "volume": 0.8}
             for k, fname in mapping.items()
@@ -639,11 +645,12 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
 
         # 2. Save sound mappings if provided
         if "sounds" in payload and "mapping" in payload["sounds"]:
-            sound_data = save_sounds_catalog(src_dir, payload["sounds"]["mapping"])
+            master_vol = payload["sounds"].get("masterVolume", 0.7)
+            sound_data = save_sounds_catalog(src_dir, payload["sounds"]["mapping"], master_volume=master_vol)
             await broadcaster.broadcast({
                 "type": "sounds_update",
                 "sounds": sound_data.get("sounds", {}),
-                "masterVolume": sound_data.get("masterVolume", 0.7)
+                "masterVolume": sound_data.get("masterVolume", master_vol)
             })
 
         log.info("configuration saved via web settings panel")

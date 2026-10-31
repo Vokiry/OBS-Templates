@@ -146,7 +146,16 @@
       <div class="settings-card__header">
         <span class="settings-card__label">[ 05 // ЗВУКИ ОПОВЕЩЕНИЙ (ALERT AUDIO FILES) ]</span>
       </div>
-      <span class="form-hint">Выберите файл из папки src/sounds/ для каждого типа события:</span>
+      <span class="form-hint">Настройка общей громкости и привязка звуковых файлов (.wav, .mp3) к алертам:</span>
+
+      <!-- Master Volume Slider -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0 14px; padding: 6px 10px; background: rgba(11, 15, 20, 0.4); border: var(--border-width) solid var(--color-border-faint);">
+        <label class="form-label" for="alerts-volume" style="margin: 0;">Общая громкость алертов (Master Volume)</label>
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 220px;">
+          <input type="range" id="alerts-volume" min="0" max="100" value="70" class="form-range" oninput="document.getElementById('alerts-volume-val').textContent = this.value + '%'">
+          <span id="alerts-volume-val" style="font-family: var(--font-interface); font-size: 11px; min-width: 36px; color: var(--color-accent); text-align: right;">70%</span>
+        </div>
+      </div>
 
       <div class="sounds-grid">
         <div class="sound-row">
@@ -310,6 +319,16 @@
           <label class="form-label" for="tts-max-length">Максимальная длина текста</label>
           <input type="number" id="tts-max-length" class="form-input" value="200" min="50" max="500">
           <span class="form-hint">Символов (слишком длинные фразы обрезаются)</span>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="form-label" for="tts-volume" style="margin: 0;">Громкость озвучки чата</label>
+            <span id="tts-volume-val" style="font-family: var(--font-interface); font-size: 11px; color: var(--color-accent); font-weight: 600;">80%</span>
+          </div>
+          <input type="range" id="tts-volume" min="0" max="100" value="80" class="form-range" oninput="document.getElementById('tts-volume-val').textContent = this.value + '%'" style="margin-top: 6px;">
         </div>
       </div>
 
@@ -708,6 +727,9 @@
         soundTypes.forEach(t => {
           populateSelect(`snd-${t}`, availableSoundFiles, mapping[t]);
         });
+        const masterVol = typeof sounds.masterVolume === 'number' ? Math.round(sounds.masterVolume * 100) : 70;
+        document.getElementById('alerts-volume').value = masterVol;
+        document.getElementById('alerts-volume-val').textContent = masterVol + '%';
 
         // 7. TTS (Yandex Alice)
         if (data.tts_voices) {
@@ -725,6 +747,9 @@
         const spVal = tts.speed ? (String(tts.speed) === '1' ? '1.0' : String(tts.speed)) : '1.1';
         document.getElementById('tts-speed').value = spVal;
         document.getElementById('tts-emotion').value = tts.emotion || 'neutral';
+        const ttsVol = typeof tts.volume === 'number' ? Math.round(tts.volume * 100) : 80;
+        document.getElementById('tts-volume').value = ttsVol;
+        document.getElementById('tts-volume-val').textContent = ttsVol + '%';
         document.getElementById('tts-max-length').value = tts.max_length !== undefined ? tts.max_length : 200;
 
         const vipContainer = document.getElementById('vip-voices-container');
@@ -793,7 +818,8 @@
           target: Math.max(0.01, parseFloat(document.getElementById('goal-target').value || 10000))
         },
         sounds: {
-          mapping: soundMapping
+          mapping: soundMapping,
+          masterVolume: (parseInt(document.getElementById('alerts-volume').value, 10) || 70) / 100
         }
       };
 
@@ -812,6 +838,7 @@
         voice: document.getElementById('tts-voice').value,
         speed: document.getElementById('tts-speed').value,
         emotion: document.getElementById('tts-emotion').value,
+        volume: (parseInt(document.getElementById('tts-volume').value, 10) || 80) / 100,
         max_length: parseInt(document.getElementById('tts-max-length').value, 10) || 200,
         reward_name: document.getElementById('tts-reward-name').value.trim() || 'TTS',
         vip_voices: vipVoices,

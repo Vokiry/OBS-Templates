@@ -227,6 +227,37 @@ body {
   color: var(--color-accent);
 }
 
+/* Range input (Volume sliders) */
+.form-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border-faint);
+  outline: none;
+  cursor: pointer;
+}
+
+.form-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--color-accent);
+  border: 1px solid #0B0F14;
+  cursor: pointer;
+}
+
+.form-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--color-accent);
+  border: 1px solid #0B0F14;
+  border-radius: 0;
+  cursor: pointer;
+}
+
 /* Action button inside cards */
 .btn-action {
   background: var(--color-surface-raised);

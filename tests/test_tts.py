@@ -125,6 +125,7 @@ def test_serialize_toml_tts():
             "voice": "shitova.us",
             "speed": "1.1",
             "emotion": "good",
+            "volume": 0.65,
             "max_length": 180,
             "reward_name": "TTS Речь",
             "auth_token": "custom-token-123",
@@ -141,6 +142,7 @@ def test_serialize_toml_tts():
     assert 'mode = "rewards"' in toml_str
     assert 'speed = "1.1"' in toml_str
     assert 'emotion = "good"' in toml_str
+    assert 'volume = 0.65' in toml_str
     assert 'max_length = 180' in toml_str
     assert 'reward_name = "TTS Речь"' in toml_str
     assert 'auth_token = "custom-token-123"' in toml_str

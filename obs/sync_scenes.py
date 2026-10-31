@@ -60,16 +60,14 @@ def sync_collection(
             existing_sources_by_name[name] = tmpl_source
             added_sources.append(name)
         else:
-            # Sync critical settings (e.g. restart_when_active, reroute_audio)
+            # Sync critical visual settings (restart_when_active, fps, resolution)
+            # DO NOT overwrite user's audio routing (reroute_audio / monitoring_type)
             curr = existing_sources_by_name[name]
             curr_settings = curr.setdefault("settings", {})
             tmpl_settings = tmpl_source.get("settings", {})
-            for key in ("restart_when_active", "reroute_audio", "fps", "width", "height"):
+            for key in ("restart_when_active", "fps", "width", "height"):
                 if key in tmpl_settings:
                     curr_settings[key] = tmpl_settings[key]
-            # Update monitoring_type to Monitor and Output (1) for audio-enabled sources
-            if tmpl_source.get("monitoring_type") is not None:
-                curr["monitoring_type"] = tmpl_source["monitoring_type"]
 
     # 2. Inject missing items into existing scenes
     template_scenes = {
