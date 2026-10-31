@@ -503,7 +503,83 @@ def save_sounds_catalog(src_dir: Path, mapping: dict, master_volume: float = 0.7
     sounds_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), "utf-8")
     return data
 
-def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = False) -> web.Application:
+class AdapterManager:
+    """Manages adapter lifecycles with hot-reloading support."""
+
+    def __init__(self, broadcast):
+        self.broadcast = broadcast
+        self.tasks: dict[str, asyncio.Task] = {}
+        self.configs: dict[str, dict] = {}
+        self.states: dict[str, bool] = {
+            "twitch": False,
+            "twitch_chat": False,
+            "donationalerts": False,
+            "donatex": False,
+        }
+
+    def _prepare_sections(self, full_config: dict) -> dict[str, tuple[str, dict]]:
+        tc_cfg = dict(full_config.get("twitch_chat", {}))
+        tw_cfg = full_config.get("twitch", {})
+        if tw_cfg.get("client_id") and not tc_cfg.get("client_id"):
+            tc_cfg["client_id"] = tw_cfg["client_id"]
+            tc_cfg["client_secret"] = tw_cfg.get("client_secret", "")
+
+        return {
+            "twitch": ("adapters.twitch", dict(full_config.get("twitch", {}))),
+            "twitch_chat": ("adapters.twitch_chat", tc_cfg),
+            "donationalerts": ("adapters.donationalerts", dict(full_config.get("donationalerts", {}))),
+            "donatex": ("adapters.donatex", dict(full_config.get("donatex", {}))),
+        }
+
+    async def start_all(self, full_config: dict) -> None:
+        sections = self._prepare_sections(full_config)
+        for name, (module_path, section) in sections.items():
+            self.configs[name] = dict(section)
+            enabled = bool(section.get("enabled"))
+            self.states[name] = enabled
+            if not enabled:
+                continue
+            log.info("starting adapter: %s", name)
+            module = __import__(module_path, fromlist=["run"])
+            self.tasks[name] = asyncio.create_task(watch(name, module.run(section, self.broadcast)))
+
+    async def restart_adapter(self, name: str, module_path: str, section: dict) -> None:
+        if name in self.tasks:
+            t = self.tasks.pop(name)
+            t.cancel()
+            try:
+                await asyncio.wait_for(t, timeout=2.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError, Exception):
+                pass
+
+        self.configs[name] = dict(section)
+        enabled = bool(section.get("enabled"))
+        self.states[name] = enabled
+        if enabled:
+            log.info("hot-reloading adapter: %s", name)
+            module = __import__(module_path, fromlist=["run"])
+            self.tasks[name] = asyncio.create_task(watch(name, module.run(section, self.broadcast)))
+        else:
+            log.info("adapter %s disabled", name)
+
+    async def reload_if_changed(self, full_config: dict) -> None:
+        sections = self._prepare_sections(full_config)
+        for name, (module_path, section) in sections.items():
+            if section != self.configs.get(name):
+                await self.restart_adapter(name, module_path, section)
+
+    async def stop_all(self) -> None:
+        for t in self.tasks.values():
+            t.cancel()
+        if self.tasks:
+            try:
+                await asyncio.wait_for(asyncio.gather(*self.tasks.values(), return_exceptions=True), timeout=2.0)
+            except (asyncio.TimeoutError, Exception):
+                pass
+        self.tasks.clear()
+
+
+def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = False, adapter_mgr: AdapterManager | None = None) -> web.Application:
     project_root = Path(__file__).parent.parent
     src_dir = project_root / "src"
 
@@ -571,10 +647,11 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         return web.json_response({"ok": True})
 
     async def health(request):
+        states = adapter_mgr.states if adapter_mgr else adapter_states
         return web.json_response({
             "status": "running",
             "overlays": len(broadcaster.clients),
-            "adapters": adapter_states,
+            "adapters": states,
             "settings_enabled": enable_settings,
             "stream_stats": broadcaster.last_stream_stats,
         })
@@ -653,7 +730,11 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
                 "masterVolume": sound_data.get("masterVolume", master_vol)
             })
 
-        log.info("configuration saved via web settings panel")
+        # 3. Hot-reload any changed adapters without restarting server
+        if adapter_mgr:
+            await adapter_mgr.reload_if_changed(config)
+
+        log.info("configuration saved via web settings panel (applied live)")
         return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def upload_sound_api(request):
@@ -990,9 +1071,10 @@ async def main() -> None:
     API_KEY = secrets.token_urlsafe(24)
 
     broadcaster = Broadcaster()
-    tasks = spawn_adapters(config, broadcaster.broadcast)
+    adapter_mgr = AdapterManager(broadcaster.broadcast)
+    await adapter_mgr.start_all(config)
 
-    app = build_app(broadcaster, config, enable_settings=args.settings)
+    app = build_app(broadcaster, config, enable_settings=args.settings, adapter_mgr=adapter_mgr)
     if args.settings:
         log.info("SETTINGS MODE ACTIVE: web dashboard at http://%s:%d/settings", host, port)
     else:
@@ -1020,13 +1102,7 @@ async def main() -> None:
         pass
     finally:
         log.info("shutting down...")
-        for t in tasks:
-            t.cancel()
-        if tasks:
-            try:
-                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=2.0)
-            except asyncio.TimeoutError:
-                log.warning("some adapters timed out during shutdown")
+        await adapter_mgr.stop_all()
         # Cancel any pending broadcaster background tasks (TTS worker, delay clears, etc.)
         for t in list(broadcaster._background_tasks):
             t.cancel()

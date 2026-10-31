@@ -92,3 +92,51 @@ async def test_notify_endpoint_and_test_alerts(aiohttp_client):
     assert res_notify.status == 200
     notify_data = await res_notify.json()
     assert notify_data.get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
+    from bridge.alerts_bridge import AdapterManager
+    b = Broadcaster()
+    b.init_tts({"mode": "all", "volume": 0.8, "speed": "1.0"})
+    
+    config = {
+        "server": {"host": "127.0.0.1", "port": 8787},
+        "twitch_chat": {"enabled": False, "channel": "old_channel"},
+        "twitch": {"enabled": False},
+        "donationalerts": {"enabled": False},
+        "donatex": {"enabled": False},
+        "goal": {"enabled": True, "title": "Старый сбор", "current": 0.0, "target": 5000.0},
+        "tts": {"mode": "all", "volume": 0.8, "speed": "1.0"}
+    }
+    
+    mgr = AdapterManager(b.broadcast)
+    await mgr.start_all(config)
+    
+    app = build_app(b, config, enable_settings=True, adapter_mgr=mgr)
+    client = await aiohttp_client(app)
+    
+    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    save_payload = {
+        "goal": {"enabled": True, "title": "Новый сбор", "current": 100.0, "target": 10000.0},
+        "tts": {"mode": "all", "volume": 0.45, "speed": "1.2"},
+        "twitch_chat": {"enabled": False, "channel": "new_streamer"}
+    }
+    
+    res = await client.post("/api/config", json=save_payload, headers=headers)
+    assert res.status == 200
+    res_data = await res.json()
+    assert res_data.get("ok") is True
+    
+    # 1. Goal updated live
+    assert b.last_goal["title"] == "Новый сбор"
+    assert b.last_goal["target"] == 10000.0
+    
+    # 2. TTS volume and speed updated live
+    assert b.tts_config["volume"] == 0.45
+    assert b.tts_config["speed"] == "1.2"
+    
+    # 3. Adapter manager updated config live without server restart
+    assert mgr.configs["twitch_chat"]["channel"] == "new_streamer"
+    
+    await mgr.stop_all()
