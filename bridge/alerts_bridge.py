@@ -739,10 +739,15 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def upload_sound_api(request):
+        if not request.content_type.startswith("multipart/"):
+            return web.json_response({"error": "multipart content expected"}, status=400)
         project_root = Path(__file__).parent.parent
         sounds_dir = project_root / "src" / "sounds"
-        reader = await request.multipart()
-        field = await reader.next()
+        try:
+            reader = await request.multipart()
+            field = await reader.next()
+        except Exception:
+            return web.json_response({"error": "failed to parse multipart data"}, status=400)
         if not field or not field.filename:
             return web.json_response({"error": "no file uploaded"}, status=400)
 

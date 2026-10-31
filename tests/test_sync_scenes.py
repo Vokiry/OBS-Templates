@@ -117,3 +117,48 @@ def test_sync_collection_preserves_user_sources(tmp_path):
     assert res_second["status"] == "in_sync"
     assert len(res_second["added_sources"]) == 0
     assert len(res_second["scenes_updated"]) == 0
+
+
+def test_sync_collection_preserves_audio_routing(tmp_path):
+    target_file = tmp_path / "SYSTEM.json"
+
+    # User manually unchecked "Control audio via OBS" and set monitor off
+    collection = {
+        "name": "SYSTEM Broadcast Templates",
+        "sources": [
+            {
+                "name": "SYSTEM: Alerts",
+                "id": "browser_source",
+                "uuid": "uuid-alerts",
+                "settings": {
+                    "url": "http://localhost:8787/src/overlays/alerts.html",
+                    "reroute_audio": False,
+                    "restart_when_active": True
+                },
+                "monitoring_type": 0  # Monitor Off
+            },
+            {
+                "name": "SYSTEM: Main (Gameplay)",
+                "id": "scene",
+                "uuid": "uuid-main",
+                "settings": {
+                    "id_counter": 2,
+                    "items": [
+                        {"name": "SYSTEM: Alerts", "id": 1, "visible": True}
+                    ]
+                }
+            }
+        ]
+    }
+    target_file.write_text(json.dumps(collection), encoding="utf-8")
+
+    # Run sync
+    res = sync_collection(target_file, dry_run=False, backup=False)
+
+    # Inspect results
+    updated = json.loads(target_file.read_text(encoding="utf-8"))
+    alerts_src = next(s for s in updated["sources"] if s["name"] == "SYSTEM: Alerts")
+
+    # Audio routing settings MUST NOT be overwritten
+    assert alerts_src["settings"]["reroute_audio"] is False
+    assert alerts_src["monitoring_type"] == 0

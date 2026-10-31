@@ -95,6 +95,28 @@ async def test_notify_endpoint_and_test_alerts(aiohttp_client):
 
 
 @pytest.mark.asyncio
+async def test_upload_sound_api_validation(aiohttp_client):
+    b = Broadcaster()
+    app = build_app(b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True)
+    client = await aiohttp_client(app)
+    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+
+    # 1. Disallowed format (.exe) must be rejected with 400
+    from aiohttp import FormData
+    data = FormData()
+    data.add_field("file", b"fake binary", filename="malicious.exe", content_type="application/octet-stream")
+    res = await client.post("/api/sounds/upload", data=data, headers=headers)
+    assert res.status == 400
+    res_json = await res.json()
+    assert "unsupported audio format" in res_json["error"]
+
+    # 2. No file provided must be rejected with 400
+    empty_data = FormData()
+    res = await client.post("/api/sounds/upload", data=empty_data, headers=headers)
+    assert res.status == 400
+
+
+@pytest.mark.asyncio
 async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
     from bridge.alerts_bridge import AdapterManager
     b = Broadcaster()

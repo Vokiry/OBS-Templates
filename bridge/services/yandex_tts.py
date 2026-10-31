@@ -102,7 +102,9 @@ def is_bot(username: str) -> bool:
 
 def pick_voice(username: str, pool: list[str] | None = None) -> str:
     """Deterministic voice selection via CRC32 hash of lowercase nick."""
-    if not pool:
+    if pool is not None and len(pool) == 0:
+        return FALLBACK_VOICE
+    if pool is None:
         pool = DEFAULT_RANDOM_POOL
     if not pool:
         return FALLBACK_VOICE

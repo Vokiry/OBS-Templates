@@ -72,3 +72,44 @@ async def test_broadcaster_connection_limit(aiohttp_client):
     assert resp.status == 503
     text = await resp.text()
     assert "Too many connections" in text
+
+
+@pytest.mark.asyncio
+async def test_broadcaster_cswsh_origin_protection(aiohttp_client):
+    b = Broadcaster()
+    app = web.Application()
+    app.router.add_get("/events", b.attach)
+    client = await aiohttp_client(app)
+
+    # 1. Foreign origin must be rejected with 403 Forbidden
+    evil_resp = await client.get("/events", headers={"Origin": "http://evil-hacker.com"})
+    assert evil_resp.status == 403
+    assert "Origin not allowed" in (await evil_resp.text())
+
+    # 2. Localhost origin must be allowed
+    async with client.ws_connect("/events", headers={"Origin": "http://localhost:8787"}) as ws:
+        assert not ws.closed
+
+    # 3. No origin (OBS Browser Source native) must be allowed
+    async with client.ws_connect("/events") as ws:
+        assert not ws.closed
+
+
+@pytest.mark.asyncio
+async def test_broadcaster_client_events_handling(aiohttp_client):
+    b = Broadcaster()
+    b.init_tts({"mode": "all"})
+    # Put something in TTS queue
+    b._tts_queue.append({"username": "u1", "text": "t1", "voice": "ermil", "show_card": False})
+    assert len(b._tts_queue) == 1
+
+    app = web.Application()
+    app.router.add_get("/events", b.attach)
+    client = await aiohttp_client(app)
+
+    async with client.ws_connect("/events") as ws:
+        # Client sends tts_stop event
+        await ws.send_str(json.dumps({"type": "tts_stop"}))
+        await asyncio.sleep(0.05)
+        # TTS queue must be cleared
+        assert len(b._tts_queue) == 0

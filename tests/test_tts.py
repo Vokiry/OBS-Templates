@@ -194,3 +194,55 @@ async def test_tts_notify_test_trigger(aiohttp_client):
         mock_gen.assert_awaited_once()
         assert mock_gen.call_args.kwargs["voice"] == "krosh"
         assert mock_gen.call_args.kwargs["text"] == "Тестовое сообщение"
+
+
+def test_preprocess_text_edge_cases():
+    # Pure whitespace returns empty string
+    assert yandex_tts.preprocess_text("   \n\t   ") == ""
+    assert yandex_tts.preprocess_text(None) == ""
+
+    # Emojis are preserved cleanly
+    assert yandex_tts.preprocess_text("Привет стрим! 🔥🚀👍") == "Привет стрим! 🔥🚀👍"
+
+    # Repeated punctuation collapsed
+    assert yandex_tts.preprocess_text("Привет!!!!!") == "Привет!!"
+
+    # Pure URL is replaced with single "ссылка"
+    assert yandex_tts.preprocess_text("https://twitch.tv/vokkiry") == "ссылка"
+
+
+def test_pick_voice_empty_pool_fallback():
+    # Empty or None pool must safely fallback to shitova.us
+    assert yandex_tts.pick_voice("any_user", pool=[]) == "shitova.us"
+    assert yandex_tts.pick_voice("any_user", pool=None) in yandex_tts.DEFAULT_RANDOM_POOL
+
+
+@pytest.mark.asyncio
+async def test_tts_worker_delivers_volume_and_card(aiohttp_client):
+    from unittest.mock import patch, AsyncMock
+    b = Broadcaster()
+    b.init_tts({"mode": "all", "volume": 0.42})
+
+    app = web.Application()
+    app.router.add_get("/events", b.attach)
+    client = await aiohttp_client(app)
+
+    async with client.ws_connect("/events") as ws:
+        with patch("bridge.alerts_bridge.yandex_tts.generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.return_value = b"OggOpusBinary"
+            b.enqueue_tts("Alice", "Проверка громкости", is_reward=False)
+
+            # Wait for tts_speak broadcast
+            received_speak = None
+            for _ in range(5):
+                raw = await ws.receive_str()
+                msg = json.loads(raw)
+                if msg.get("type") == "tts_speak":
+                    received_speak = msg
+                    break
+
+            assert received_speak is not None
+            assert received_speak["nickname"] == "Alice"
+            assert received_speak["text"] == "Проверка громкости"
+            assert received_speak["volume"] == 0.42
+            assert received_speak["show_card"] is False
