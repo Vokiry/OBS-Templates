@@ -45,14 +45,23 @@ if exist "%OBS_SCENES_DIR%" (
         copy obs\SYSTEM_Scene_Collection.json "%OBS_SCENES_DIR%\SYSTEM.json" >nul 2>nul
         echo     [+] Created %OBS_SCENES_DIR%\SYSTEM.json
     ) else (
-        echo [i] Existing OBS scene collection kept intact.
+        bridge\.venv\Scripts\python.exe obs\sync_scenes.py --target "%OBS_SCENES_DIR%\SYSTEM.json" >nul 2>nul
+        echo     [+] OBS scene collection synchronized (custom sources preserved).
     )
+)
+
+set "SHOW_SETTINGS=0"
+for %%a in (%*) do (
+    if "%%a"=="--settings" set "SHOW_SETTINGS=1"
 )
 
 echo.
 echo   [+] Unified Server:   http://localhost:8787/
 echo   [+] Control Dock:     http://localhost:8787/dock
 echo   [+] Event WebSocket:  ws://localhost:8787/events
+if "!SHOW_SETTINGS!"=="1" (
+    echo   [+] Settings Panel:   http://localhost:8787/settings
+)
 echo.
 echo   [!] In OBS Studio:
 echo       1. Scene Collection -^> select 'SYSTEM Broadcast Templates'

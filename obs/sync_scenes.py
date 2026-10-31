@@ -127,9 +127,19 @@ def sync_collection(
     }
 
 
+def get_default_obs_path() -> Path:
+    import os
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "obs-studio" / "basic" / "scenes" / "SYSTEM.json"
+        return Path.home() / "AppData" / "Roaming" / "obs-studio" / "basic" / "scenes" / "SYSTEM.json"
+    return Path.home() / ".config" / "obs-studio" / "basic" / "scenes" / "SYSTEM.json"
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    default_obs_path = Path.home() / ".config/obs-studio/basic/scenes/SYSTEM.json"
+    default_obs_path = get_default_obs_path()
 
     import argparse
     parser = argparse.ArgumentParser(description="Safely sync SYSTEM sources into active OBS collection")

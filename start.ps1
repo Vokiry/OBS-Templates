@@ -41,7 +41,8 @@ if (Test-Path $ObsScenesDir) {
         Copy-Item "obs\SYSTEM_Scene_Collection.json" $DestFile -ErrorAction SilentlyContinue
         Write-Host "    [✓] Created $DestFile" -ForegroundColor Green
     } else {
-        Write-Host "[i] Existing OBS scene collection kept intact." -ForegroundColor Gray
+        & $VenvPython "obs\sync_scenes.py" --target $DestFile | Out-Null
+        Write-Host "    [✓] OBS scene collection synchronized (custom sources preserved)." -ForegroundColor Green
     }
 }
 
@@ -49,6 +50,9 @@ Write-Host ""
 Write-Host "  [✓] Unified Server:   http://localhost:8787/" -ForegroundColor Green
 Write-Host "  [✓] Control Dock:     http://localhost:8787/dock" -ForegroundColor Green
 Write-Host "  [✓] Event WebSocket:  ws://localhost:8787/events" -ForegroundColor Green
+if ($args -contains "--settings") {
+    Write-Host "  [✓] Settings Panel:   http://localhost:8787/settings" -ForegroundColor Green
+}
 Write-Host ""
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "[*] Starting SYSTEM server... (Press Ctrl+C to stop)"
