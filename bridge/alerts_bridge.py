@@ -1,3 +1,4 @@
+import base64
 import re
 import asyncio
 import argparse
@@ -7,6 +8,7 @@ import logging
 import secrets
 import sys
 import time
+from collections import deque as _deque
 from pathlib import Path
 from tomllib import load as toml_load
 
@@ -15,6 +17,7 @@ from aiohttp import WSMsgType, web
 sys.path.insert(0, str(Path(__file__).parent))
 
 from adapters import base
+from services import yandex_tts
 
 log = logging.getLogger("bridge")
 
@@ -24,7 +27,6 @@ API_KEY: str = ""
 
 class Broadcaster:
     def __init__(self):
-        from collections import deque
         self.clients = set()
         self.last_status = None
         self.last_7tv_emotes = None
@@ -32,12 +34,16 @@ class Broadcaster:
         self.last_sounds_config = None
         self.active_poll = None
         self.active_prediction = None
-        self.chat_history = deque(maxlen=30)
+        self.chat_history = _deque(maxlen=30)
         self.last_stream_stats = None
         self.goal_config = None
         self.last_goal = None
         self.config_path = None
         self._background_tasks = set()  # prevent GC of fire-and-forget tasks
+        # TTS state
+        self.tts_config: dict = {}
+        self._tts_queue: _deque = _deque(maxlen=4)
+        self._tts_worker_running = False
 
     MAX_CLIENTS = 50  # prevent memory exhaustion from too many WebSocket connections
 
@@ -70,6 +76,99 @@ class Broadcaster:
                 self.config_path.write_text(new_txt, "utf-8")
         except Exception as e:
             log.warning("failed to persist goal progress to config.toml: %s", e)
+
+    # ── TTS integration ──────────────────────────────────────────────────
+
+    def init_tts(self, tts_cfg: dict) -> None:
+        self.tts_config = dict(tts_cfg)
+
+    def _tts_mode(self) -> str:
+        return str(self.tts_config.get("mode", "off")).lower()
+
+    def _tts_voice_for_user(self, username: str) -> str:
+        # Check VIP assignments first
+        vip = self.tts_config.get("vip_voices", {})
+        if username.lower() in {k.lower() for k in vip}:
+            for k, v in vip.items():
+                if k.lower() == username.lower():
+                    return v
+        # Deterministic pick from random pool
+        pool = self.tts_config.get("random_pool", yandex_tts.DEFAULT_RANDOM_POOL)
+        if not pool:
+            pool = yandex_tts.DEFAULT_RANDOM_POOL
+        return yandex_tts.pick_voice(username, pool)
+
+    def enqueue_tts(self, username: str, text: str, is_reward: bool = False, force: bool = False, force_voice: str | None = None, force_speed: str | None = None, force_emotion: str | None = None) -> None:
+        mode = self._tts_mode()
+        if not force:
+            if mode == "off":
+                return
+            if mode == "rewards" and not is_reward:
+                return
+            if yandex_tts.is_bot(username):
+                return
+        cleaned = yandex_tts.preprocess_text(
+            text,
+            max_length=int(self.tts_config.get("max_length", 200))
+        )
+        if not cleaned:
+            return
+        show_card = (is_reward and mode == "rewards") or (force and is_reward)
+        voice = force_voice or self._tts_voice_for_user(username)
+        speed = str(force_speed or self.tts_config.get("speed", "1.0"))
+        emotion = str(force_emotion or self.tts_config.get("emotion", "neutral"))
+        self._tts_queue.append({
+            "username": username,
+            "text": cleaned,
+            "voice": voice,
+            "speed": speed,
+            "emotion": emotion,
+            "show_card": show_card,
+        })
+        if not self._tts_worker_running:
+            self._create_background_task(self._tts_worker())
+
+    async def _tts_worker(self) -> None:
+        self._tts_worker_running = True
+        try:
+            while self._tts_queue:
+                item = self._tts_queue.popleft()
+                speed = item.get("speed") or str(self.tts_config.get("speed", "1.0"))
+                emotion = item.get("emotion") or str(self.tts_config.get("emotion", "neutral"))
+                endpoint = str(self.tts_config.get("endpoint", yandex_tts.DEFAULT_WS_ENDPOINT))
+                auth_token = str(self.tts_config.get("auth_token", yandex_tts.DEFAULT_AUTH_TOKEN))
+
+                audio = await yandex_tts.generate(
+                    text=item["text"],
+                    voice=item["voice"],
+                    speed=speed,
+                    emotion=emotion,
+                    endpoint=endpoint,
+                    auth_token=auth_token,
+                )
+                if audio:
+                    payload = {
+                        "type": "tts_speak",
+                        "audio_b64": base64.b64encode(audio).decode("ascii"),
+                        "nickname": item["username"],
+                        "text": item["text"],
+                        "show_card": item["show_card"],
+                    }
+                    await self.broadcast(payload)
+                    # Minimum gap between TTS generations (rate-limit protection)
+                    await asyncio.sleep(0.8)
+                else:
+                    log.debug("tts: skipping failed generation for %s", item["username"])
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            log.warning("tts: worker error: %s", e)
+        finally:
+            self._tts_worker_running = False
+
+    async def stop_tts(self) -> None:
+        self._tts_queue.clear()
+        await self.broadcast({"type": "tts_stop"})
 
     async def attach(self, request) -> web.WebSocketResponse:
         # Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
@@ -155,6 +254,18 @@ class Broadcaster:
             await donatex.skip_donation()
             await donationalerts.skip_donation()
             await self.broadcast({"type": "alert_skip"})
+        elif msg_type == "tts_stop":
+            log.info("TTS stop requested by client")
+            await self.stop_tts()
+        elif msg_type == "tts_test":
+            self.enqueue_tts(
+                username=data.get("user", "Tester"),
+                text=data.get("text", "Проверка синтеза речи."),
+                force=True,
+                force_voice=data.get("voice"),
+                force_speed=data.get("speed"),
+                force_emotion=data.get("emotion"),
+            )
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
 
@@ -208,6 +319,18 @@ class Broadcaster:
                     self._persist_goal_current()
         elif msg_type == "chat":
             self.chat_history.append(payload)
+            # TTS: enqueue chat messages for speech synthesis
+            subtype = payload.get("subtype", "message")
+            username = payload.get("user", "")
+            text = payload.get("text", "")
+            if subtype == "reward":
+                # Channel points reward redemption
+                reward_name = str(payload.get("rewardTitle", "")).strip().lower()
+                configured_name = str(self.tts_config.get("reward_name", "TTS")).strip().lower()
+                if reward_name == configured_name:
+                    self.enqueue_tts(username, text, is_reward=True)
+            elif subtype == "message":
+                self.enqueue_tts(username, text, is_reward=False)
         elif msg_type == "chat_clear":
             self.chat_history.clear()
         elif msg_type == "poll":
@@ -297,8 +420,32 @@ def serialize_toml(cfg: dict) -> str:
         f'current = {float(cfg.get("goal", {}).get("current", 0.0)):.1f}',
         f'target = {float(cfg.get("goal", {}).get("target", 10000.0)):.1f}',
         f'currency = "{toml_escape(cfg.get("goal", {}).get("currency", "RUB"))}"',
-        ""
+        "",
+        "# 6. TEXT-TO-SPEECH (YANDEX ALICE)",
+        "[tts]",
+        f'mode = "{toml_escape(cfg.get("tts", {}).get("mode", "off"))}"',
+        f'voice = "{toml_escape(cfg.get("tts", {}).get("voice", "shitova.us"))}"',
+        f'speed = "{toml_escape(cfg.get("tts", {}).get("speed", "1"))}"',
+        f'emotion = "{toml_escape(cfg.get("tts", {}).get("emotion", "neutral"))}"',
+        f'max_length = {int(cfg.get("tts", {}).get("max_length", 200))}',
+        f'reward_name = "{toml_escape(cfg.get("tts", {}).get("reward_name", "TTS"))}"',
+        f'auth_token = "{toml_escape(cfg.get("tts", {}).get("auth_token", yandex_tts.DEFAULT_AUTH_TOKEN))}"',
+        "",
     ]
+
+    # Serialize random_pool as TOML array
+    pool = cfg.get("tts", {}).get("random_pool", yandex_tts.DEFAULT_RANDOM_POOL)
+    pool_str = ", ".join(f'"{toml_escape(v)}"' for v in pool)
+    lines.insert(-1, f"random_pool = [{pool_str}]")
+
+    # Serialize vip_voices as [tts.vip_voices] sub-table
+    vip = cfg.get("tts", {}).get("vip_voices", {})
+    if vip:
+        lines.append("[tts.vip_voices]")
+        for nick, voice in vip.items():
+            lines.append(f'{toml_escape(nick)} = "{toml_escape(voice)}"')
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -372,6 +519,10 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
     default_config_path = project_root / "bridge" / "config.toml"
     broadcaster.init_goal(goal_cfg, broadcaster.config_path or default_config_path)
 
+    # Initialize TTS
+    tts_cfg = dict(config.get("tts", {}))
+    broadcaster.init_tts(tts_cfg)
+
     adapter_states = {
         name: bool(config.get(name, {}).get("enabled"))
         for name in ("twitch", "twitch_chat", "donationalerts", "donatex")
@@ -396,6 +547,19 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             from adapters import donatex, donationalerts
             await donatex.skip_donation()
             await donationalerts.skip_donation()
+        elif payload.get("type") == "tts_stop":
+            await broadcaster.stop_tts()
+            return web.json_response({"ok": True})
+        elif payload.get("type") == "tts_test":
+            broadcaster.enqueue_tts(
+                username=payload.get("user", "Tester"),
+                text=payload.get("text", "Проверка синтеза речи."),
+                force=True,
+                force_voice=payload.get("voice"),
+                force_speed=payload.get("speed"),
+                force_emotion=payload.get("emotion"),
+            )
+            return web.json_response({"ok": True})
 
         await broadcaster.broadcast(payload)
         return web.json_response({"ok": True})
@@ -427,6 +591,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         return web.json_response({
             "config": config,
             "sounds": sounds_info,
+            "tts_voices": yandex_tts.VOICES,
             "auth": {
                 "twitch": has_twitch_token,
                 "donationalerts": has_da_token,
@@ -460,6 +625,9 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             broadcaster.init_goal(config["goal"], config_path)
             if broadcaster.last_goal:
                 await broadcaster.broadcast(broadcaster.last_goal)
+        if "tts" in payload:
+            config.setdefault("tts", {}).update(payload["tts"])
+            broadcaster.init_tts(config["tts"])
 
         # Backup existing config
         if config_path.exists():
@@ -634,6 +802,10 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         await broadcaster.broadcast({"type": "alert_skip"})
         return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
 
+    async def tts_stop_api(request):
+        await broadcaster.stop_tts()
+        return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+
     async def da_callback(request):
         code = request.query.get("code")
         if not code:
@@ -698,7 +870,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
 
     # Endpoints that require API key authentication (state-changing)
     PROTECTED_PATHS = {"/notify", "/api/config", "/api/sounds/upload",
-                       "/api/media/skip", "/api/donations/skip"}
+                       "/api/media/skip", "/api/donations/skip", "/api/tts/stop"}
 
     @web.middleware
     async def auth_middleware(request, handler):
@@ -745,6 +917,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel)
     app.router.add_post("/api/media/skip", media_skip_api)
     app.router.add_post("/api/donations/skip", donation_skip_api)
+    app.router.add_post("/api/tts/stop", tts_stop_api)
     app.router.add_get("/api/twitch/badges", get_twitch_badges)
     app.router.add_get("/api/da/callback", da_callback)
 
@@ -780,6 +953,8 @@ def spawn_adapters(config: dict, broadcast) -> list:
 async def watch(name: str, coro) -> None:
     try:
         await coro
+    except asyncio.CancelledError:
+        pass
     except Exception:
         log.exception("adapter %s crashed", name)
 
@@ -825,28 +1000,44 @@ async def main() -> None:
 
     stop_event = asyncio.Event()
     loop = asyncio.get_event_loop()
-    try:
-        loop.add_signal_handler(__import__("signal").SIGINT, stop_event.set)
-        loop.add_signal_handler(__import__("signal").SIGTERM, stop_event.set)
-    except NotImplementedError:
-        pass  # Windows doesn't support add_signal_handler
+    import signal
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, stop_event.set)
+        except NotImplementedError:
+            pass  # Windows doesn't support add_signal_handler
 
     try:
-        await asyncio.gather(*tasks, stop_event.wait())
-    except asyncio.CancelledError:
+        await stop_event.wait()
+    except (asyncio.CancelledError, KeyboardInterrupt):
         pass
     finally:
         log.info("shutting down...")
         for t in tasks:
             t.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        if tasks:
+            try:
+                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=2.0)
+            except asyncio.TimeoutError:
+                log.warning("some adapters timed out during shutdown")
+        # Cancel any pending broadcaster background tasks (TTS worker, delay clears, etc.)
+        for t in list(broadcaster._background_tasks):
+            t.cancel()
+        if broadcaster._background_tasks:
+            try:
+                await asyncio.wait_for(asyncio.gather(*broadcaster._background_tasks, return_exceptions=True), timeout=1.0)
+            except asyncio.TimeoutError:
+                pass
         # Close all WebSocket connections cleanly
         for ws in list(broadcaster.clients):
             try:
                 await ws.close()
             except Exception:
                 pass
-        await runner.cleanup()
+        try:
+            await asyncio.wait_for(runner.cleanup(), timeout=2.0)
+        except Exception:
+            pass
         log.info("shutdown complete")
 
 
@@ -863,3 +1054,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+    finally:
+        import os
+        os._exit(0)

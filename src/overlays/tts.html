@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM // TTS</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../components/tts.css">
+  <script src="overlay.js"></script>
+</head>
+<body>
+  <!-- TTS card (visible only in "rewards" mode) -->
+  <div class="tts-card" id="tts-card">
+    <div class="tts-card__header">
+      <span class="tts-card__tag">TTS</span>
+      <span class="tts-card__user" id="tts-user"></span>
+    </div>
+    <div class="tts-card__body" id="tts-text"></div>
+  </div>
+
+  <script>
+    const WS_URL = `ws://${location.host}/events`;
+
+    // Audio playback queue
+    const queue = [];
+    let isPlaying = false;
+    let currentAudio = null;
+
+    function connectWS() {
+      const ws = new WebSocket(WS_URL);
+
+      ws.onmessage = (ev) => {
+        let data;
+        try { data = JSON.parse(ev.data); } catch { return; }
+
+        if (data.type === 'tts_speak') {
+          // { audio_b64, nickname, text, show_card }
+          queue.push(data);
+          if (!isPlaying) playNext();
+        }
+
+        if (data.type === 'tts_stop') {
+          stopAll();
+        }
+      };
+
+      ws.onclose = () => setTimeout(connectWS, 2000);
+      ws.onerror = () => ws.close();
+    }
+
+    function playNext() {
+      if (queue.length === 0) {
+        isPlaying = false;
+        hideCard();
+        return;
+      }
+
+      isPlaying = true;
+      const item = queue.shift();
+
+      // Show card if rewards mode
+      if (item.show_card) {
+        showCard(item.nickname, item.text);
+      }
+
+      // Pre-buffered HTML5 Audio playback to eliminate stutter
+      const blob = b64toBlob(item.audio_b64, 'audio/ogg');
+      const url = URL.createObjectURL(blob);
+      currentAudio = new Audio();
+      currentAudio.preload = 'auto';
+      currentAudio.volume = 1.0;
+      currentAudio.src = url;
+
+      let started = false;
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        currentAudio = null;
+        hideCard();
+        setTimeout(playNext, 200);
+      };
+
+      const startPlayback = () => {
+        if (started) return;
+        started = true;
+        if (currentAudio) {
+          currentAudio.play().catch(cleanup);
+        }
+      };
+
+      currentAudio.onended = cleanup;
+      currentAudio.onerror = cleanup;
+      currentAudio.oncanplay = startPlayback;
+      currentAudio.oncanplaythrough = startPlayback;
+
+      // Pre-buffer fallback: if canplay doesn't fire within 80ms, start playback
+      setTimeout(startPlayback, 80);
+    }
+
+    function stopAll() {
+      queue.length = 0;
+      if (currentAudio) {
+        try {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        } catch (e) {}
+        currentAudio = null;
+      }
+      isPlaying = false;
+      hideCard();
+    }
+
+    function showCard(nickname, text) {
+      const card = document.getElementById('tts-card');
+      const userEl = document.getElementById('tts-user');
+      const textEl = document.getElementById('tts-text');
+      userEl.textContent = nickname || '???';
+      textEl.textContent = text || '';
+      card.classList.add('is-visible');
+    }
+
+    function hideCard() {
+      const card = document.getElementById('tts-card');
+      card.classList.remove('is-visible');
+    }
+
+    function b64toBlob(b64, type) {
+      const bin = atob(b64);
+      const len = bin.length;
+      const arr = new Uint8Array(len);
+      for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type });
+    }
+
+    connectWS();
+  </script>
+</body>
+</html>

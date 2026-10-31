@@ -69,12 +69,13 @@
       </div>
     </div>
 
-    <!-- 4. Live Actions (Alerts & Chat) -->
+    <!-- 4. Live Actions (Alerts, Chat & TTS) -->
     <div class="dock__section">
       <div class="dock__section-label">live actions</div>
-      <div class="dock__grid">
+      <div class="dock__grid dock__grid--3">
         <button class="dock__btn" onclick="skipAlert()">SKIP ALERT</button>
         <button class="dock__btn" onclick="clearChat()">CLEAR CHAT</button>
+        <button class="dock__btn" onclick="stopTTS()" style="color: #E5484D;">STOP TTS</button>
       </div>
     </div>
 
@@ -96,6 +97,7 @@
       <button class="dock__dev-btn" onclick="sendTestReward()"><u>rwd</u></button>
       <button class="dock__dev-btn" onclick="sendChat('Viewer', 'RainTime vibes!', '#63E6BE')"><u>7tv</u></button>
       <button class="dock__dev-btn" onclick="sendChat('MediaUser', 'meme https://media.tenor.com/2l3mQ2s3h38AAAAC/cat-jam.gif')"><u>gif</u></button>
+      <button class="dock__dev-btn" onclick="sendTestTTS()"><u>tts</u></button>
     </footer>
   </div>
 
@@ -179,6 +181,15 @@
 
     function clearChat() {
       sendNotify({ type: 'chat_clear' });
+    }
+
+    async function stopTTS() {
+      try {
+        const res = await fetch(`${API_BASE}/api/tts/stop`, { method: 'POST' });
+        showToast(res.ok ? 'TTS STOPPED' : 'ERR');
+      } catch (e) {
+        sendNotify({ type: 'tts_stop' });
+      }
     }
 
     // Dev Simulation Triggers
@@ -321,6 +332,15 @@
         text: 'Держи водный баланс на стриме!'
       });
       showToast('REWARD SENT');
+    }
+
+    function sendTestTTS() {
+      sendNotify({
+        type: 'tts_test',
+        user: 'Tester',
+        text: 'Привет, стрим! Проверка озвучки сообщений.'
+      });
+      showToast('TTS SENT');
     }
 
     async function pollHealth() {

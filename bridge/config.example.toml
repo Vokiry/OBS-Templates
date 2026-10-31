@@ -45,3 +45,30 @@ title = "Сбор на цель"
 current = 0.0
 target = 10000.0
 currency = "RUB"
+
+# 6. ЧАТ TTS (СИНТЕЗ РЕЧИ ЯНДЕКС АЛИСА)
+[tts]
+# Режим: "all" (все сообщения) | "rewards" (только за баллы канала Twitch) | "off" (выключено)
+mode = "off"
+# Основной голос / фоллбек:
+# Доступные: "shitova.us" (Алиса), "jane", "oksana", "alyss", "omazh",
+#            "ermil", "zahar", "kolya", "kostya", "valtz", "sasha",
+#            "krosh" (Крош из Смешариков), "robot" (Робот)
+voice = "shitova.us"
+# Скорость речи: "0.9" .. "1.1" .. "1.4"
+speed = "1"
+# Эмоция: "neutral" | "good" (радостная) | "evil" (саркастичная)
+emotion = "neutral"
+# Максимальная длина озвучиваемого текста (символов)
+max_length = 200
+# Название награды за баллы канала (для режима "rewards")
+reward_name = "TTS"
+# Публичный токен шлюза Яндекс.Браузера
+auth_token = "14e2f152-e03a-439d-9abe-f470c27db24e"
+# Пул голосов для случайного выбора по нику зрителя
+random_pool = ["ermil", "zahar", "jane", "alyss", "omazh", "oksana", "kolya", "valtz", "kostya", "sasha", "krosh", "robot"]
+
+# Персональные закрепленные голоса для избранных чаттеров (VIP-привязка)
+[tts.vip_voices]
+# streamer_friend = "krosh"
+# top_moderator = "robot"

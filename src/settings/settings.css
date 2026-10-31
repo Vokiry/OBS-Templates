@@ -420,6 +420,39 @@ body {
   color: var(--color-danger);
 }
 
+/* VIP Voice assignments */
+.vip-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(11, 15, 20, 0.4);
+  border: var(--border-width) solid var(--color-border-faint);
+  padding: 4px 8px;
+}
+
+.vip-voice-row .form-input {
+  flex: 1;
+}
+
+.vip-voice-row .form-select {
+  flex: 1;
+}
+
+.vip-voice-del-btn {
+  background: transparent;
+  border: var(--border-width) solid var(--color-border-faint);
+  color: var(--color-danger, #E5484D);
+  font-family: var(--font-interface);
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.vip-voice-del-btn:hover {
+  border-color: var(--color-danger, #E5484D);
+  background: rgba(229, 72, 77, 0.1);
+}
+
 @media (max-width: 640px) {
   .form-grid {
     grid-template-columns: 1fr;

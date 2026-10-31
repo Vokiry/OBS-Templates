@@ -254,6 +254,87 @@
       </div>
     </section>
 
+    <!-- Module 8: Chat TTS (Yandex Alice) -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 08 // ЧАТ TTS (СИНТЕЗ РЕЧИ АЛИСА) ]</span>
+        <button type="button" class="toggle-btn" id="btn-tts-toggle" onclick="toggleModule('tts')">OFF</button>
+      </div>
+      <span class="form-hint">Голосовая озвучка сообщений чата через официальный шлюз Яндекс (Алиса, Крош, Робот и др.):</span>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="tts-mode">Режим работы</label>
+          <select id="tts-mode" class="form-select" onchange="onTtsModeChange()">
+            <option value="all">Все сообщения чата (Для лампового стрима)</option>
+            <option value="rewards">Только за баллы канала Twitch (Channel Points)</option>
+            <option value="off" selected>Выключено</option>
+          </select>
+          <span class="form-hint">В режиме баллов на экране выводится карточка [TTS // USER]</span>
+        </div>
+        <div class="form-group" id="tts-reward-group">
+          <label class="form-label" for="tts-reward-name">Название награды Twitch</label>
+          <input type="text" id="tts-reward-name" class="form-input" placeholder="TTS" value="TTS">
+          <span class="form-hint">Точное название награды за баллы на Твиче (для режима наград)</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="tts-voice">Основной голос (Fallback)</label>
+          <select id="tts-voice" class="form-select"></select>
+          <span class="form-hint">Голос по умолчанию и для системных сообщений</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tts-speed">Скорость речи</label>
+          <select id="tts-speed" class="form-select">
+            <option value="0.9">0.9x — Размеренная</option>
+            <option value="1.0">1.0x — Стандартная</option>
+            <option value="1.1" selected>1.1x — Бодрая стримерская</option>
+            <option value="1.2">1.2x — Быстрая</option>
+            <option value="1.4">1.4x — Максимальная</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="tts-emotion">Эмоция / Интонация</label>
+          <select id="tts-emotion" class="form-select">
+            <option value="neutral" selected>neutral — Нейтральная</option>
+            <option value="good">good — Радостная, доброжелательная</option>
+            <option value="evil">evil — Саркастичная, дерзкая</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tts-max-length">Максимальная длина текста</label>
+          <input type="number" id="tts-max-length" class="form-input" value="200" min="50" max="500">
+          <span class="form-hint">Символов (слишком длинные фразы обрезаются)</span>
+        </div>
+      </div>
+
+      <!-- VIP Voices Table -->
+      <div style="margin-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="form-label" style="margin: 0;">Закрепленные голоса для чаттеров (VIP-привязка)</label>
+          <button type="button" class="btn-action" style="padding: 2px 8px; font-size: 10px;" onclick="addVipVoiceRow()">[ + ЗАКРЕПИТЬ ГОЛОС ]</button>
+        </div>
+        <span class="form-hint">Остальные зрители получают стабильный голос по хэшу ника из общего пула (0 байт RAM):</span>
+        <div id="vip-voices-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px;"></div>
+      </div>
+
+      <!-- TTS Test Bar -->
+      <div style="margin-top: 14px; padding-top: 10px; border-top: var(--border-width) solid var(--color-border-faint); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="tts-test-input" class="form-input" style="flex: 1; min-width: 200px;" placeholder="Текст для проверки озвучки..." value="Привет стрим! Проверка голоса Алисы.">
+        <button type="button" class="btn-action" onclick="testTtsVoice()">[ ТЕСТ ОЗВУЧКИ ]</button>
+        <span class="test-status-line" id="tts-test-status" style="margin: 0;"></span>
+      </div>
+
+      <div class="form-hint" style="margin-top: 8px;">
+        Источник в OBS: <code>http://localhost:8787/src/overlays/tts.html</code> (включите флаг «Перенаправлять звук в OBS»)
+      </div>
+    </section>
+
     <!-- Sticky Bottom Save Bar -->
     <div class="save-bar">
       <div class="save-bar__inner">
@@ -268,6 +349,24 @@
     let configData = {};
     let availableSoundFiles = [];
     let currentPreviewAudio = null;
+    let maskedSecrets = {};
+
+    const DEFAULT_TTS_VOICES = {
+      "shitova.us": "Алиса (Татьяна Шитова)",
+      "jane": "Джейн",
+      "oksana": "Оксана",
+      "alyss": "Алисса",
+      "omazh": "Омаж",
+      "ermil": "Ермил",
+      "zahar": "Захар",
+      "kolya": "Коля",
+      "kostya": "Костя",
+      "valtz": "Вальц",
+      "sasha": "Саша",
+      "krosh": "Крош (Смешарики)",
+      "robot": "Робот"
+    };
+    let ttsVoicesMap = DEFAULT_TTS_VOICES;
 
     // Module toggles
     const modules = {
@@ -275,7 +374,8 @@
       twitch: true,
       da: true,
       dx: true,
-      goal: true
+      goal: true,
+      tts: false
     };
 
     function setToggleState(id, isActive) {
@@ -292,9 +392,68 @@
         twitch: 'btn-twitch-toggle',
         da: 'btn-da-toggle',
         dx: 'btn-dx-toggle',
-        goal: 'btn-goal-toggle'
+        goal: 'btn-goal-toggle',
+        tts: 'btn-tts-toggle'
       };
       setToggleState(map[mod], modules[mod]);
+      if (mod === 'tts') {
+        const modeSel = document.getElementById('tts-mode');
+        if (modules.tts) {
+          if (modeSel.value === 'off') modeSel.value = 'all';
+        } else {
+          modeSel.value = 'off';
+        }
+      }
+    }
+
+    function onTtsModeChange() {
+      const modeSel = document.getElementById('tts-mode');
+      modules.tts = modeSel.value !== 'off';
+      setToggleState('btn-tts-toggle', modules.tts);
+    }
+
+    function populateTtsSelect(selectEl, selectedVal) {
+      if (!selectEl) return;
+      selectEl.innerHTML = '';
+      for (const [id, label] of Object.entries(ttsVoicesMap)) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${label} [${id}]`;
+        if (id === selectedVal) opt.selected = true;
+        selectEl.appendChild(opt);
+      }
+    }
+
+    function addVipVoiceRow(username = '', voice = 'krosh') {
+      const container = document.getElementById('vip-voices-container');
+      if (!container) return;
+      if (container.children.length >= 10) {
+        showStatus('[ Максимум 10 закрепленных голосов ]');
+        return;
+      }
+      const row = document.createElement('div');
+      row.className = 'vip-voice-row';
+
+      const nickInput = document.createElement('input');
+      nickInput.type = 'text';
+      nickInput.className = 'form-input vip-nick-input';
+      nickInput.placeholder = 'Ник чаттера';
+      nickInput.value = username;
+
+      const voiceSelect = document.createElement('select');
+      voiceSelect.className = 'form-select vip-voice-select';
+      populateTtsSelect(voiceSelect, voice);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'vip-voice-del-btn';
+      delBtn.textContent = 'УДАЛИТЬ';
+      delBtn.onclick = () => row.remove();
+
+      row.appendChild(nickInput);
+      row.appendChild(voiceSelect);
+      row.appendChild(delBtn);
+      container.appendChild(row);
     }
 
     function togglePeek(inputId) {
@@ -441,6 +600,48 @@
       }
     }
 
+    async function testTtsVoice() {
+      const textInput = document.getElementById('tts-test-input');
+      const text = textInput ? textInput.value.trim() : '';
+      if (!text) return;
+      const voice = document.getElementById('tts-voice')?.value || 'shitova.us';
+      const speed = document.getElementById('tts-speed')?.value || '1.0';
+      const emotion = document.getElementById('tts-emotion')?.value || 'neutral';
+      const statusEl = document.getElementById('tts-test-status');
+      try {
+        if (statusEl) {
+          statusEl.textContent = '[ ОТПРАВКА ОЗВУЧКИ... ]';
+          statusEl.className = 'test-status-line is-pending';
+        }
+        const res = await fetch(`${API_BASE}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'tts_test',
+            user: 'Streamer',
+            text: text,
+            voice: voice,
+            speed: speed,
+            emotion: emotion
+          })
+        });
+        if (res.ok) {
+          if (statusEl) {
+            statusEl.textContent = `[ ✓ ОЗВУЧКА (${voice}) ОТПРАВЛЕНА В OBS ]`;
+            statusEl.className = 'test-status-line is-success';
+            setTimeout(() => { if (statusEl.textContent.includes('✓')) statusEl.textContent = ''; }, 3500);
+          }
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = `[ ✗ ОШИБКА: ${err.message} ]`;
+          statusEl.className = 'test-status-line is-error';
+        }
+      }
+    }
+
     async function loadConfig() {
       try {
         const res = await fetch(`${API_BASE}/api/config`);
@@ -508,6 +709,33 @@
           populateSelect(`snd-${t}`, availableSoundFiles, mapping[t]);
         });
 
+        // 7. TTS (Yandex Alice)
+        if (data.tts_voices) {
+          ttsVoicesMap = data.tts_voices;
+        }
+        populateTtsSelect(document.getElementById('tts-voice'), 'shitova.us');
+
+        const tts = configData.tts || {};
+        const ttsMode = tts.mode || 'off';
+        modules.tts = ttsMode !== 'off';
+        setToggleState('btn-tts-toggle', modules.tts);
+        document.getElementById('tts-mode').value = ttsMode;
+        document.getElementById('tts-reward-name').value = tts.reward_name || 'TTS';
+        if (tts.voice) document.getElementById('tts-voice').value = tts.voice;
+        const spVal = tts.speed ? (String(tts.speed) === '1' ? '1.0' : String(tts.speed)) : '1.1';
+        document.getElementById('tts-speed').value = spVal;
+        document.getElementById('tts-emotion').value = tts.emotion || 'neutral';
+        document.getElementById('tts-max-length').value = tts.max_length !== undefined ? tts.max_length : 200;
+
+        const vipContainer = document.getElementById('vip-voices-container');
+        if (vipContainer) {
+          vipContainer.innerHTML = '';
+          const vip = tts.vip_voices || {};
+          for (const [nick, voice] of Object.entries(vip)) {
+            addVipVoiceRow(nick, voice);
+          }
+        }
+
       } catch (e) {
         showStatus('[ Ошибка загрузки конфигурации ]');
         console.error('Config load failed:', e);
@@ -568,6 +796,28 @@
           mapping: soundMapping
         }
       };
+
+      // Collect VIP voices
+      const vipVoices = {};
+      document.querySelectorAll('#vip-voices-container .vip-voice-row').forEach(row => {
+        const nick = row.querySelector('.vip-nick-input')?.value.trim();
+        const voice = row.querySelector('.vip-voice-select')?.value;
+        if (nick && voice) {
+          vipVoices[nick] = voice;
+        }
+      });
+
+      payload.tts = {
+        mode: modules.tts ? document.getElementById('tts-mode').value : 'off',
+        voice: document.getElementById('tts-voice').value,
+        speed: document.getElementById('tts-speed').value,
+        emotion: document.getElementById('tts-emotion').value,
+        max_length: parseInt(document.getElementById('tts-max-length').value, 10) || 200,
+        reward_name: document.getElementById('tts-reward-name').value.trim() || 'TTS',
+        vip_voices: vipVoices,
+      };
+      if (configData.tts?.auth_token) payload.tts.auth_token = configData.tts.auth_token;
+      if (configData.tts?.random_pool) payload.tts.random_pool = configData.tts.random_pool;
 
       // Only include secrets that were actually changed by the user
       const twSecret = getSecretValue('twitch-client-secret');

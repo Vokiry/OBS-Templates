@@ -97,7 +97,7 @@ class AlertQueue {
   show(event) {
     this.activeCount += 1;
     const kind = this.resolveKind(event);
-    this.playSound(kind);
+    setTimeout(() => this.playSound(kind), 50);
     const timers = [];
     const audios = [];
 

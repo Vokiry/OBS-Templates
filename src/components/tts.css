@@ -1,0 +1,59 @@
+/* ── TTS Card (rewards mode visual) ── */
+
+.tts-card {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 600px;
+  min-width: 280px;
+  background: var(--bg-card, rgba(11, 15, 20, 0.92));
+  border: 1px solid var(--color-border, #2A3140);
+  padding: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 800;
+}
+
+.tts-card.is-visible {
+  opacity: 1;
+}
+
+.tts-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border, #2A3140);
+  background: rgba(99, 230, 190, 0.06);
+}
+
+.tts-card__tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-accent, #63E6BE);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.tts-card__user {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #E8EEF2);
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tts-card__body {
+  padding: 10px 14px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-secondary, #9BA8B5);
+  line-height: 1.4;
+  word-break: break-word;
+}

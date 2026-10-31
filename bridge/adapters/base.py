@@ -12,8 +12,9 @@ KIND_TITLES = {
 
 
 def normalize(payload: dict) -> dict:
-    msg_type = payload.get("type", "alert")
-    if msg_type in ("chat", "chat_history", "stream_stats", "goal_update", "7tv_emotes", "room_info", "status", "countdown_control", "chat_clear", "media_request", "media_control", "alert_skip", "alert_clear", "poll", "prediction", "twitch_badges", "sounds_update"):
+    msg_type = payload.get("type")
+    # Pass through any already-typed message that is not an alert
+    if msg_type is not None and msg_type != "alert":
         return payload
     kind = str(payload.get("kind", "donate")).lower()
     title = payload.get("title") or KIND_TITLES.get(kind, kind.upper())

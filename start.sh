@@ -75,8 +75,10 @@ if [ -d "$OBS_SCENES_DIR" ]; then
     cp obs/SYSTEM_Scene_Collection.json "$DEST_FILE"
     echo "    [✓] Reset $DEST_FILE to template defaults."
   else
-    echo "[i] Existing OBS scene collection kept intact (custom sources preserved)."
-    echo "    (To reset scenes to template defaults: ./start.sh --reset-scenes)"
+    # Smart sync: merge missing SYSTEM sources into existing collection without touching user sources
+    ./bridge/.venv/bin/python obs/sync_scenes.py --target "$DEST_FILE" >/dev/null 2>&1 || true
+    echo "[✓] OBS scene collection synchronized (custom sources preserved)."
+    echo "    (To force reset all scenes to default: ./start.sh --reset-scenes)"
   fi
 fi
 
