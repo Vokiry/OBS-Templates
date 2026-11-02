@@ -16,6 +16,7 @@
       <div class="dock__header-top">
         <span class="dock__title">SYSTEM // DOCK</span>
         <div style="display: flex; align-items: center; gap: 8px;">
+          <a href="/panels" target="_blank" class="dock__config-link" id="dock-panels-btn" title="Open Twitch Panels Generator" style="display: none;">[ PANELS ]</a>
           <a href="/settings" target="_blank" class="dock__config-link" id="dock-config-btn" title="Open Web Settings" style="display: none;">[ CONFIG ]</a>
           <span class="dock__ovl" id="tag-ovl">0 OVL</span>
         </div>
@@ -366,8 +367,12 @@
           setTag('tag-dx', 'DX', data.adapters?.donatex);
 
           const cfgBtn = document.getElementById('dock-config-btn');
+          const panelsBtn = document.getElementById('dock-panels-btn');
           if (cfgBtn) {
             cfgBtn.style.display = data.settings_enabled ? 'inline-block' : 'none';
+          }
+          if (panelsBtn) {
+            panelsBtn.style.display = data.settings_enabled ? 'inline-block' : 'none';
           }
 
           const badge = document.getElementById('bridge-status');

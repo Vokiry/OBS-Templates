@@ -658,10 +658,10 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         })
 
     async def root_redirect(request):
-        return web.HTTPFound("/dock")
+        raise web.HTTPFound("/dock")
 
     async def settings_redirect(request):
-        return web.HTTPFound("/src/settings/index.html")
+        raise web.HTTPFound("/src/settings/index.html")
 
     async def get_config_api(request):
         project_root = Path(__file__).parent.parent
@@ -794,7 +794,10 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         return web.json_response({"url": url}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def dock_redirect(request):
-        return web.HTTPFound("/src/dock/index.html")
+        raise web.HTTPFound("/src/dock/index.html")
+
+    async def panels_redirect(request):
+        raise web.HTTPFound("/src/panels/index.html")
 
     async def resolve_media_api(request):
         url = request.query.get("url", "")
@@ -996,6 +999,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
     app = web.Application(middlewares=[auth_middleware, no_cache_middleware])
     app.router.add_get("/", root_redirect)
     app.router.add_get("/dock", dock_redirect)
+    app.router.add_get("/panels", panels_redirect)
     if enable_settings:
         app.router.add_get("/settings", settings_redirect)
         app.router.add_get("/api/config", get_config_api)

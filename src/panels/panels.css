@@ -1,0 +1,388 @@
+/* SYSTEM Broadcast Templates — Twitch Panel Generator (system24 TUI style) */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0B0F14;
+  color: #E8EEF2;
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+  padding: 32px;
+  min-height: 100vh;
+}
+
+/* Page Header */
+.page-header {
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(232, 238, 242, 0.12);
+}
+
+.page-header__title {
+  font-family: 'Space Grotesk', 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #E8EEF2;
+  margin-bottom: 6px;
+}
+
+.page-header__sub {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7E8B96;
+}
+
+/* Layout */
+.generator {
+  display: flex;
+  gap: 48px;
+  align-items: flex-start;
+}
+
+.editor {
+  flex: 1;
+  max-width: 520px;
+}
+
+.preview {
+  position: sticky;
+  top: 32px;
+  flex-shrink: 0;
+}
+
+.preview__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7E8B96;
+  margin-bottom: 12px;
+}
+
+/* Panel Cards */
+.panel-editor {
+  background: #151C24;
+  border: 1px solid rgba(232, 238, 242, 0.12);
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.panel-editor:hover {
+  border-color: rgba(232, 238, 242, 0.35);
+}
+
+.panel-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.panel-editor__title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #63E6BE;
+}
+
+.panel-editor__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.panel-editor__btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border: 1px solid rgba(232, 238, 242, 0.35);
+  background: transparent;
+  color: #7E8B96;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.panel-editor__btn:hover {
+  border-color: #63E6BE;
+  color: #63E6BE;
+}
+
+.panel-editor__btn--download {
+  border-color: #63E6BE;
+  color: #63E6BE;
+}
+
+.panel-editor__btn--download:hover {
+  background: rgba(99, 230, 190, 0.1);
+}
+
+.panel-editor__btn--danger {
+  border-color: #E5484D;
+  color: #E5484D;
+}
+
+.panel-editor__btn--danger:hover {
+  background: rgba(229, 72, 77, 0.1);
+}
+
+/* Form Fields */
+.field {
+  margin-bottom: 10px;
+}
+
+.field__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7E8B96;
+  margin-bottom: 4px;
+}
+
+.field__input,
+.field__select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid rgba(232, 238, 242, 0.12);
+  background: #0B0F14;
+  color: #E8EEF2;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field__input:focus,
+.field__select:focus {
+  border-color: rgba(99, 230, 190, 0.45);
+}
+
+.field__input::placeholder {
+  color: rgba(126, 139, 150, 0.5);
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.toolbar__btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border: 1px solid rgba(232, 238, 242, 0.35);
+  background: transparent;
+  color: #E8EEF2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.toolbar__btn:hover {
+  border-color: #63E6BE;
+  color: #63E6BE;
+}
+
+.toolbar__btn--accent {
+  border-color: #63E6BE;
+  color: #63E6BE;
+}
+
+.toolbar__btn--accent:hover {
+  background: rgba(99, 230, 190, 0.1);
+}
+
+/* Panel Preview (320px Twitch width) */
+.panel-preview {
+  width: 320px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.panel-preview__img {
+  width: 320px;
+  display: block;
+}
+
+/* ========================================
+   Renderable Panel Styles (inside canvas)
+   ======================================== */
+.twitch-panel {
+  width: 320px;
+  background: #151C24;
+  border: 1px solid rgba(232, 238, 242, 0.35);
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+  color: #E8EEF2;
+  overflow: hidden;
+}
+
+.twitch-panel__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #63E6BE;
+  border-bottom: 1px solid rgba(232, 238, 242, 0.12);
+  white-space: nowrap;
+}
+
+.twitch-panel__label-icon {
+  color: #7E8B96;
+  font-size: 12px;
+}
+
+.twitch-panel__body {
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: #7E8B96;
+  letter-spacing: 0.04em;
+}
+
+.twitch-panel__body strong,
+.twitch-panel__body .accent {
+  color: #E8EEF2;
+  font-weight: 600;
+}
+
+.twitch-panel__body .highlight {
+  color: #63E6BE;
+}
+
+.twitch-panel__divider {
+  border: none;
+  border-top: 1px solid rgba(232, 238, 242, 0.12);
+  margin: 8px 0;
+}
+
+.twitch-panel__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+}
+
+.twitch-panel__row-key {
+  color: #7E8B96;
+}
+
+.twitch-panel__row-val {
+  color: #E8EEF2;
+  font-weight: 500;
+  text-align: right;
+}
+
+.twitch-panel__link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  color: #E8EEF2;
+  font-weight: 500;
+}
+
+.twitch-panel__link-icon {
+  color: #63E6BE;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.twitch-panel__tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border: 1px solid rgba(99, 230, 190, 0.35);
+  color: #63E6BE;
+  margin: 2px 4px 2px 0;
+}
+
+.twitch-panel__footer {
+  padding: 8px 14px;
+  border-top: 1px solid rgba(232, 238, 242, 0.12);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: rgba(126, 139, 150, 0.6);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Download All floating button */
+.download-all {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 12px 24px;
+  border: 2px solid #63E6BE;
+  background: rgba(99, 230, 190, 0.08);
+  color: #63E6BE;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  z-index: 100;
+}
+
+.download-all:hover {
+  background: rgba(99, 230, 190, 0.18);
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  background: #151C24;
+  border: 1px solid #63E6BE;
+  color: #63E6BE;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  z-index: 101;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Offscreen render area */
+.render-stage {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  visibility: hidden;
+  pointer-events: none;
+}

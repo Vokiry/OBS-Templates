@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — Twitch Panel Generator</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="panels.css">
+</head>
+<body>
+  <div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+      <div>
+        <div class="page-header__title">SYSTEM // TWITCH PANELS</div>
+        <div class="page-header__sub">Channel panel graphic generator · 320px width (640px @ 2x retina) · system24 TUI style</div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span style="font-size: 11px; color: #7E8B96; letter-spacing: 0.08em; text-transform: uppercase;">Default Mode:</span>
+        <button class="toolbar__btn toolbar__btn--accent" id="mode-card-btn" onclick="setGlobalMode('card')">[ FULL CARDS ]</button>
+        <button class="toolbar__btn" id="mode-banner-btn" onclick="setGlobalMode('banner')">[ BANNERS ONLY ]</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('about')">+ ABOUT</button>
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('schedule')">+ SCHEDULE</button>
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('donate')">+ DONATE</button>
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('specs')">+ PC SPECS</button>
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('social')">+ SOCIAL</button>
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('rules')">+ RULES</button>
+    <button class="toolbar__btn toolbar__btn--accent" onclick="addPanel('commands')">+ COMMANDS</button>
+    <button class="toolbar__btn" onclick="addPanel('custom')">+ CUSTOM</button>
+    <div style="margin-left: auto; display: flex; gap: 8px;">
+      <button class="toolbar__btn" onclick="resetToDefaults()">[ RESET DEFAULTS ]</button>
+    </div>
+  </div>
+
+  <div class="generator">
+    <div class="editor" id="editor-list">
+      <!-- Panel editors inserted here -->
+    </div>
+    <div class="preview">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="preview__label" style="margin-bottom: 0;">Live Preview (320 × auto)</div>
+        <span id="preview-mode-tag" style="font-size: 10px; color: #63E6BE; letter-spacing: 0.08em; font-weight: 600;">[ MODE: CARDS ]</span>
+      </div>
+      <div id="preview-list">
+        <!-- Panel previews rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Download All Floating Button -->
+  <button class="download-all" id="download-all-btn" onclick="downloadAll()">
+    ↓ DOWNLOAD ALL PNG
+  </button>
+
+  <script>
+  (() => {
+    'use strict';
+
+    let globalMode = 'card'; // 'card' or 'banner'
+
+    // ──────────────────────────────────────────────
+    // Panel Templates & Markdown Generators
+    // ──────────────────────────────────────────────
+    const TEMPLATES = {
+      about: {
+        label: 'ABOUT',
+        fields: [
+          { key: 'name', label: 'Channel Name', value: 'VOKKIRY' },
+          { key: 'line1', label: 'Line 1', value: 'streamer · developer · creative' },
+          { key: 'line2', label: 'Line 2', value: 'variety gaming · tech & software' },
+          { key: 'line3', label: 'Line 3', value: 'stream starts ~19:00 MSK' }
+        ],
+        toMarkdown(d) {
+          return `**${d.name || 'VOKKIRY'}**\n${d.line1 || ''}\n${d.line2 || ''}\n${d.line3 || ''}`.trim();
+        }
+      },
+
+      schedule: {
+        label: 'SCHEDULE',
+        fields: [
+          { key: 'mon', label: 'Mon', value: '—' },
+          { key: 'tue', label: 'Tue', value: '—' },
+          { key: 'wed', label: 'Wed', value: '19:00 MSK' },
+          { key: 'thu', label: 'Thu', value: '—' },
+          { key: 'fri', label: 'Fri', value: '19:00 MSK' },
+          { key: 'sat', label: 'Sat', value: '16:00 MSK' },
+          { key: 'sun', label: 'Sun', value: '16:00 MSK' }
+        ],
+        toMarkdown(d) {
+          return [
+            `* **MON:** ${d.mon || '—'}`,
+            `* **TUE:** ${d.tue || '—'}`,
+            `* **WED:** ${d.wed || '—'}`,
+            `* **THU:** ${d.thu || '—'}`,
+            `* **FRI:** ${d.fri || '—'}`,
+            `* **SAT:** ${d.sat || '—'}`,
+            `* **SUN:** ${d.sun || '—'}`
+          ].join('\n');
+        }
+      },
+
+      donate: {
+        label: 'DONATE',
+        fields: [
+          { key: 'line1', label: 'Text Line 1', value: 'Support the stream' },
+          { key: 'line2', label: 'Text Line 2', value: 'All donations go toward' },
+          { key: 'line3', label: 'Text Line 3', value: 'improving stream quality' },
+          { key: 'url', label: 'Donate Link', value: 'https://www.donationalerts.com/r/vokkiry' }
+        ],
+        toMarkdown(d) {
+          let text = `${d.line1 || ''}\n${d.line2 || ''}\n${d.line3 || ''}`.trim();
+          if (d.url) text += `\n\n[Поддержать стрим](${d.url})`;
+          return text;
+        }
+      },
+
+      specs: {
+        label: 'PC SPECS',
+        fields: [
+          { key: 'cpu', label: 'CPU', value: 'AMD Ryzen 7 5800X3D' },
+          { key: 'gpu', label: 'GPU', value: 'RTX 4070 Ti SUPER' },
+          { key: 'ram', label: 'RAM', value: '32 GB DDR4 3600' },
+          { key: 'os', label: 'OS', value: 'Arch Linux' },
+          { key: 'mic', label: 'Microphone', value: 'FIFINE K688' },
+          { key: 'kb', label: 'Keyboard', value: '' },
+          { key: 'mouse', label: 'Mouse', value: '' }
+        ],
+        toMarkdown(d) {
+          const list = [
+            ['CPU', d.cpu], ['GPU', d.gpu], ['RAM', d.ram],
+            ['OS', d.os], ['MIC', d.mic], ['KEYBOARD', d.kb], ['MOUSE', d.mouse]
+          ].filter(([, v]) => v);
+          return list.map(([k, v]) => `* **${k}:** ${v}`).join('\n');
+        }
+      },
+
+      social: {
+        label: 'SOCIAL',
+        fields: [
+          { key: 'discord', label: 'Discord', value: 'discord.gg/vokkiry' },
+          { key: 'telegram', label: 'Telegram', value: 't.me/vokkiry' },
+          { key: 'github', label: 'GitHub', value: 'github.com/Vokiry' },
+          { key: 'youtube', label: 'YouTube', value: 'youtube.com/@vokkiry' },
+          { key: 'twitter', label: 'Twitter / X', value: '' },
+          { key: 'vk', label: 'VK', value: '' }
+        ],
+        toMarkdown(d) {
+          const list = [
+            ['Discord', d.discord], ['Telegram', d.telegram],
+            ['GitHub', d.github], ['YouTube', d.youtube],
+            ['Twitter', d.twitter], ['VK', d.vk]
+          ].filter(([, v]) => v);
+          return list.map(([k, v]) => `* **${k}:** ${v}`).join('\n');
+        }
+      },
+
+      rules: {
+        label: 'RULES',
+        fields: [
+          { key: 'r1', label: 'Rule 1', value: 'Be respectful to everyone in chat' },
+          { key: 'r2', label: 'Rule 2', value: 'No spam, flood, or self-promotion' },
+          { key: 'r3', label: 'Rule 3', value: 'No politics or toxic behavior' },
+          { key: 'r4', label: 'Rule 4', value: 'Listen to chat moderators' },
+          { key: 'r5', label: 'Rule 5', value: 'Have a good time!' },
+          { key: 'r6', label: 'Rule 6 (optional)', value: '' }
+        ],
+        toMarkdown(d) {
+          const rules = [d.r1, d.r2, d.r3, d.r4, d.r5, d.r6].filter(Boolean);
+          return rules.map((r, i) => `${i + 1}. ${r}`).join('\n');
+        }
+      },
+
+      commands: {
+        label: 'COMMANDS',
+        fields: [
+          { key: 'c1_cmd', label: 'Command 1', value: '!discord' },
+          { key: 'c1_desc', label: 'Desc 1', value: 'Discord server link' },
+          { key: 'c2_cmd', label: 'Command 2', value: '!specs' },
+          { key: 'c2_desc', label: 'Desc 2', value: 'PC specifications' },
+          { key: 'c3_cmd', label: 'Command 3', value: '!donate' },
+          { key: 'c3_desc', label: 'Desc 3', value: 'Support the broadcast' },
+          { key: 'c4_cmd', label: 'Command 4 (optional)', value: '' },
+          { key: 'c4_desc', label: 'Desc 4', value: '' }
+        ],
+        toMarkdown(d) {
+          const cmds = [
+            [d.c1_cmd, d.c1_desc], [d.c2_cmd, d.c2_desc],
+            [d.c3_cmd, d.c3_desc], [d.c4_cmd, d.c4_desc]
+          ].filter(([c]) => c);
+          return cmds.map(([c, desc]) => `* \`${c}\` — ${desc}`).join('\n');
+        }
+      },
+
+      custom: {
+        label: 'CUSTOM',
+        fields: [
+          { key: 'label', label: 'Panel Title', value: 'INFO' },
+          { key: 'line1', label: 'Line 1', value: 'Custom text line 1' },
+          { key: 'line2', label: 'Line 2', value: 'Custom text line 2' },
+          { key: 'line3', label: 'Line 3', value: '' },
+          { key: 'line4', label: 'Line 4', value: '' },
+          { key: 'line5', label: 'Line 5', value: '' }
+        ],
+        toMarkdown(d) {
+          return [d.line1, d.line2, d.line3, d.line4, d.line5].filter(Boolean).join('\n');
+        }
+      }
+    };
+
+    // ──────────────────────────────────────────────
+    // State
+    // ──────────────────────────────────────────────
+    let panels = [];
+    let nextId = 1;
+
+    window.getPanels = () => panels;
+    window.panelToCanvas = renderCardToCanvas;
+
+    // ──────────────────────────────────────────────
+    // Canvas 2D Pixel-Perfect Renderer (Retina 2x)
+    // ──────────────────────────────────────────────
+    function renderCardToCanvas(panel, mode) {
+      const renderMode = mode || panel.mode || globalMode;
+      const scale = 2; // 2x resolution: 640px internal width for razor-sharp text
+      const width = 320;
+      const type = panel.type;
+      const d = panel.data;
+
+      let height = 80;
+      if (renderMode === 'banner') {
+        height = 80;
+      } else {
+        if (type === 'about') {
+          height = 110 + (d.line2 ? 22 : 0) + (d.line3 ? 22 : 0);
+        } else if (type === 'schedule') {
+          height = 42 + 7 * 22 + 16;
+        } else if (type === 'specs') {
+          const count = ['cpu', 'gpu', 'ram', 'os', 'mic', 'kb', 'mouse'].filter(k => d[k]).length;
+          height = 42 + count * 22 + 16;
+        } else if (type === 'donate') {
+          height = 116 + (d.url ? 34 : 0);
+        } else if (type === 'social') {
+          const count = ['discord', 'youtube', 'twitter', 'telegram', 'github', 'vk'].filter(k => d[k]).length;
+          height = 42 + Math.max(1, count) * 24 + 16;
+        } else if (type === 'rules') {
+          const count = ['r1', 'r2', 'r3', 'r4', 'r5', 'r6'].filter(Boolean).length;
+          height = 42 + count * 22 + 16;
+        } else if (type === 'commands') {
+          const count = [d.c1_cmd, d.c2_cmd, d.c3_cmd, d.c4_cmd].filter(Boolean).length;
+          height = 42 + count * 22 + 16;
+        } else {
+          const lines = [d.line1, d.line2, d.line3, d.line4, d.line5].filter(Boolean).length;
+          height = 42 + Math.max(1, lines) * 22 + 16;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+
+      // Design tokens
+      const bg = '#151C24';
+      const border = 'rgba(232, 238, 242, 0.35)';
+      const accent = '#63E6BE';
+      const text = '#E8EEF2';
+      const muted = '#7E8B96';
+      const font = '"IBM Plex Mono", "JetBrains Mono", monospace';
+
+      // 1. Panel Background
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Outer Border (system24 0px radius)
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
+
+      const label = (panel.data._label || panel.type).toUpperCase();
+
+      if (renderMode === 'banner') {
+        // ──────────────────────────────────────────
+        // Header Banner Layout (320 × 80px)
+        // ──────────────────────────────────────────
+        // Accent Top Stripe
+        ctx.fillStyle = accent;
+        ctx.fillRect(1, 1, width - 2, 2);
+
+        // System Category Tag
+        ctx.font = `600 10px ${font}`;
+        ctx.fillStyle = muted;
+        ctx.textAlign = 'left';
+        ctx.fillText('// SYSTEM24 // TWITCH PANEL', 14, 25);
+
+        // Main Title Header
+        ctx.font = `700 19px ${font}`;
+        ctx.fillStyle = accent;
+        ctx.fillText(`[ ${label} ]`, 14, 53);
+
+        // Right-side Status Elements
+        ctx.font = `600 11px ${font}`;
+        ctx.fillStyle = muted;
+        ctx.textAlign = 'right';
+        ctx.fillText('SYS//24', width - 14, 25);
+        ctx.fillText('■', width - 14, 53);
+
+        // Corner Accent Dots
+        ctx.fillStyle = accent;
+        ctx.fillRect(1, height - 4, 4, 3);
+        ctx.fillRect(width - 5, height - 4, 4, 3);
+
+      } else {
+        // ──────────────────────────────────────────
+        // Full Card Layout (320 × calculated height)
+        // ──────────────────────────────────────────
+        // Header Bar Background
+        ctx.fillStyle = 'rgba(232, 238, 242, 0.03)';
+        ctx.fillRect(1, 1, width - 2, 36);
+
+        // Header Title
+        ctx.font = `600 13px ${font}`;
+        ctx.fillStyle = accent;
+        ctx.textAlign = 'left';
+        ctx.fillText(`[ ${label} ]`, 14, 23);
+
+        // Header Deco Symbol
+        ctx.font = `500 11px ${font}`;
+        ctx.fillStyle = muted;
+        ctx.textAlign = 'right';
+        ctx.fillText('■', width - 14, 23);
+
+        // Header Divider Line
+        ctx.strokeStyle = 'rgba(232, 238, 242, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(1, 37.5);
+        ctx.lineTo(width - 1, 37.5);
+        ctx.stroke();
+
+        let y = 58;
+        ctx.textAlign = 'left';
+
+        if (type === 'about') {
+          ctx.font = `700 13px ${font}`;
+          ctx.fillStyle = text;
+          ctx.fillText(d.name || 'VOKKIRY', 14, y);
+          y += 22;
+
+          ctx.font = `400 12px ${font}`;
+          ctx.fillStyle = muted;
+          if (d.line1) { ctx.fillText(d.line1, 14, y); y += 22; }
+          if (d.line2) { ctx.fillText(d.line2, 14, y); y += 22; }
+          if (d.line3) { ctx.fillText(d.line3, 14, y); y += 22; }
+
+        } else if (type === 'schedule') {
+          const days = [
+            ['MON', d.mon], ['TUE', d.tue], ['WED', d.wed],
+            ['THU', d.thu], ['FRI', d.fri], ['SAT', d.sat], ['SUN', d.sun]
+          ];
+          for (const [day, val] of days) {
+            ctx.font = `500 12px ${font}`;
+            ctx.fillStyle = muted;
+            ctx.fillText(day, 14, y);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = val && val !== '—' ? text : muted;
+            ctx.fillText(val || '—', width - 14, y);
+            ctx.textAlign = 'left';
+            y += 22;
+          }
+
+        } else if (type === 'specs') {
+          const specs = [
+            ['CPU', d.cpu], ['GPU', d.gpu], ['RAM', d.ram], ['OS', d.os],
+            ['MIC', d.mic], ['KB', d.kb], ['MOUSE', d.mouse]
+          ].filter(([, v]) => v);
+          for (const [k, v] of specs) {
+            ctx.font = `500 12px ${font}`;
+            ctx.fillStyle = muted;
+            ctx.fillText(k, 14, y);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = text;
+            ctx.fillText(v, width - 14, y);
+            ctx.textAlign = 'left';
+            y += 22;
+          }
+
+        } else if (type === 'donate') {
+          ctx.font = `400 12px ${font}`;
+          ctx.fillStyle = muted;
+          if (d.line1) { ctx.fillText(d.line1, 14, y); y += 20; }
+          if (d.line2) { ctx.fillText(d.line2, 14, y); y += 20; }
+          if (d.line3) { ctx.fillText(d.line3, 14, y); y += 20; }
+          if (d.url) {
+            y += 6;
+            ctx.strokeStyle = 'rgba(232, 238, 242, 0.12)';
+            ctx.beginPath();
+            ctx.moveTo(14, y);
+            ctx.lineTo(width - 14, y);
+            ctx.stroke();
+            y += 20;
+
+            ctx.font = `600 11px ${font}`;
+            ctx.fillStyle = accent;
+            ctx.fillText('→', 14, y);
+            ctx.fillText(d.url.replace(/^https?:\/\//, '').slice(0, 36), 30, y);
+          }
+
+        } else if (type === 'social') {
+          const links = [
+            ['DISCORD', d.discord], ['TELEGRAM', d.telegram],
+            ['GITHUB', d.github], ['YOUTUBE', d.youtube],
+            ['TWITTER', d.twitter], ['VK', d.vk]
+          ].filter(([, v]) => v);
+          for (const [k, v] of links) {
+            ctx.font = `600 11px ${font}`;
+            ctx.fillStyle = accent;
+            ctx.fillText('→', 14, y);
+            ctx.fillStyle = muted;
+            ctx.fillText(k, 30, y);
+            ctx.fillStyle = text;
+            ctx.textAlign = 'right';
+            ctx.fillText(v, width - 14, y);
+            ctx.textAlign = 'left';
+            y += 24;
+          }
+
+        } else if (type === 'rules') {
+          const rules = [d.r1, d.r2, d.r3, d.r4, d.r5, d.r6].filter(Boolean);
+          rules.forEach((r, idx) => {
+            const num = String(idx + 1).padStart(2, '0') + '.';
+            ctx.font = `600 12px ${font}`;
+            ctx.fillStyle = accent;
+            ctx.fillText(num, 14, y);
+            ctx.font = `400 12px ${font}`;
+            ctx.fillStyle = text;
+            ctx.fillText(r, 42, y);
+            y += 22;
+          });
+
+        } else if (type === 'commands') {
+          const cmds = [
+            [d.c1_cmd, d.c1_desc], [d.c2_cmd, d.c2_desc],
+            [d.c3_cmd, d.c3_desc], [d.c4_cmd, d.c4_desc]
+          ].filter(([c]) => c);
+          for (const [c, desc] of cmds) {
+            ctx.font = `600 12px ${font}`;
+            ctx.fillStyle = accent;
+            ctx.fillText(c, 14, y);
+            ctx.font = `400 12px ${font}`;
+            ctx.fillStyle = muted;
+            ctx.textAlign = 'right';
+            ctx.fillText(desc, width - 14, y);
+            ctx.textAlign = 'left';
+            y += 22;
+          }
+
+        } else {
+          const lines = [d.line1, d.line2, d.line3, d.line4, d.line5].filter(Boolean);
+          lines.forEach(l => {
+            ctx.font = `400 12px ${font}`;
+            ctx.fillStyle = text;
+            ctx.fillText(l, 14, y);
+            y += 22;
+          });
+        }
+      }
+
+      return canvas;
+    }
+
+    // ──────────────────────────────────────────────
+    // Toast Notification
+    // ──────────────────────────────────────────────
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('is-visible');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove('is-visible'), 2400);
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ──────────────────────────────────────────────
+    // Global Mode Switch
+    // ──────────────────────────────────────────────
+    window.setGlobalMode = function(mode) {
+      globalMode = mode;
+      document.getElementById('mode-card-btn').className = mode === 'card' ? 'toolbar__btn toolbar__btn--accent' : 'toolbar__btn';
+      document.getElementById('mode-banner-btn').className = mode === 'banner' ? 'toolbar__btn toolbar__btn--accent' : 'toolbar__btn';
+      document.getElementById('preview-mode-tag').textContent = mode === 'card' ? '[ MODE: CARDS ]' : '[ MODE: BANNERS ]';
+      renderAll();
+    };
+
+    // ──────────────────────────────────────────────
+    // Panel CRUD
+    // ──────────────────────────────────────────────
+    window.addPanel = function(type) {
+      const tpl = TEMPLATES[type];
+      if (!tpl) return;
+      const id = nextId++;
+      const data = {};
+      tpl.fields.forEach(f => { data[f.key] = f.value; });
+      data._label = tpl.label;
+      data._type = type;
+      panels.push({ id, type, data, mode: null });
+      renderAll();
+      showToast(`+ Added ${tpl.label} panel`);
+    };
+
+    window.removePanel = function(id) {
+      panels = panels.filter(p => p.id !== id);
+      renderAll();
+    };
+
+    window.movePanel = function(id, dir) {
+      const idx = panels.findIndex(p => p.id === id);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= panels.length) return;
+      [panels[idx], panels[newIdx]] = [panels[newIdx], panels[idx]];
+      renderAll();
+    };
+
+    window.togglePanelMode = function(id) {
+      const panel = panels.find(p => p.id === id);
+      if (!panel) return;
+      const current = panel.mode || globalMode;
+      panel.mode = current === 'card' ? 'banner' : 'card';
+      renderPreview(panel);
+      // update toggle button label
+      const btn = document.getElementById(`mode-toggle-${panel.id}`);
+      if (btn) btn.textContent = panel.mode === 'banner' ? 'BANNER' : 'CARD';
+    };
+
+    window.updateField = function(id, key, value) {
+      const panel = panels.find(p => p.id === id);
+      if (!panel) return;
+      panel.data[key] = value;
+      if (key === 'label' && panel.type === 'custom') {
+        panel.data._label = value || 'CUSTOM';
+      }
+      renderPreview(panel);
+    };
+
+    window.copyMarkdown = function(id) {
+      const panel = panels.find(p => p.id === id);
+      if (!panel) return;
+      const tpl = TEMPLATES[panel.type];
+      const md = tpl.toMarkdown ? tpl.toMarkdown(panel.data) : '';
+      navigator.clipboard.writeText(md).then(() => {
+        showToast(`✓ Copied ${panel.data._label} markdown!`);
+      }).catch(() => {
+        showToast('✗ Copy failed — check browser permissions');
+      });
+    };
+
+    window.resetToDefaults = function() {
+      panels = [];
+      nextId = 1;
+      const defaultTypes = ['about', 'schedule', 'donate', 'specs', 'social', 'rules', 'commands'];
+      defaultTypes.forEach(t => {
+        const tpl = TEMPLATES[t];
+        const id = nextId++;
+        const data = {};
+        tpl.fields.forEach(f => { data[f.key] = f.value; });
+        data._label = tpl.label;
+        data._type = t;
+        panels.push({ id, type: t, data, mode: null });
+      });
+      renderAll();
+      showToast('✓ Restored default panels');
+    };
+
+    // ──────────────────────────────────────────────
+    // Rendering
+    // ──────────────────────────────────────────────
+    function renderAll() {
+      const editorList = document.getElementById('editor-list');
+      const previewList = document.getElementById('preview-list');
+      editorList.innerHTML = '';
+      previewList.innerHTML = '';
+
+      if (panels.length === 0) {
+        editorList.innerHTML = `<div style="color:#7E8B96; font-size:13px; padding:24px 0;">
+          Click a panel type above to add panels. Each panel renders as a 320px-wide PNG
+          for your Twitch channel's About section.
+        </div>`;
+      }
+
+      panels.forEach(panel => {
+        editorList.appendChild(createEditor(panel));
+
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'panel-preview';
+        previewContainer.id = `preview-${panel.id}`;
+        previewList.appendChild(previewContainer);
+
+        renderPreview(panel);
+      });
+
+      document.getElementById('download-all-btn').style.display = panels.length > 0 ? '' : 'none';
+    }
+
+    function renderPreview(panel) {
+      const container = document.getElementById(`preview-${panel.id}`);
+      if (!container) return;
+      container.innerHTML = '';
+
+      const canvas = renderCardToCanvas(panel);
+      // CSS display size (320px wide, height proportional)
+      canvas.style.width = '320px';
+      canvas.style.height = (canvas.height / 2) + 'px';
+      canvas.style.display = 'block';
+      canvas.title = `Click to download PNG: ${panel.data._label}`;
+      canvas.style.cursor = 'pointer';
+      canvas.onclick = () => window.downloadPanel(panel.id);
+
+      container.appendChild(canvas);
+    }
+
+    function createEditor(panel) {
+      const tpl = TEMPLATES[panel.type];
+      const div = document.createElement('div');
+      div.className = 'panel-editor';
+      div.id = `editor-${panel.id}`;
+
+      const activeMode = panel.mode || globalMode;
+      const modeBtnText = activeMode === 'banner' ? 'BANNER' : 'CARD';
+
+      let html = `<div class="panel-editor__header">
+        <span class="panel-editor__title">${esc(panel.data._label || tpl.label)} #${panel.id}</span>
+        <div class="panel-editor__actions">
+          <button class="panel-editor__btn" id="mode-toggle-${panel.id}" onclick="togglePanelMode(${panel.id})" title="Toggle Card / Banner mode">${modeBtnText}</button>
+          <button class="panel-editor__btn" onclick="copyMarkdown(${panel.id})" title="Copy Markdown for Twitch text box">MD ⎘</button>
+          <button class="panel-editor__btn" onclick="movePanel(${panel.id}, -1)" title="Move Up">↑</button>
+          <button class="panel-editor__btn" onclick="movePanel(${panel.id}, 1)" title="Move Down">↓</button>
+          <button class="panel-editor__btn panel-editor__btn--download" onclick="downloadPanel(${panel.id})" title="Download PNG">↓ PNG</button>
+          <button class="panel-editor__btn panel-editor__btn--danger" onclick="removePanel(${panel.id})" title="Remove">✕</button>
+        </div>
+      </div>`;
+
+      tpl.fields.forEach(f => {
+        html += `<div class="field">
+          <label class="field__label">${esc(f.label)}</label>
+          <input class="field__input" type="text"
+            value="${esc(panel.data[f.key])}"
+            placeholder="${esc(f.label)}"
+            oninput="updateField(${panel.id}, '${f.key}', this.value)">
+        </div>`;
+      });
+
+      div.innerHTML = html;
+      return div;
+    }
+
+    // ──────────────────────────────────────────────
+    // Download Functions
+    // ──────────────────────────────────────────────
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    window.downloadPanel = function(id) {
+      const panel = panels.find(p => p.id === id);
+      if (!panel) return;
+      const canvas = renderCardToCanvas(panel);
+      const mode = panel.mode || globalMode;
+      const slug = panel.data._label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const filename = `twitch-panel-${slug}-${mode}.png`;
+
+      canvas.toBlob(blob => {
+        if (!blob) {
+          showToast('✗ Export failed');
+          return;
+        }
+        downloadBlob(blob, filename);
+        showToast(`✓ Downloaded ${filename}`);
+      }, 'image/png');
+    };
+
+    window.downloadAll = async function() {
+      if (panels.length === 0) return;
+      for (let i = 0; i < panels.length; i++) {
+        const panel = panels[i];
+        const canvas = renderCardToCanvas(panel);
+        const mode = panel.mode || globalMode;
+        const slug = panel.data._label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const filename = `twitch-panel-${slug}-${mode}.png`;
+
+        await new Promise(resolve => {
+          canvas.toBlob(blob => {
+            if (blob) downloadBlob(blob, filename);
+            resolve();
+          }, 'image/png');
+        });
+
+        // Small delay between browser downloads
+        await new Promise(r => setTimeout(r, 200));
+      }
+      showToast(`✓ Downloaded all ${panels.length} panels!`);
+    };
+
+    // ──────────────────────────────────────────────
+    // Initialize with standard set
+    // ──────────────────────────────────────────────
+    resetToDefaults();
+  })();
+  </script>
+</body>
+</html>

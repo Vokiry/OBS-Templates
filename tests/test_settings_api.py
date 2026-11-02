@@ -164,3 +164,15 @@ async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
     assert mgr.configs["twitch_chat"]["channel"] == "new_streamer"
     
     await mgr.stop_all()
+
+
+@pytest.mark.asyncio
+async def test_panels_redirect_route(aiohttp_client):
+    b = Broadcaster()
+    app = build_app(b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True)
+    client = await aiohttp_client(app)
+
+    res = await client.get("/panels", allow_redirects=False)
+    assert res.status == 302
+    assert res.headers.get("Location") == "/src/panels/index.html"
+
