@@ -8,82 +8,118 @@ const fs = require('fs');
   
   const consoleLogs = [];
   page.on('console', msg => consoleLogs.push(`[${msg.type()}]: ${msg.text()}`));
-  page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+  page.on('pageerror', err => console.error('PAGE ERROR:', err.message));
 
   const fileUrl = 'file://' + path.resolve(__dirname, '../src/panels/index.html');
   await page.goto(fileUrl);
   await page.waitForLoadState('networkidle');
 
-  // Verify that defaults are initialized
-  const panelCount = await page.evaluate(() => window.getPanels().length);
-  console.log(`Default panels loaded: ${panelCount}`);
-  if (panelCount !== 7) {
-    throw new Error(`Expected 7 default panels, got ${panelCount}`);
+  // 1. Verify standard templates
+  const panels = await page.evaluate(() => window.getPanels());
+  console.log(`Initialized with ${panels.length} standard panels:`, panels.map(p => p.title).join(', '));
+  if (panels.length !== 8) {
+    throw new Error(`Expected 8 standard panels, got ${panels.length}`);
   }
 
-  // Test full card export for all 7 panels
+  // 2. Verify FAQ card exists and contains Q&A blocks
+  const faqPanel = panels.find(p => p.title === 'FAQ');
+  if (!faqPanel) throw new Error('FAQ panel not found!');
+  const qaBlocks = faqPanel.blocks.filter(b => b.type === 'qa');
+  console.log(`FAQ panel verified with ${qaBlocks.length} Q&A blocks`);
+  if (qaBlocks.length !== 4) throw new Error(`Expected 4 Q&A blocks, got ${qaBlocks.length}`);
+
+  // 3. Test Canvas export for all standard panels in Card mode
   const cardExports = await page.evaluate(async () => {
     const list = window.getPanels();
     const results = [];
     for (const p of list) {
       const c = window.panelToCanvas(p, 'card');
       const dataUrl = c.toDataURL('image/png');
-      results.push({
-        id: p.id,
-        label: p.data._label,
-        w: c.width,
-        h: c.height,
-        bytes: dataUrl.length
-      });
+      results.push({ title: p.title, w: c.width, h: c.height, bytes: dataUrl.length });
     }
     return results;
   });
-
   console.log('Card exports OK:');
-  cardExports.forEach(r => console.log(`  ${r.label.padEnd(12)} -> ${r.w}x${r.h} (${r.bytes} bytes)`));
+  cardExports.forEach(r => console.log(`  ${r.title.padEnd(12)} -> ${r.w}x${r.h} (${r.bytes} bytes)`));
 
-  // Test banner export for all 7 panels
-  const bannerExports = await page.evaluate(async () => {
+  // 4. Test Banner modes: Mini (50px -> 100px @ 2x), Standard (80px -> 160px @ 2x), Hero (110px -> 220px @ 2x)
+  const bannerTests = await page.evaluate(async () => {
+    const p = window.getPanels()[0]; // About panel
+    const miniCanvas = window.panelToCanvas({ ...p, bannerVariant: 'mini' }, 'banner');
+    const stdCanvas = window.panelToCanvas({ ...p, bannerVariant: 'standard' }, 'banner');
+    const heroCanvas = window.panelToCanvas({ ...p, bannerVariant: 'hero' }, 'banner');
+    return {
+      mini: { w: miniCanvas.width, h: miniCanvas.height },
+      std: { w: stdCanvas.width, h: stdCanvas.height },
+      hero: { w: heroCanvas.width, h: heroCanvas.height }
+    };
+  });
+  console.log('Banner variant heights verified:', bannerTests);
+  if (bannerTests.mini.h !== 100 || bannerTests.std.h !== 160 || bannerTests.hero.h !== 220) {
+    throw new Error(`Banner heights mismatch: ${JSON.stringify(bannerTests)}`);
+  }
+
+  // 5. Test adding a Custom panel and adding all block types
+  await page.evaluate(() => {
+    window.addPanel('custom');
     const list = window.getPanels();
-    const results = [];
-    for (const p of list) {
-      const c = window.panelToCanvas(p, 'banner');
-      const dataUrl = c.toDataURL('image/png');
-      results.push({
-        id: p.id,
-        label: p.data._label,
-        w: c.width,
-        h: c.height,
-        bytes: dataUrl.length
-      });
-    }
-    return results;
+    const last = list[list.length - 1];
+    window.addBlock(last.id, 'text');
+    window.addBlock(last.id, 'kv');
+    window.addBlock(last.id, 'qa');
+    window.addBlock(last.id, 'list');
+    window.addBlock(last.id, 'tags');
+    window.addBlock(last.id, 'link');
+    window.addBlock(last.id, 'divider');
+    window.addBlock(last.id, 'progress');
   });
 
-  console.log('Banner exports OK:');
-  bannerExports.forEach(r => console.log(`  ${r.label.padEnd(12)} -> ${r.w}x${r.h} (${r.bytes} bytes)`));
+  const updatedPanels = await page.evaluate(() => window.getPanels());
+  const customPanel = updatedPanels[updatedPanels.length - 1];
+  console.log(`Custom panel blocks count: ${customPanel.blocks.length}`);
+  if (customPanel.blocks.length < 10) {
+    throw new Error(`Expected at least 10 blocks in custom panel, got ${customPanel.blocks.length}`);
+  }
 
-  // Switch global mode to banner
-  await page.evaluate(() => window.setGlobalMode('banner'));
-  await page.waitForTimeout(200);
-
-  // Take screenshot in banner mode
-  await page.screenshot({ path: '/tmp/panels_banner_mode.png', fullPage: true });
-  console.log('Screenshot saved to /tmp/panels_banner_mode.png');
-
-  // Switch back to card mode
-  await page.evaluate(() => window.setGlobalMode('card'));
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: '/tmp/panels_card_mode.png', fullPage: true });
-  console.log('Screenshot saved to /tmp/panels_card_mode.png');
-
-  // Test copy markdown function
-  const mdResult = await page.evaluate(() => {
-    const p = window.getPanels()[3]; // specs
-    return p;
+  // Render canvas for the custom panel with all blocks
+  const customCanvas = await page.evaluate(() => {
+    const list = window.getPanels();
+    const last = list[list.length - 1];
+    const c = window.panelToCanvas(last, 'card');
+    return { w: c.width, h: c.height, url: c.toDataURL('image/png') };
   });
-  console.log('Panel 4 specs data verified:', mdResult.data._label);
+  console.log(`Custom panel with all block types rendered: ${customCanvas.w}x${customCanvas.h}`);
+
+  // Save base64 sample of custom panel
+  const customB64 = customCanvas.url.replace(/^data:image\/png;base64,/, '');
+  fs.writeFileSync('/tmp/sample_custom_all_blocks.png', customB64, 'base64');
+
+  // 6. Test Markdown Modal and bundle generation
+  await page.evaluate(() => window.openMarkdownModal());
+  await page.waitForTimeout(100);
+  const mdContent = await page.evaluate(() => document.getElementById('markdown-bundle-text').value);
+  console.log(`Generated Markdown bundle length: ${mdContent.length} chars`);
+  if (!mdContent.includes('### FAQ') || !mdContent.includes('### PC SPECS')) {
+    throw new Error('Markdown bundle missing expected panel sections!');
+  }
+  await page.evaluate(() => window.closeMarkdownModal());
+
+  // 7. Test LocalStorage Persistence
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  const reloadedPanels = await page.evaluate(() => window.getPanels());
+  console.log(`After page reload, restored ${reloadedPanels.length} panels from LocalStorage`);
+  if (reloadedPanels.length !== 9) { // 8 standard + 1 custom
+    throw new Error(`Expected 9 restored panels, got ${reloadedPanels.length}`);
+  }
+
+  // 8. Screenshot full constructor UI
+  await page.screenshot({ path: '/tmp/constructor_full_ui.png', fullPage: true });
+  console.log('Saved /tmp/constructor_full_ui.png');
+
+  // Clean up: reset defaults
+  await page.evaluate(() => window.resetToDefaults());
 
   await browser.close();
-  console.log('ALL PLAYWRIGHT TESTS PASSED CLEANLY!');
+  console.log('ALL PLAYWRIGHT TESTS FOR CONSTRUCTOR PASSED CLEANLY (100%)!');
 })();
