@@ -171,7 +171,8 @@ async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", 
                                     cached_badge_map[f"{set_id}/{v_id}"] = img_url
                         log.info("loaded channel badges for room %s", room_id)
 
-            fd = os.open(str(BADGES_CACHE_FILE), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0)
+            fd = os.open(str(BADGES_CACHE_FILE), flags, 0o600)
             try:
                 os.write(fd, json.dumps(cached_badge_map).encode("utf-8"))
             finally:

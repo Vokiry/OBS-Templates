@@ -19,7 +19,8 @@ TOKEN_FILE = Path(__file__).parent.parent / ".da_token.json"
 def _write_token_file(path: Path, data: dict) -> None:
     """Write token JSON with restricted file permissions (owner-only)."""
     content = json.dumps(data, ensure_ascii=False)
-    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0)
+    fd = os.open(str(path), flags, 0o600)
     try:
         os.write(fd, content.encode("utf-8"))
     finally:

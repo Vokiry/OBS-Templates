@@ -12,6 +12,8 @@ $PythonCmd = if (Get-Command "python" -ErrorAction SilentlyContinue) { "python" 
              elseif (Get-Command "py" -ErrorAction SilentlyContinue) { "py" }
              else {
                  Write-Host "[!] Python 3 not found. Please install Python 3.10+ from python.org" -ForegroundColor Red
+                 Write-Host "    (Make sure to check 'Add python.exe to PATH' during installation)" -ForegroundColor Yellow
+                 Read-Host "Press Enter to exit..."
                  exit 1
              }
 
@@ -40,9 +42,15 @@ if (Test-Path $ObsScenesDir) {
         & $VenvPython "obs\generate_collection.py" | Out-Null
         Copy-Item "obs\SYSTEM_Scene_Collection.json" $DestFile -ErrorAction SilentlyContinue
         Write-Host "    [✓] Created $DestFile" -ForegroundColor Green
+    } elseif ($args -contains "--reset-scenes") {
+        Write-Host "[!] Backing up existing scenes and restoring template defaults..." -ForegroundColor Yellow
+        Copy-Item $DestFile "$DestFile.bak" -Force
+        & $VenvPython "obs\generate_collection.py" | Out-Null
+        Copy-Item "obs\SYSTEM_Scene_Collection.json" $DestFile -Force
+        Write-Host "    [✓] Reset $DestFile to template defaults." -ForegroundColor Green
     } else {
         & $VenvPython "obs\sync_scenes.py" --target $DestFile | Out-Null
-        Write-Host "    [✓] OBS scene collection synchronized (custom sources preserved)." -ForegroundColor Green
+        Write-Host "    [✓] OBS scene collection synchronized: custom sources preserved." -ForegroundColor Green
     }
 }
 
