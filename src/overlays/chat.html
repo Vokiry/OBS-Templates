@@ -477,7 +477,6 @@
       resetIdleTimer();
 
       const totalVotes = data.totalVotes || (data.choices ? data.choices.reduce((a, b) => a + (b.votes || 0), 0) : 0);
-      let endsTimestamp = data.endsAt ? new Date(data.endsAt).getTime() : 0;
       function formatTimer() {
         if (!endsTimestamp) return '';
         const diff = Math.max(0, Math.round((endsTimestamp - Date.now()) / 1000));
