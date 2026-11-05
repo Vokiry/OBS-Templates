@@ -184,3 +184,37 @@ async def test_panels_redirect_route(aiohttp_client):
     res_css = await client.get("/src/panels/panels.css")
     assert res_css.status == 200
 
+@pytest.mark.asyncio
+async def test_system_doctor_api(aiohttp_client):
+    from bridge.alerts_bridge import AdapterManager
+    b = Broadcaster()
+    b.init_tts({"mode": "all", "voice": "shitova.us", "volume": 0.8})
+
+    config = {
+        "server": {"host": "127.0.0.1", "port": 8787},
+        "twitch_chat": {"enabled": True, "channel": "test_ch", "fade_seconds": 60},
+        "twitch": {"enabled": False},
+        "donationalerts": {"enabled": False},
+        "donatex": {"enabled": False},
+        "tts": {"mode": "all", "voice": "shitova.us", "volume": 0.8}
+    }
+    mgr = AdapterManager(b.broadcast)
+    await mgr.start_all(config)
+
+    app = build_app(b, config, enable_settings=True, adapter_mgr=mgr)
+    client = await aiohttp_client(app)
+
+    res = await client.get("/api/doctor")
+    assert res.status == 200
+    d = await res.json()
+
+    assert d["status"] == "ok"
+    assert d["server"]["port"] == 8787
+    assert d["twitch_chat"]["channel"] == "test_ch"
+    assert d["twitch_chat"]["fade_seconds"] == 60
+    assert d["tts"]["mode"] == "all"
+    assert d["tts"]["voice"] == "shitova.us"
+    assert "overlays" in d
+    assert "sounds" in d
+
+    await mgr.stop_all()

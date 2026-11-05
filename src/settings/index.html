@@ -21,6 +21,56 @@
       </div>
     </header>
 
+    <!-- Module 00: Quick-Start & System Doctor (Widescreen Overview) -->
+    <section class="settings-card doctor-card" id="doctor-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label" style="color: var(--color-accent);">[ 00 // БЫСТРЫЙ СТАРТ И ДИАГНОСТИКА СИСТЕМЫ (SYSTEM DOCTOR) ]</span>
+        <button type="button" class="btn-action" style="padding: 2px 8px; font-size: 10px;" onclick="runSystemDoctor()">[ ⟳ ПРОВЕРИТЬ ВСЕ ПОДКЛЮЧЕНИЯ ]</button>
+      </div>
+
+      <!-- 3-Step Quick Start for Beginners -->
+      <div class="quick-start-grid">
+        <div class="quick-step">
+          <span class="quick-step__num">ШАГ 1</span>
+          <div class="quick-step__content">
+            <span class="quick-step__title">Twitch канал</span>
+            <span class="quick-step__desc">Введи логин в Модуле 01 и нажми кнопку Сохранить</span>
+          </div>
+        </div>
+
+        <div class="quick-step">
+          <span class="quick-step__num">ШАГ 2</span>
+          <div class="quick-step__content">
+            <span class="quick-step__title">Пульт в OBS</span>
+            <button type="button" class="quick-step__btn" onclick="copyDockUrl()">[ ⎘ Скопировать URL Дока OBS ]</button>
+          </div>
+        </div>
+
+        <div class="quick-step">
+          <span class="quick-step__num">ШАГ 3</span>
+          <div class="quick-step__content">
+            <span class="quick-step__title">Проверка эфира</span>
+            <div style="display: flex; gap: 6px; margin-top: 4px;">
+              <button type="button" class="test-alert-btn" style="padding: 3px 8px; font-size: 10px;" onclick="fireTestAlert('donate')">Тест Доната</button>
+              <button type="button" class="test-alert-btn" style="padding: 3px 8px; font-size: 10px;" onclick="testTtsVoice()">Тест TTS</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Diagnostics Status Grid -->
+      <div class="doctor-grid" id="doctor-status-grid">
+        <div class="doctor-badge" id="doc-server">● Сервер: 127.0.0.1:8787</div>
+        <div class="doctor-badge" id="doc-overlays">● Оверлеи OBS: 0 подключено</div>
+        <div class="doctor-badge" id="doc-chat">● Twitch Чат: Проверка...</div>
+        <div class="doctor-badge" id="doc-twitch">● Twitch Events: Проверка...</div>
+        <div class="doctor-badge" id="doc-da">● DonationAlerts: Проверка...</div>
+        <div class="doctor-badge" id="doc-dx">● DonateX: Проверка...</div>
+        <div class="doctor-badge" id="doc-sounds">● Звуковой тракт: 8 файлов</div>
+        <div class="doctor-badge" id="doc-tts">● Озвучка TTS: Проверка...</div>
+      </div>
+    </section>
+
 
     <!-- 2-Column Responsive Dashboard Grid (system24 Widescreen 1440px) -->
     <div class="settings-grid">
@@ -56,6 +106,27 @@
           <label class="form-label" for="chat-7tv-mirror">7TV Mirror URL</label>
           <input type="text" id="chat-7tv-mirror" class="form-input" placeholder="https://enhanced.jeetbot.cc">
         </div>
+      </div>
+
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label class="form-label" for="chat-fade-seconds">Авто-затухание неактивного чата</label>
+          <select id="chat-fade-seconds" class="form-select">
+            <option value="30">30 секунд</option>
+            <option value="45" selected>45 секунд (По умолчанию)</option>
+            <option value="60">60 секунд (1 минута)</option>
+            <option value="90">90 секунд (1.5 минуты)</option>
+            <option value="0">Никогда не затухать (Всегда на экране)</option>
+          </select>
+          <span class="form-hint">Через сколько секунд тишины чат плавно растворяется до нового сообщения</span>
+        </div>
+      </div>
+
+      <!-- Test Chat Message Simulator -->
+      <div style="margin-top: 10px; padding-top: 10px; border-top: var(--border-width) solid var(--color-border-faint); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <input type="text" id="chat-test-input" class="form-input" style="flex: 1; min-width: 180px;" placeholder="Тестовое сообщение в чат..." value="Привет чат! RainTime PogChamp">
+        <button type="button" class="btn-action" onclick="sendTestChatMessage()">[ В ЧАТ ]</button>
+        <span class="test-status-line" id="chat-test-status" style="margin: 0;"></span>
       </div>
     </section>
 
@@ -684,7 +755,161 @@
       }
     }
 
-    async function loadConfig() {
+        function copyDockUrl() {
+      const url = `${API_BASE}/dock`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => showStatus('[ ✓ URL ДОКА СКОПИРОВАН В БУФЕР: ' + url + ' ]'));
+      } else {
+        prompt('Скопируйте URL дока:', url);
+      }
+    }
+
+    async function sendTestChatMessage() {
+      const input = document.getElementById('chat-test-input');
+      const text = input ? input.value.trim() : '';
+      if (!text) return;
+      const statusEl = document.getElementById('chat-test-status');
+      try {
+        if (statusEl) {
+          statusEl.textContent = '[ ОТПРАВКА... ]';
+          statusEl.className = 'test-status-line is-pending';
+        }
+        const userNick = document.getElementById('chat-channel')?.value.trim() || 'Streamer';
+        const res = await fetch(`${API_BASE}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'chat',
+            subtype: 'message',
+            user: userNick,
+            text: text,
+            color: '#63E6BE'
+          })
+        });
+        if (res.ok) {
+          if (statusEl) {
+            statusEl.textContent = '[ ✓ ОТПРАВЛЕНО В ЧАТ ]';
+            statusEl.className = 'test-status-line is-success';
+            setTimeout(() => { if (statusEl.textContent.includes('✓')) statusEl.textContent = ''; }, 3000);
+          }
+        }
+      } catch (e) {
+        if (statusEl) {
+          statusEl.textContent = '[ ✗ ОШИБКА ОТПРАВКИ ]';
+          statusEl.className = 'test-status-line is-error';
+        }
+      }
+    }
+
+    async function runSystemDoctor() {
+      try {
+        const res = await fetch(`${API_BASE}/api/doctor`);
+        if (!res.ok) return;
+        const d = await res.json();
+
+        // 1. Server
+        const srvEl = document.getElementById('doc-server');
+        if (srvEl) {
+          srvEl.textContent = `● Сервер: ${d.server?.host}:${d.server?.port} [ OK ]`;
+          srvEl.className = 'doctor-badge is-ok';
+        }
+
+        // 2. Overlays
+        const ovlEl = document.getElementById('doc-overlays');
+        if (ovlEl) {
+          const cnt = d.overlays?.count || 0;
+          ovlEl.textContent = `● Оверлеи OBS: ${cnt} подключено`;
+          ovlEl.className = cnt > 0 ? 'doctor-badge is-ok' : 'doctor-badge is-warn';
+        }
+
+        // 3. Twitch Chat
+        const chatEl = document.getElementById('doc-chat');
+        if (chatEl) {
+          const tc = d.twitch_chat || {};
+          if (tc.channel) {
+            chatEl.textContent = `● Чат: #${tc.channel} (${tc.emotes_count} 7TV) [ OK ]`;
+            chatEl.className = 'doctor-badge is-ok';
+          } else {
+            chatEl.textContent = '○ Чат: Не указан канал';
+            chatEl.className = 'doctor-badge is-off';
+          }
+        }
+
+        // 4. Twitch Events
+        const twEl = document.getElementById('doc-twitch');
+        if (twEl) {
+          const tw = d.twitch || {};
+          if (tw.authenticated) {
+            twEl.textContent = '● Twitch Events: Авторизован [ OK ]';
+            twEl.className = 'doctor-badge is-ok';
+          } else if (tw.configured) {
+            twEl.textContent = '○ Twitch Events: Требуется вход';
+            twEl.className = 'doctor-badge is-warn';
+          } else {
+            twEl.textContent = '○ Twitch Events: Не настроен';
+            twEl.className = 'doctor-badge is-off';
+          }
+        }
+
+        // 5. DonationAlerts
+        const daEl = document.getElementById('doc-da');
+        if (daEl) {
+          const da = d.donationalerts || {};
+          if (da.authenticated) {
+            daEl.textContent = '● DonationAlerts: Подключен [ OK ]';
+            daEl.className = 'doctor-badge is-ok';
+          } else if (da.configured) {
+            daEl.textContent = '○ DA: Нажмите Подключить';
+            daEl.className = 'doctor-badge is-warn';
+          } else {
+            daEl.textContent = '○ DonationAlerts: Не настроен';
+            daEl.className = 'doctor-badge is-off';
+          }
+        }
+
+        // 6. DonateX
+        const dxEl = document.getElementById('doc-dx');
+        if (dxEl) {
+          const dx = d.donatex || {};
+          if (dx.connected) {
+            dxEl.textContent = '● DonateX: Подключен [ OK ]';
+            dxEl.className = 'doctor-badge is-ok';
+          } else if (dx.configured) {
+            dxEl.textContent = '○ DonateX: Подключение...';
+            dxEl.className = 'doctor-badge is-warn';
+          } else {
+            dxEl.textContent = '○ DonateX: Не настроен';
+            dxEl.className = 'doctor-badge is-off';
+          }
+        }
+
+        // 7. Sounds
+        const sndEl = document.getElementById('doc-sounds');
+        if (sndEl) {
+          const snd = d.sounds || {};
+          const volPct = Math.round((snd.master_volume || 0.7) * 100);
+          sndEl.textContent = `● Звуки: ${snd.count} шт. [ ${volPct}% ]`;
+          sndEl.className = 'doctor-badge is-ok';
+        }
+
+        // 8. TTS
+        const ttsEl = document.getElementById('doc-tts');
+        if (ttsEl) {
+          const tts = d.tts || {};
+          if (tts.mode !== 'off') {
+            ttsEl.textContent = `● TTS: [ ${tts.mode.toUpperCase()} ] (${tts.voice})`;
+            ttsEl.className = 'doctor-badge is-ok';
+          } else {
+            ttsEl.textContent = '○ TTS: Выключен';
+            ttsEl.className = 'doctor-badge is-off';
+          }
+        }
+      } catch (e) {
+        console.warn('System doctor error:', e);
+      }
+    }
+
+async function loadConfig() {
       try {
         const res = await fetch(`${API_BASE}/api/config`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -701,6 +926,10 @@
         document.getElementById('chat-channel').value = tc.channel || '';
         document.getElementById('chat-7tv-source').value = tc.seven_tv_source || 'direct';
         document.getElementById('chat-7tv-mirror').value = tc.seven_tv_mirror || 'https://enhanced.jeetbot.cc';
+        const fadeSecVal = tc.fade_seconds !== undefined ? String(tc.fade_seconds) : '45';
+        const fadeSel = document.getElementById('chat-fade-seconds');
+        if (fadeSel) fadeSel.value = fadeSecVal;
+        runSystemDoctor();
 
         // 2. Twitch Events
         const tw = configData.twitch || {};
@@ -822,7 +1051,8 @@
           enabled: modules.chat,
           channel: document.getElementById('chat-channel').value.trim(),
           seven_tv_source: document.getElementById('chat-7tv-source').value,
-          seven_tv_mirror: document.getElementById('chat-7tv-mirror').value.trim()
+          seven_tv_mirror: document.getElementById('chat-7tv-mirror').value.trim(),
+          fade_seconds: parseInt(document.getElementById('chat-fade-seconds')?.value, 10) || 45
         },
         twitch: {
           enabled: modules.twitch,

@@ -101,7 +101,7 @@
     // Inactivity Auto-Fade (hides chat when idle, reveals on new message)
     const defaultFade = layout === 'half' ? 0 : 45;
     const fadeParam = params.get('fade');
-    const fadeSeconds = fadeParam !== null
+    let fadeSeconds = fadeParam !== null
       ? (fadeParam === 'off' || fadeParam === '0' ? 0 : Math.max(5, parseInt(fadeParam, 10) || defaultFade))
       : defaultFade;
 
@@ -641,6 +641,11 @@
               }
             } else if (data.type === 'twitch_badges' && data.badges) {
               Object.assign(badgesMap, data.badges);
+            } else if (data.type === 'chat_config') {
+              if (data.fadeSeconds !== undefined) {
+                fadeSeconds = parseInt(data.fadeSeconds, 10);
+                resetIdleTimer();
+              }
             } else if (data.type === 'poll') {
               handlePollEvent(data);
             } else if (data.type === 'prediction') {

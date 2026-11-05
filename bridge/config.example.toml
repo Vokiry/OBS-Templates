@@ -20,6 +20,8 @@ channel = ""
 # "auto"   - сначала direct, при таймауте fallback на mirror
 seven_tv_source = "direct"
 seven_tv_mirror = "https://enhanced.jeetbot.cc"
+# Время авто-затухания неактивного чата в секундах (0 - не затухать):
+fade_seconds = 45
 
 # 3. ДОНАТЫ DONATIONALERTS
 [donationalerts]

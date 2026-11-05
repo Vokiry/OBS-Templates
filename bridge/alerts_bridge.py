@@ -425,6 +425,7 @@ def serialize_toml(cfg: dict) -> str:
         f'channel = "{toml_escape(cfg.get("twitch_chat", {}).get("channel", ""))}"',
         f'seven_tv_source = "{toml_escape(cfg.get("twitch_chat", {}).get("seven_tv_source", "direct"))}"',
         f'seven_tv_mirror = "{toml_escape(cfg.get("twitch_chat", {}).get("seven_tv_mirror", "https://enhanced.jeetbot.cc"))}"',
+        f'fade_seconds = {int(cfg.get("twitch_chat", {}).get("fade_seconds", 45))}',
         "",
         "[donationalerts]",
         f'enabled = {str(cfg.get("donationalerts", {}).get("enabled", False)).lower()}',
@@ -727,6 +728,8 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             config.setdefault("twitch", {}).update(payload["twitch"])
         if "twitch_chat" in payload:
             config.setdefault("twitch_chat", {}).update(payload["twitch_chat"])
+            fade_sec = int(config["twitch_chat"].get("fade_seconds", 45))
+            await broadcaster.broadcast({"type": "chat_config", "fadeSeconds": fade_sec})
         if "donationalerts" in payload:
             config.setdefault("donationalerts", {}).update(payload["donationalerts"])
         if "donatex" in payload:
@@ -808,6 +811,69 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
 
         log.info("uploaded new sound file: %s (%d bytes)", safe_name, size)
         return web.json_response({"ok": True, "filename": safe_name}, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def system_doctor_api(request):
+        server_cfg = config.get("server", {})
+        tc_cfg = config.get("twitch_chat", {})
+        tw_cfg = config.get("twitch", {})
+        da_cfg = config.get("donationalerts", {})
+        dx_cfg = config.get("donatex", {})
+        tts_cfg = config.get("tts", {})
+        goal_cfg = config.get("goal", {})
+
+        from adapters.twitch_chat import get_cached_badges
+        cached_badges = get_cached_badges()
+        has_twitch_token = (project_root / "bridge" / ".twitch_token.json").exists()
+        has_da_token = (project_root / "bridge" / ".da_token.json").exists()
+
+        sounds_dir = src_dir / "sounds"
+        sounds_count = len(list(sounds_dir.glob("*.wav"))) + len(list(sounds_dir.glob("*.mp3"))) if sounds_dir.exists() else 0
+        states = adapter_mgr.states if adapter_mgr else adapter_states
+
+        return web.json_response({
+            "status": "ok",
+            "server": {"host": server_cfg.get("host", "127.0.0.1"), "port": int(server_cfg.get("port", 8787))},
+            "overlays": {"count": len(broadcaster.clients)},
+            "twitch_chat": {
+                "enabled": bool(tc_cfg.get("enabled")),
+                "channel": tc_cfg.get("channel", "").strip(),
+                "connected": states.get("twitch_chat", False),
+                "badges_count": len(cached_badges) if cached_badges else 0,
+                "emotes_count": len(broadcaster.last_7tv_emotes.get("emotes", [])) if broadcaster.last_7tv_emotes else 0,
+                "fade_seconds": int(tc_cfg.get("fade_seconds", 45)),
+            },
+            "twitch": {
+                "enabled": bool(tw_cfg.get("enabled")),
+                "configured": bool(tw_cfg.get("client_id") and tw_cfg.get("client_secret")),
+                "authenticated": has_twitch_token,
+            },
+            "donationalerts": {
+                "enabled": bool(da_cfg.get("enabled")),
+                "configured": bool(da_cfg.get("client_id")),
+                "authenticated": has_da_token or bool(da_cfg.get("access_token")),
+            },
+            "donatex": {
+                "enabled": bool(dx_cfg.get("enabled")),
+                "configured": bool(dx_cfg.get("token")),
+                "connected": states.get("donatex", False),
+            },
+            "sounds": {
+                "count": sounds_count,
+                "master_volume": broadcaster.last_sounds_config.get("masterVolume", 0.7) if broadcaster.last_sounds_config else 0.7,
+            },
+            "tts": {
+                "mode": tts_cfg.get("mode", "off"),
+                "voice": tts_cfg.get("voice", "shitova.us"),
+                "volume": float(tts_cfg.get("volume", 0.8)),
+            },
+            "goal": {
+                "enabled": bool(goal_cfg.get("enabled")),
+                "title": goal_cfg.get("title", ""),
+                "current": float(goal_cfg.get("current", 0)),
+                "target": float(goal_cfg.get("target", 10000)),
+            },
+            "stream_stats": broadcaster.last_stream_stats,
+        }, headers={"Access-Control-Allow-Origin": "*"})
 
     async def get_da_auth_url(request):
         da_cfg = config.get("donationalerts", {})
@@ -1033,6 +1099,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         app.router.add_post("/api/config", save_config_api)
         app.router.add_post("/api/sounds/upload", upload_sound_api)
         app.router.add_get("/api/da/auth-url", get_da_auth_url)
+        app.router.add_get("/api/doctor", system_doctor_api)
     app.router.add_get("/events", events)
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)
