@@ -1122,6 +1122,10 @@ async def main() -> None:
     site = web.TCPSite(runner, host, port)
     await site.start()
     log.info("unified server ready at ws://%s:%d/events", host, port)
+
+    loop = asyncio.get_running_loop()
+    stop_event = asyncio.Event()
+
     if args.open_browser:
         import webbrowser
         target_url = f"http://{host}:{port}/settings" if args.settings else f"http://{host}:{port}/dock"
@@ -1129,8 +1133,6 @@ async def main() -> None:
     if host != "127.0.0.1":
         log.info("API key for external access: %s", API_KEY)
 
-    stop_event = asyncio.Event()
-    loop = asyncio.get_event_loop()
     import signal
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
@@ -1179,6 +1181,8 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+    except Exception:
+        log.exception("fatal server error")
     finally:
         import os
         os._exit(0)
