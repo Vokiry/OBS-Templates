@@ -23,14 +23,17 @@
   border-color: var(--color-border-hover);
 }
 
-/* Half-screen layout mode: for Starting Soon or wide-chat scenes */
+/* Half-screen layout mode: for Starting Soon pre-stream lobby */
 .chat--half,
-.chat[data-layout="half"] {
-  width: calc(50vw - var(--safe-area) * 2 - 12px);
-  min-width: 820px;
-  max-width: 920px;
-  height: calc(1080px - var(--safe-area) * 2);
-  max-height: 100%;
+.chat[data-layout="half"],
+.overlay .chat.chat--half,
+.overlay--top-right .chat.chat--half {
+  width: 900px !important;
+  min-width: 860px !important;
+  max-width: 920px !important;
+  flex: 0 0 900px !important;
+  height: calc(1080px - var(--safe-area) * 2) !important;
+  max-height: 100% !important;
 }
 
 /* Main gameplay sidebar position: fits cleanly between top player and bottom webcam */
