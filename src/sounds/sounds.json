@@ -1,32 +1,32 @@
 {
-  "masterVolume": 0.5,
+  "masterVolume": 0.65,
   "sounds": {
     "donate": {
-      "file": "../sounds/burn.wav",
+      "file": "../sounds/Cash_Transfer.wav",
       "volume": 0.8
     },
     "sub": {
-      "file": "../sounds/sub.wav",
+      "file": "../sounds/switch_toggle_on.wav",
       "volume": 0.8
     },
     "resub": {
-      "file": "../sounds/sub.wav",
+      "file": "../sounds/switch_toggle_on.wav",
       "volume": 0.8
     },
     "gift": {
-      "file": "../sounds/sub.wav",
+      "file": "../sounds/switch_toggle_on.wav",
       "volume": 0.8
     },
     "raid": {
-      "file": "../sounds/raid.wav",
+      "file": "../sounds/Escaping_from_NCPD.wav",
       "volume": 0.8
     },
     "cheer": {
-      "file": "../sounds/cheer.wav",
+      "file": "../sounds/switch_toggle_on.wav",
       "volume": 0.8
     },
     "follow": {
-      "file": "../sounds/magic_sound.wav",
+      "file": "../sounds/switch_toggle_on.wav",
       "volume": 0.8
     },
     "default": {

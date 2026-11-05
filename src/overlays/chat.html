@@ -438,9 +438,11 @@
       if (!pinnedContainer) return;
       let pollBox = document.getElementById('pinned-poll');
       const pollStatus = String(data.status || '').toLowerCase();
+      let endsTimestamp = data.endsAt ? new Date(data.endsAt).getTime() : 0;
+      const isExpired = endsTimestamp > 0 && (endsTimestamp <= Date.now());
 
-      if (data.action === 'end' || pollStatus === 'completed' || pollStatus === 'terminated') {
-        if (!pollBox) return;
+      if (data.action === 'end' || pollStatus === 'completed' || pollStatus === 'terminated' || isExpired) {
+        if (!pollBox) return; // Do not render expired/ended poll on scene switch!
         highlightPollWinner(pollBox, data.choices);
         const timerEl = pollBox.querySelector('.chat__poll-timer');
         if (timerEl) timerEl.textContent = '[ ENDED ]';
@@ -644,7 +646,12 @@
             } else if (data.type === 'chat_config') {
               if (data.fadeSeconds !== undefined) {
                 fadeSeconds = parseInt(data.fadeSeconds, 10);
-                resetIdleTimer();
+                if (fadeSeconds === 0) {
+                  if (chatEl) chatEl.classList.remove('is-idle');
+                  if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+                } else {
+                  resetIdleTimer();
+                }
               }
             } else if (data.type === 'poll') {
               handlePollEvent(data);

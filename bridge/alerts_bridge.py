@@ -35,6 +35,7 @@ class Broadcaster:
         self.last_7tv_emotes = None
         self.last_twitch_badges = None
         self.last_sounds_config = None
+        self.last_chat_config = None
         self.active_poll = None
         self.active_prediction = None
         self.chat_history = _deque(maxlen=30)
@@ -215,10 +216,25 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_twitch_badges))
             if self.last_sounds_config:
                 await socket.send_str(base.encode(self.last_sounds_config))
+            if self.last_chat_config:
+                await socket.send_str(base.encode(self.last_chat_config))
             if self.active_poll:
-                await socket.send_str(base.encode(self.active_poll))
+                ends_at = self.active_poll.get("endsAt")
+                if ends_at:
+                    try:
+                        from datetime import datetime
+                        if datetime.fromisoformat(ends_at).timestamp() < time.time():
+                            self.active_poll = None
+                    except Exception:
+                        pass
+                if self.active_poll and self.active_poll.get("action") != "end":
+                    await socket.send_str(base.encode(self.active_poll))
             if self.active_prediction:
-                await socket.send_str(base.encode(self.active_prediction))
+                st = str(self.active_prediction.get("status", "")).lower()
+                if st in ("resolved", "canceled") or self.active_prediction.get("action") == "end":
+                    self.active_prediction = None
+                else:
+                    await socket.send_str(base.encode(self.active_prediction))
             if self.chat_history:
                 await socket.send_str(base.encode({
                     "type": "chat_history",
@@ -629,6 +645,13 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         except Exception:
             pass
 
+    # Pre-cache chat config
+    tc_cfg_init = config.get("twitch_chat", {})
+    broadcaster.last_chat_config = {
+        "type": "chat_config",
+        "fadeSeconds": int(tc_cfg_init.get("fade_seconds", 45))
+    }
+
     # Pre-cache donation goal
     goal_cfg = dict(config.get("goal", {}))
     broadcaster.init_goal(goal_cfg, broadcaster.config_path or target_config_path)
@@ -732,7 +755,8 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         if "twitch_chat" in payload:
             config.setdefault("twitch_chat", {}).update(payload["twitch_chat"])
             fade_sec = int(config["twitch_chat"].get("fade_seconds", 45))
-            await broadcaster.broadcast({"type": "chat_config", "fadeSeconds": fade_sec})
+            broadcaster.last_chat_config = {"type": "chat_config", "fadeSeconds": fade_sec}
+            await broadcaster.broadcast(broadcaster.last_chat_config)
         if "donationalerts" in payload:
             config.setdefault("donationalerts", {}).update(payload["donationalerts"])
         if "donatex" in payload:
