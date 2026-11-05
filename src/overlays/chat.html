@@ -89,9 +89,10 @@
       chatEl.classList.add('chat--main-sidebar');
     }
     const layout = params.get('layout');
+    const isHalfLayout = layout === 'half';
     if (layout && chatEl) {
       chatEl.dataset.layout = layout;
-      if (layout === 'half') {
+      if (isHalfLayout) {
         chatEl.classList.add('chat--half');
         const header = document.querySelector('.chat__header');
         if (header) header.textContent = 'chat // pre-stream lobby';
@@ -99,11 +100,12 @@
     }
 
     // Inactivity Auto-Fade (hides chat when idle, reveals on new message)
-    const defaultFade = layout === 'half' ? 0 : 45;
+    // Starting Soon (isHalfLayout) is the pre-stream lobby and MUST NEVER FADE!
+    const defaultFade = isHalfLayout ? 0 : 45;
     const fadeParam = params.get('fade');
-    let fadeSeconds = fadeParam !== null
+    let fadeSeconds = isHalfLayout ? 0 : (fadeParam !== null
       ? (fadeParam === 'off' || fadeParam === '0' ? 0 : Math.max(5, parseInt(fadeParam, 10) || defaultFade))
-      : defaultFade;
+      : defaultFade);
 
     let idleTimer = null;
 
@@ -119,9 +121,12 @@
       if (chatEl) {
         chatEl.classList.remove('is-idle');
       }
+      if (isHalfLayout || fadeSeconds <= 0) {
+        return; // Pre-stream lobby or fade off never hides
+      }
       if (fadeSeconds > 0 && chatEl && !hasActivePinnedWidget()) {
         idleTimer = setTimeout(() => {
-          if (!hasActivePinnedWidget() && chatEl) {
+          if (!hasActivePinnedWidget() && chatEl && !isHalfLayout) {
             chatEl.classList.add('is-idle');
           }
         }, fadeSeconds * 1000);
@@ -644,7 +649,7 @@
             } else if (data.type === 'twitch_badges' && data.badges) {
               Object.assign(badgesMap, data.badges);
             } else if (data.type === 'chat_config') {
-              if (data.fadeSeconds !== undefined) {
+              if (!isHalfLayout && data.fadeSeconds !== undefined) {
                 fadeSeconds = parseInt(data.fadeSeconds, 10);
                 if (fadeSeconds === 0) {
                   if (chatEl) chatEl.classList.remove('is-idle');
