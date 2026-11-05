@@ -61,9 +61,29 @@ Write-Host "  [✓] Event WebSocket:  ws://localhost:8787/events" -ForegroundCol
 if ($args -contains "--settings") {
     Write-Host "  [✓] Settings Panel:   http://localhost:8787/settings" -ForegroundColor Green
 }
+if ($args -contains "--obs") {
+    Write-Host "[*] Launching OBS Studio..." -ForegroundColor Cyan
+    $ObsExe = "$env:ProgramFiles\obs-studio\bin\64bit\obs64.exe"
+    if (Test-Path $ObsExe) {
+        Start-Process -FilePath $ObsExe -WorkingDirectory (Split-Path $ObsExe)
+        Write-Host "    [✓] OBS Studio launched." -ForegroundColor Green
+    } else {
+        Write-Host "    [!] OBS Studio not found in $ObsExe. Please launch OBS manually." -ForegroundColor Yellow
+    }
+}
+
+$PyArgs = @()
+if ($args -contains "--settings") { $PyArgs += "--settings" }
+for ($i = 0; $i -lt $args.Count; $i++) {
+    if ($args[$i] -eq "--config" -and ($i + 1) -lt $args.Count) {
+        $PyArgs += "--config"
+        $PyArgs += $args[$i + 1]
+    }
+}
+
 Write-Host ""
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "[*] Starting SYSTEM server... (Press Ctrl+C to stop)"
 Write-Host ""
 
-& $VenvPython "bridge\alerts_bridge.py" $args
+& $VenvPython "bridge\alerts_bridge.py" $PyArgs

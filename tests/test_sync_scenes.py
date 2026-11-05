@@ -162,3 +162,19 @@ def test_sync_collection_preserves_audio_routing(tmp_path):
     # Audio routing settings MUST NOT be overwritten
     assert alerts_src["settings"]["reroute_audio"] is False
     assert alerts_src["monitoring_type"] == 0
+
+def test_get_default_obs_path_cross_platform(monkeypatch):
+    from obs.sync_scenes import get_default_obs_path
+
+    # 1. On Windows with APPDATA
+    monkeypatch.setattr("sys.platform", "win32")
+    monkeypatch.setenv("APPDATA", "C:\\Users\\Test\\AppData\\Roaming")
+    win_path = get_default_obs_path()
+    assert "AppData" in str(win_path)
+    assert str(win_path).endswith("SYSTEM.json")
+
+    # 2. On Linux
+    monkeypatch.setattr("sys.platform", "linux")
+    linux_path = get_default_obs_path()
+    assert ".config" in str(linux_path)
+    assert str(linux_path).endswith("SYSTEM.json")

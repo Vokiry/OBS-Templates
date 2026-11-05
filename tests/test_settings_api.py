@@ -176,3 +176,11 @@ async def test_panels_redirect_route(aiohttp_client):
     assert res.status == 302
     assert res.headers.get("Location") == "/src/panels/index.html"
 
+    # Verify static panels files are served
+    res_html = await client.get("/src/panels/index.html")
+    assert res_html.status == 200
+    assert "TWITCH PANELS" in (await res_html.text())
+
+    res_css = await client.get("/src/panels/panels.css")
+    assert res_css.status == 200
+

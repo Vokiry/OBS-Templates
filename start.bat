@@ -8,15 +8,38 @@ echo ==================================================
 echo     SYSTEM -- OBS Broadcast Templates Launcher
 echo ==================================================
 
-:: Parse arguments safely
+:: Parse arguments safely using shift loop
 set "SHOW_SETTINGS=0"
 set "RESET_SCENES=0"
-if not "%~1"=="" (
-    for %%a in (%*) do (
-        if /i "%%a"=="--settings" set "SHOW_SETTINGS=1"
-        if /i "%%a"=="--reset-scenes" set "RESET_SCENES=1"
-    )
+set "LAUNCH_OBS=0"
+set "CUSTOM_CONFIG="
+
+:parse_args
+if "%~1"=="" goto done_args
+if /i "%~1"=="--settings" (
+    set "SHOW_SETTINGS=1"
+    shift
+    goto parse_args
 )
+if /i "%~1"=="--reset-scenes" (
+    set "RESET_SCENES=1"
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--obs" (
+    set "LAUNCH_OBS=1"
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--config" (
+    set "CUSTOM_CONFIG=%~2"
+    shift
+    shift
+    goto parse_args
+)
+shift
+goto parse_args
+:done_args
 
 :: 1. Check Python
 where python >nul 2>nul
@@ -95,4 +118,24 @@ echo ==================================================
 echo [*] Starting SYSTEM server... (Press Ctrl+C to stop)
 echo.
 
-bridge\.venv\Scripts\python.exe bridge\alerts_bridge.py %*
+if "%LAUNCH_OBS%"=="1" (
+    echo [*] Launching OBS Studio...
+    if exist "%ProgramFiles%\obs-studio\bin\64bit\obs64.exe" (
+        start "" /d "%ProgramFiles%\obs-studio\bin\64bit" obs64.exe
+        echo     [+] OBS Studio launched.
+    ) else (
+        where obs64 >nul 2>nul
+        if %ERRORLEVEL% equ 0 (
+            start "" obs64.exe
+            echo     [+] OBS Studio launched.
+        ) else (
+            echo     [!] OBS Studio executable not found in default path. Please launch OBS manually.
+        )
+    )
+)
+
+set "PY_ARGS="
+if "%SHOW_SETTINGS%"=="1" set "PY_ARGS=--settings"
+if not "%CUSTOM_CONFIG%"=="" set "PY_ARGS=%PY_ARGS% --config "%CUSTOM_CONFIG%""
+
+bridge\.venv\Scripts\python.exe bridge\alerts_bridge.py %PY_ARGS%

@@ -1,5 +1,5 @@
 {
-  "masterVolume": 0.7,
+  "masterVolume": 0.5,
   "sounds": {
     "donate": {
       "file": "../sounds/burn.wav",
