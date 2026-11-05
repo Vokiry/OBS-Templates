@@ -1,6 +1,9 @@
 import base64
+import io
 import re
 import asyncio
+import zipfile
+from datetime import datetime
 import argparse
 import html as html_mod
 import json
@@ -875,6 +878,98 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             "stream_stats": broadcaster.last_stream_stats,
         }, headers={"Access-Control-Allow-Origin": "*"})
 
+    async def export_backup_api(request):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            if target_config_path.exists():
+                z.write(target_config_path, arcname="config.toml")
+            sounds_json = src_dir / "sounds" / "sounds.json"
+            if sounds_json.exists():
+                z.write(sounds_json, arcname="sounds/sounds.json")
+            sounds_dir = src_dir / "sounds"
+            if sounds_dir.exists():
+                for f in sounds_dir.iterdir():
+                    if f.is_file() and f.suffix.lower() in (".wav", ".mp3", ".ogg", ".flac"):
+                        z.write(f, arcname=f"sounds/{f.name}")
+            tmpl_obs = project_root / "obs" / "SYSTEM_Scene_Collection.json"
+            if tmpl_obs.exists():
+                z.write(tmpl_obs, arcname="obs/SYSTEM_Scene_Collection.json")
+
+        filename = f"SYSTEM_Backup_{datetime.now().strftime('%Y-%m-%d')}.zip"
+        return web.Response(
+            body=buf.getvalue(),
+            content_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Access-Control-Allow-Origin": "*",
+            }
+        )
+
+    async def import_backup_api(request):
+        if not request.content_type.startswith("multipart/"):
+            return web.json_response({"error": "multipart content expected"}, status=400)
+        reader = await request.multipart()
+        field = await reader.next()
+        if not field or not field.filename:
+            return web.json_response({"error": "no backup file provided"}, status=400)
+
+        data = await field.read()
+        if len(data) > 60 * 1024 * 1024:
+            return web.json_response({"error": "backup file exceeds 60MB limit"}, status=400)
+
+        try:
+            buf = io.BytesIO(data)
+            with zipfile.ZipFile(buf, "r") as z:
+                # Zip Slip security check
+                for name in z.namelist():
+                    if ".." in name or name.startswith("/") or name.startswith("\\"):
+                        return web.json_response({"error": "malicious zip archive (path traversal)"}, status=400)
+
+                if target_config_path.exists():
+                    target_backup_path.write_bytes(target_config_path.read_bytes())
+
+                for name in z.namelist():
+                    if name == "config.toml":
+                        target_config_path.write_bytes(z.read(name))
+                    elif name == "sounds/sounds.json":
+                        (src_dir / "sounds" / "sounds.json").write_bytes(z.read(name))
+                    elif name.startswith("sounds/") and not name.endswith("/"):
+                        filename = Path(name).name
+                        safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
+                        (src_dir / "sounds" / safe_name).write_bytes(z.read(name))
+                    elif name == "obs/SYSTEM_Scene_Collection.json":
+                        (project_root / "obs" / "SYSTEM_Scene_Collection.json").write_bytes(z.read(name))
+
+            with open(target_config_path, "rb") as handle:
+                new_cfg = toml_load(handle)
+                config.clear()
+                config.update(new_cfg)
+
+            broadcaster.init_goal(config.get("goal", {}), target_config_path)
+            broadcaster.init_tts(config.get("tts", {}))
+            sounds_data = get_sounds_catalog(src_dir)
+            await broadcaster.broadcast({
+                "type": "sounds_update",
+                "sounds": sounds_data.get("mapping", {}),
+                "masterVolume": sounds_data.get("masterVolume", 0.7)
+            })
+            if adapter_mgr:
+                await adapter_mgr.reload_if_changed(config)
+
+            from obs.sync_scenes import sync_collection, get_default_obs_path
+            default_obs = get_default_obs_path()
+            if default_obs.exists():
+                sync_collection(default_obs, dry_run=False, backup=True)
+
+            log.info("backup archive imported successfully and applied live")
+            return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+
+        except zipfile.BadZipFile:
+            return web.json_response({"error": "invalid zip archive"}, status=400)
+        except Exception as e:
+            log.warning("backup import failed: %s", e)
+            return web.json_response({"error": str(e)}, status=500)
+
     async def get_da_auth_url(request):
         da_cfg = config.get("donationalerts", {})
         cid = str(da_cfg.get("client_id", "")).strip()
@@ -1060,7 +1155,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
 
     # Endpoints that require API key authentication (state-changing)
     PROTECTED_PATHS = {"/notify", "/api/config", "/api/sounds/upload",
-                       "/api/media/skip", "/api/donations/skip", "/api/tts/stop"}
+                       "/api/media/skip", "/api/donations/skip", "/api/tts/stop", "/api/backup/import"}
 
     @web.middleware
     async def auth_middleware(request, handler):
@@ -1100,6 +1195,8 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         app.router.add_post("/api/sounds/upload", upload_sound_api)
         app.router.add_get("/api/da/auth-url", get_da_auth_url)
         app.router.add_get("/api/doctor", system_doctor_api)
+        app.router.add_get("/api/backup/export", export_backup_api)
+        app.router.add_post("/api/backup/import", import_backup_api)
     app.router.add_get("/events", events)
     app.router.add_post("/notify", notify)
     app.router.add_get("/health", health)

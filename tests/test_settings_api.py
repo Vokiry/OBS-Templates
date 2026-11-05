@@ -218,3 +218,57 @@ async def test_system_doctor_api(aiohttp_client):
     assert "sounds" in d
 
     await mgr.stop_all()
+
+@pytest.mark.asyncio
+async def test_backup_export_and_import(aiohttp_client, tmp_path):
+    import io
+    import zipfile
+    from aiohttp import FormData
+    b = Broadcaster()
+
+    # Isolated test config path
+    test_cfg = tmp_path / "test_config.toml"
+    test_cfg.write_text("[server]\nhost = \"127.0.0.1\"\nport = 8787\n[twitch_chat]\nchannel = \"backup_streamer\"\n", encoding="utf-8")
+
+    app = build_app(b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True, config_path=test_cfg)
+    client = await aiohttp_client(app)
+    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+
+    # 1. Export backup zip
+    res = await client.get("/api/backup/export")
+    assert res.status == 200
+    assert "application/zip" in res.headers.get("Content-Type", "")
+    assert "SYSTEM_Backup_" in res.headers.get("Content-Disposition", "")
+
+    zip_bytes = await res.read()
+    with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as z:
+        names = z.namelist()
+        assert "config.toml" in names
+        assert "sounds/sounds.json" in names
+        assert "obs/SYSTEM_Scene_Collection.json" in names
+
+    # 2. Test import malicious path traversal rejected
+    bad_buf = io.BytesIO()
+    with zipfile.ZipFile(bad_buf, "w") as bz:
+        bz.writestr("../../evil.txt", "evil data")
+
+    bad_form = FormData()
+    bad_form.add_field("file", bad_buf.getvalue(), filename="malicious.zip", content_type="application/zip")
+    res_bad = await client.post("/api/backup/import", data=bad_form, headers=headers)
+    assert res_bad.status == 400
+    assert "malicious" in (await res_bad.json()).get("error", "")
+
+    # 3. Test valid backup import restores files cleanly
+    valid_buf = io.BytesIO()
+    with zipfile.ZipFile(valid_buf, "w") as vz:
+        vz.writestr("config.toml", "[server]\nhost = \"127.0.0.1\"\nport = 8787\n[twitch_chat]\nchannel = \"restored_pro\"\n")
+
+    valid_form = FormData()
+    valid_form.add_field("file", valid_buf.getvalue(), filename="valid_backup.zip", content_type="application/zip")
+    res_import = await client.post("/api/backup/import", data=valid_form, headers=headers)
+    assert res_import.status == 200
+    assert (await res_import.json()).get("ok") is True
+
+    # Verify restored config
+    restored_txt = test_cfg.read_text(encoding="utf-8")
+    assert "restored_pro" in restored_txt

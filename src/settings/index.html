@@ -25,7 +25,14 @@
     <section class="settings-card doctor-card" id="doctor-card">
       <div class="settings-card__header">
         <span class="settings-card__label" style="color: var(--color-accent);">[ 00 // БЫСТРЫЙ СТАРТ И ДИАГНОСТИКА СИСТЕМЫ (SYSTEM DOCTOR) ]</span>
-        <button type="button" class="btn-action" style="padding: 2px 8px; font-size: 10px;" onclick="runSystemDoctor()">[ ⟳ ПРОВЕРИТЬ ВСЕ ПОДКЛЮЧЕНИЯ ]</button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn-action" style="padding: 2px 8px; font-size: 10px;" onclick="runSystemDoctor()">[ ⟳ ДИАГНОСТИКА ]</button>
+          <a href="/api/backup/export" class="btn-action" style="padding: 2px 8px; font-size: 10px; text-decoration: none;" title="Скачать единый ZIP-архив с токенами, звуками и сценами">[ ⎘ СКАЧАТЬ БЭКАП (.ZIP) ]</a>
+          <label class="btn-action" style="padding: 2px 8px; font-size: 10px; cursor: pointer;" title="Восстановить всю систему из ZIP-архива">
+            [ ⎗ ВОССТАНОВИТЬ ]
+            <input type="file" id="backup-file-input" accept=".zip" style="display: none;" onchange="handleBackupRestore(this)">
+          </label>
+        </div>
       </div>
 
       <!-- 3-Step Quick Start for Beginners -->
@@ -799,6 +806,34 @@
           statusEl.className = 'test-status-line is-error';
         }
       }
+    }
+
+        async function handleBackupRestore(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      if (!confirm(`Восстановить конфигурацию, звуки и сцены из бэкапа "${file.name}"?`)) {
+        input.value = '';
+        return;
+      }
+      showStatus(`Восстановление из ${file.name}...`);
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch(`${API_BASE}/api/backup/import`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showStatus('[ ✓ БЭКАП УСПЕШНО ВОССТАНОВЛЕН И ПРИМЕНЕН ]');
+          loadConfig();
+        } else {
+          showStatus(`[ Ошибка восстановления: ${data.error || 'неизвестно'} ]`);
+        }
+      } catch (e) {
+        showStatus('[ Ошибка сети при загрузке бэкапа ]');
+      }
+      input.value = '';
     }
 
     async function runSystemDoctor() {
