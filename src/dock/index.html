@@ -224,10 +224,14 @@
     }
 
     let testPollState = 0;
+    let testPollAutoTimer = null;
     function sendTestPoll() {
       testPollState = (testPollState + 1) % 3;
+      if (testPollAutoTimer) { clearTimeout(testPollAutoTimer); testPollAutoTimer = null; }
+
       if (testPollState === 1) {
-        const ends = new Date(Date.now() + 90000).toISOString();
+        // Quick 12-second test countdown so test poll auto-resolves and dismisses
+        const ends = new Date(Date.now() + 12000).toISOString();
         sendNotify({
           type: 'poll',
           action: 'begin',
@@ -242,6 +246,12 @@
           endsAt: ends
         });
         showToast('POLL STARTED');
+
+        // Auto-progress at 5s to show live voting animation
+        testPollAutoTimer = setTimeout(() => {
+          if (testPollState === 1) sendTestPoll();
+        }, 5000);
+
       } else if (testPollState === 2) {
         sendNotify({
           type: 'poll',
@@ -254,7 +264,7 @@
           ],
           totalVotes: 40,
           status: 'active',
-          endsAt: new Date(Date.now() + 45000).toISOString()
+          endsAt: new Date(Date.now() + 7000).toISOString()
         });
         showToast('POLL UPDATED');
       } else {
@@ -275,8 +285,11 @@
     }
 
     let testPredState = 0;
+    let testPredAutoTimer = null;
     function sendTestPrediction() {
       testPredState = (testPredState + 1) % 3;
+      if (testPredAutoTimer) { clearTimeout(testPredAutoTimer); testPredAutoTimer = null; }
+
       if (testPredState === 1) {
         sendNotify({
           type: 'prediction',
@@ -291,6 +304,17 @@
           totalPoints: 52600
         });
         showToast('PRED STARTED');
+
+        // Auto-progress test simulation so it doesn't stay stuck forever if clicked once
+        testPredAutoTimer = setTimeout(() => {
+          if (testPredState === 1) {
+            sendTestPrediction(); // advances to lock
+            testPredAutoTimer = setTimeout(() => {
+              if (testPredState === 2) sendTestPrediction(); // advances to resolved/end
+            }, 5000);
+          }
+        }, 6000);
+
       } else if (testPredState === 2) {
         sendNotify({
           type: 'prediction',
@@ -306,6 +330,7 @@
         });
         showToast('PRED LOCKED');
       } else {
+        if (testPredAutoTimer) { clearTimeout(testPredAutoTimer); testPredAutoTimer = null; }
         sendNotify({
           type: 'prediction',
           action: 'end',

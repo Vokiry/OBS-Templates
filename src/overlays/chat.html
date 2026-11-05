@@ -394,34 +394,57 @@
     let pollDismissTimer = null;
     let predDismissTimer = null;
 
+    function dismissPoll(delayMs = 6000) {
+      if (pollTimerInterval) {
+        clearInterval(pollTimerInterval);
+        pollTimerInterval = null;
+      }
+      if (pollDismissTimer) clearTimeout(pollDismissTimer);
+      pollDismissTimer = setTimeout(() => {
+        const p = document.getElementById('pinned-poll');
+        if (p) p.remove();
+        resetIdleTimer();
+      }, delayMs);
+    }
+
+    function highlightPollWinner(pollBox, choices) {
+      if (!pollBox) return;
+      const choicesContainer = pollBox.querySelector('.chat__poll-choices');
+      if (!choicesContainer) return;
+
+      if (choices && choices.length) {
+        const maxVotes = Math.max(...choices.map(c => c.votes || 0));
+        choicesContainer.querySelectorAll('.chat__poll-choice').forEach((el, idx) => {
+          const ch = choices[idx];
+          if (ch && (ch.votes || 0) === maxVotes && maxVotes > 0) {
+            el.classList.add('is-winner');
+          }
+        });
+      } else {
+        // Fallback: examine rendered text
+        let max = -1;
+        let bestEl = null;
+        choicesContainer.querySelectorAll('.chat__poll-choice').forEach(el => {
+          const txt = el.querySelector('.chat__poll-choice-label span:last-child')?.textContent || '';
+          const match = txt.match(/\((\d+)\)/);
+          const val = match ? parseInt(match[1], 10) : 0;
+          if (val > max) { max = val; bestEl = el; }
+        });
+        if (bestEl && max > 0) bestEl.classList.add('is-winner');
+      }
+    }
+
     function handlePollEvent(data) {
       if (!pinnedContainer) return;
       let pollBox = document.getElementById('pinned-poll');
+      const pollStatus = String(data.status || '').toLowerCase();
 
-      if (data.action === 'end' || data.status === 'completed' || data.status === 'terminated') {
+      if (data.action === 'end' || pollStatus === 'completed' || pollStatus === 'terminated') {
         if (!pollBox) return;
-        const choicesContainer = pollBox.querySelector('.chat__poll-choices');
-        if (choicesContainer && data.choices) {
-          const maxVotes = Math.max(...data.choices.map(c => c.votes || 0));
-          choicesContainer.querySelectorAll('.chat__poll-choice').forEach((el, idx) => {
-            const ch = data.choices[idx];
-            if (ch && ch.votes === maxVotes && maxVotes > 0) {
-              el.classList.add('is-winner');
-            }
-          });
-        }
+        highlightPollWinner(pollBox, data.choices);
         const timerEl = pollBox.querySelector('.chat__poll-timer');
         if (timerEl) timerEl.textContent = '[ ENDED ]';
-        if (pollTimerInterval) {
-          clearInterval(pollTimerInterval);
-          pollTimerInterval = null;
-        }
-
-        if (pollDismissTimer) clearTimeout(pollDismissTimer);
-        pollDismissTimer = setTimeout(() => {
-          if (pollBox) pollBox.remove();
-          resetIdleTimer();
-        }, 10000);
+        dismissPoll(6000);
         return;
       }
 
@@ -469,35 +492,57 @@
 
       if (pollTimerInterval) clearInterval(pollTimerInterval);
       if (endsTimestamp) {
-        pollTimerInterval = setInterval(() => {
-          const tEl = pollBox.querySelector('.chat__poll-timer');
-          if (tEl) {
-            tEl.textContent = formatTimer();
+        const checkPollTimer = () => {
+          const curPoll = document.getElementById('pinned-poll');
+          if (!curPoll) {
+            clearInterval(pollTimerInterval);
+            pollTimerInterval = null;
+            return;
           }
-        }, 1000);
+          const remainingSec = Math.round((endsTimestamp - Date.now()) / 1000);
+          const tEl = curPoll.querySelector('.chat__poll-timer');
+          if (remainingSec <= 0) {
+            if (tEl) tEl.textContent = '[ ENDED ]';
+            highlightPollWinner(curPoll, data.choices);
+            dismissPoll(6000);
+          } else {
+            if (tEl) tEl.textContent = formatTimer();
+          }
+        };
+
+        checkPollTimer();
+        if (endsTimestamp > Date.now()) {
+          pollTimerInterval = setInterval(checkPollTimer, 1000);
+        }
       }
+    }
+
+    function dismissPrediction(delayMs = 6000) {
+      if (predDismissTimer) clearTimeout(predDismissTimer);
+      predDismissTimer = setTimeout(() => {
+        const p = document.getElementById('pinned-pred');
+        if (p) p.remove();
+        resetIdleTimer();
+      }, delayMs);
     }
 
     function handlePredictionEvent(data) {
       if (!pinnedContainer) return;
       let predBox = document.getElementById('pinned-pred');
+      const statusStr = String(data.status || '').toLowerCase();
 
-      if (data.action === 'end' || data.status === 'resolved' || data.status === 'canceled') {
+      if (data.action === 'end' || statusStr === 'resolved' || statusStr === 'canceled') {
         if (!predBox) return;
         const statusEl = predBox.querySelector('.chat__pred-status');
-        if (statusEl) statusEl.textContent = `[ ${String(data.status).toUpperCase()} ]`;
+        if (statusEl) statusEl.textContent = `[ ${statusStr.toUpperCase()} ]`;
         
         if (data.winningOutcomeId) {
           predBox.querySelectorAll('.chat__pred-outcome').forEach(el => {
-            if (el.dataset.id === data.winningOutcomeId) el.classList.add('is-winner');
+            if (el.dataset.id === String(data.winningOutcomeId)) el.classList.add('is-winner');
           });
         }
 
-        if (predDismissTimer) clearTimeout(predDismissTimer);
-        predDismissTimer = setTimeout(() => {
-          if (predBox) predBox.remove();
-          resetIdleTimer();
-        }, 10000);
+        dismissPrediction(6000);
         return;
       }
 
