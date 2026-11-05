@@ -38,12 +38,12 @@ body {
 }
 
 .settings-page {
-  max-width: 840px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 24px 20px 100px 20px;
+  padding: 24px 28px 100px 28px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 /* Header */
@@ -368,7 +368,7 @@ body {
 }
 
 .save-bar__inner {
-  max-width: 840px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -490,5 +490,53 @@ body {
   }
   .sounds-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* 2-Column Responsive Dashboard Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.settings-col__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-interface);
+  font-size: 11px;
+  font-weight: var(--text-weight-bold);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--color-border-faint);
+  margin-bottom: -4px;
+}
+
+.settings-col__title span {
+  color: var(--color-accent);
+}
+
+@media (max-width: 1080px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .settings-page {
+    padding: 16px 16px 100px 16px;
+  }
+  .settings-col {
+    gap: 16px;
   }
 }

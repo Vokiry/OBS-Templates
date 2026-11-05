@@ -21,6 +21,12 @@
       </div>
     </header>
 
+
+    <!-- 2-Column Responsive Dashboard Grid (system24 Widescreen 1440px) -->
+    <div class="settings-grid">
+      <!-- Left Column: Chat, Voice Synthesis & Screen Widgets -->
+      <div class="settings-col">
+        <div class="settings-col__title">// <span>SECTION A</span> : ЧАТ, ОЗВУЧКА И ВИДЖЕТЫ</div>
     <!-- Module 1: Twitch Chat & 7TV -->
     <section class="settings-card">
       <div class="settings-card__header">
@@ -50,217 +56,6 @@
           <label class="form-label" for="chat-7tv-mirror">7TV Mirror URL</label>
           <input type="text" id="chat-7tv-mirror" class="form-input" placeholder="https://enhanced.jeetbot.cc">
         </div>
-      </div>
-    </section>
-
-    <!-- Module 2: Twitch Events -->
-    <section class="settings-card">
-      <div class="settings-card__header">
-        <span class="settings-card__label">[ 02 // TWITCH EVENTS & SUBS ]</span>
-        <div class="settings-card__toggle">
-          <button type="button" class="toggle-btn is-active" id="btn-twitch-toggle" onclick="toggleModule('twitch')">ON</button>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="twitch-client-id">Client ID</label>
-          <input type="text" id="twitch-client-id" class="form-input" placeholder="Client ID из dev.twitch.tv">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="twitch-client-secret">Client Secret</label>
-          <div class="form-input-wrap">
-            <input type="password" id="twitch-client-secret" class="form-input" placeholder="Секрет приложения">
-            <button type="button" class="peek-btn" onclick="togglePeek('twitch-client-secret')">SHOW</button>
-          </div>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 6px;">
-          <input type="checkbox" id="twitch-follows" style="accent-color: var(--color-accent); cursor: pointer;">
-          <label class="form-label" for="twitch-follows" style="cursor: pointer; text-transform: none;">
-            Включить алерты на новые фолловы (Follow Alerts)
-          </label>
-        </div>
-        <div class="form-group" style="align-items: flex-end; justify-content: center;">
-          <span class="btn-action btn-auth-ok" id="twitch-auth-status">[ АВТОРИЗОВАН ]</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Module 3: DonationAlerts -->
-    <section class="settings-card">
-      <div class="settings-card__header">
-        <span class="settings-card__label">[ 03 // DONATIONALERTS ]</span>
-        <div class="settings-card__toggle">
-          <button type="button" class="toggle-btn is-active" id="btn-da-toggle" onclick="toggleModule('da')">ON</button>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="da-client-id">DA Client ID</label>
-          <input type="text" id="da-client-id" class="form-input" placeholder="21416">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="da-client-secret">DA Client Secret / Token</label>
-          <div class="form-input-wrap">
-            <input type="password" id="da-client-secret" class="form-input" placeholder="Secret ключ приложения">
-            <button type="button" class="peek-btn" onclick="togglePeek('da-client-secret')">SHOW</button>
-          </div>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="da-access-token">Manual Access Token (опционально)</label>
-          <div class="form-input-wrap">
-            <input type="password" id="da-access-token" class="form-input" placeholder="Оставьте пустым при использовании Client ID & Secret">
-            <button type="button" class="peek-btn" onclick="togglePeek('da-access-token')">SHOW</button>
-          </div>
-        </div>
-        <div class="form-group" style="align-items: flex-end; justify-content: center;">
-          <button type="button" class="btn-action" id="btn-da-connect" onclick="connectDonationAlerts()">[ ПОДКЛЮЧИТЬ DONATIONALERTS ]</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Module 4: DonateX -->
-    <section class="settings-card">
-      <div class="settings-card__header">
-        <span class="settings-card__label">[ 04 // DONATEX (ДОНАТЫ И ЗАКАЗ ТРЕКОВ) ]</span>
-        <div class="settings-card__toggle">
-          <button type="button" class="toggle-btn is-active" id="btn-dx-toggle" onclick="toggleModule('dx')">ON</button>
-        </div>
-      </div>
-      <div class="form-grid form-grid--full">
-        <div class="form-group">
-          <label class="form-label" for="dx-token">External Token</label>
-          <div class="form-input-wrap">
-            <input type="password" id="dx-token" class="form-input" placeholder="Вставьте токен из donatex.gg -> Settings -> Api">
-            <button type="button" class="peek-btn" onclick="togglePeek('dx-token')">SHOW</button>
-          </div>
-          <span class="form-hint">Бессрочный ключ из настроек API в личном кабинете DonateX</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Module 5: Alert Sound Files Selection -->
-    <section class="settings-card">
-      <div class="settings-card__header">
-        <span class="settings-card__label">[ 05 // ЗВУКИ ОПОВЕЩЕНИЙ (ALERT AUDIO FILES) ]</span>
-      </div>
-      <span class="form-hint">Настройка общей громкости и привязка звуковых файлов (.wav, .mp3) к алертам:</span>
-
-      <!-- Master Volume Slider -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0 14px; padding: 6px 10px; background: rgba(11, 15, 20, 0.4); border: var(--border-width) solid var(--color-border-faint);">
-        <label class="form-label" for="alerts-volume" style="margin: 0;">Общая громкость алертов (Master Volume)</label>
-        <div style="display: flex; align-items: center; gap: 10px; min-width: 220px;">
-          <input type="range" id="alerts-volume" min="0" max="100" value="70" class="form-range" oninput="document.getElementById('alerts-volume-val').textContent = this.value + '%'">
-          <span id="alerts-volume-val" style="font-family: var(--font-interface); font-size: 11px; min-width: 36px; color: var(--color-accent); text-align: right;">70%</span>
-        </div>
-      </div>
-
-      <div class="sounds-grid">
-        <div class="sound-row">
-          <span class="sound-label">Donate</span>
-          <select class="sound-select" id="snd-donate"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-donate')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Sub</span>
-          <select class="sound-select" id="snd-sub"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-sub')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Resub</span>
-          <select class="sound-select" id="snd-resub"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-resub')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Gift</span>
-          <select class="sound-select" id="snd-gift"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-gift')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Raid</span>
-          <select class="sound-select" id="snd-raid"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-raid')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Cheer</span>
-          <select class="sound-select" id="snd-cheer"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-cheer')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Follow</span>
-          <select class="sound-select" id="snd-follow"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-follow')">PLAY</button>
-        </div>
-        <div class="sound-row">
-          <span class="sound-label">Default</span>
-          <select class="sound-select" id="snd-default"></select>
-          <button type="button" class="sound-play-btn" onclick="testSound('snd-default')">PLAY</button>
-        </div>
-      </div>
-
-      <!-- Upload Custom Sound File -->
-      <div class="upload-box">
-        <div class="upload-box__info">
-          <span>Добавить новый звук (.wav, .mp3, .ogg):</span>
-        </div>
-        <div>
-          <input type="file" id="sound-upload-input" accept=".wav,.mp3,.ogg,.flac" style="display:none;" onchange="handleSoundUpload(this)">
-          <button type="button" class="btn-action" onclick="document.getElementById('sound-upload-input').click()">[ + ВЫБРАТЬ ФАЙЛ ]</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Module 6: Test Alerts Broadcast -->
-    <section class="settings-card">
-      <div class="settings-card__header">
-        <span class="settings-card__label">[ 06 // ТЕСТИРОВАНИЕ АЛЕРТОВ (FIRE TEST ALERTS) ]</span>
-      </div>
-      <span class="form-hint">Запуск тестовых оповещений в прямом эфире OBS с реальным звуком и ASCII-анимацией:</span>
-
-      <div class="test-alerts-grid">
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('donate')">[ TEST DONATE ]</button>
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('sub')">[ TEST SUB ]</button>
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('resub')">[ TEST RESUB ]</button>
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('gift')">[ TEST GIFT SUB ]</button>
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('raid')">[ TEST RAID ]</button>
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('cheer')">[ TEST CHEER ]</button>
-        <button type="button" class="test-alert-btn" onclick="fireTestAlert('follow')">[ TEST FOLLOW ]</button>
-      </div>
-      <div class="test-status-line" id="test-alert-status"></div>
-    </section>
-
-    <!-- Module 7: Donation Goal Widget Configuration -->
-    <section class="settings-card">
-      <div class="settings-card__header">
-        <span class="settings-card__label">[ 07 // ЦЕЛЬ СБОРА (DONATION GOAL) ]</span>
-        <button type="button" class="toggle-btn" id="btn-goal-toggle" onclick="toggleModule('goal')">ON</button>
-      </div>
-      <span class="form-hint">Независимый сбор средств, автоматически суммирующий донаты с DonationAlerts и DonateX:</span>
-
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="goal-title">Название сбора</label>
-          <input type="text" id="goal-title" class="form-input" placeholder="Например: Новый микрофон">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="goal-currency">Валюта</label>
-          <input type="text" id="goal-currency" class="form-input" placeholder="RUB" value="RUB">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="goal-current">Собрано сейчас</label>
-          <input type="number" id="goal-current" class="form-input" placeholder="0" step="10">
-          <span class="form-hint">Автоматически увеличивается при каждом новом донате</span>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="goal-target">Целевая сумма</label>
-          <input type="number" id="goal-target" class="form-input" placeholder="10000" step="100">
-        </div>
-      </div>
-      <div class="form-hint" style="margin-top: 8px;">
-        URL для оверлея в OBS: <code>http://localhost:8787/src/overlays/goal.html?pos=top-left</code> (или <code>?variant=compact</code>)
       </div>
     </section>
 
@@ -355,7 +150,226 @@
       </div>
     </section>
 
-    <!-- Sticky Bottom Save Bar -->
+    <!-- Module 7: Donation Goal Widget Configuration -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 07 // ЦЕЛЬ СБОРА (DONATION GOAL) ]</span>
+        <button type="button" class="toggle-btn" id="btn-goal-toggle" onclick="toggleModule('goal')">ON</button>
+      </div>
+      <span class="form-hint">Независимый сбор средств, автоматически суммирующий донаты с DonationAlerts и DonateX:</span>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="goal-title">Название сбора</label>
+          <input type="text" id="goal-title" class="form-input" placeholder="Например: Новый микрофон">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-currency">Валюта</label>
+          <input type="text" id="goal-currency" class="form-input" placeholder="RUB" value="RUB">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-current">Собрано сейчас</label>
+          <input type="number" id="goal-current" class="form-input" placeholder="0" step="10">
+          <span class="form-hint">Автоматически увеличивается при каждом новом донате</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-target">Целевая сумма</label>
+          <input type="number" id="goal-target" class="form-input" placeholder="10000" step="100">
+        </div>
+      </div>
+      <div class="form-hint" style="margin-top: 8px;">
+        URL для оверлея в OBS: <code>http://localhost:8787/src/overlays/goal.html?pos=top-left</code> (или <code>?variant=compact</code>)
+      </div>
+    </section>
+
+      </div>
+
+      <!-- Right Column: Sounds, Live Testing & Platform Integrations -->
+      <div class="settings-col">
+        <div class="settings-col__title">// <span>SECTION B</span> : ЗВУКИ, АЛЕРТЫ И ИНТЕГРАЦИИ</div>
+    <!-- Module 5: Alert Sound Files Selection -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 05 // ЗВУКИ ОПОВЕЩЕНИЙ (ALERT AUDIO FILES) ]</span>
+      </div>
+      <span class="form-hint">Настройка общей громкости и привязка звуковых файлов (.wav, .mp3) к алертам:</span>
+
+      <!-- Master Volume Slider -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0 14px; padding: 6px 10px; background: rgba(11, 15, 20, 0.4); border: var(--border-width) solid var(--color-border-faint);">
+        <label class="form-label" for="alerts-volume" style="margin: 0;">Общая громкость алертов (Master Volume)</label>
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 220px;">
+          <input type="range" id="alerts-volume" min="0" max="100" value="70" class="form-range" oninput="document.getElementById('alerts-volume-val').textContent = this.value + '%'">
+          <span id="alerts-volume-val" style="font-family: var(--font-interface); font-size: 11px; min-width: 36px; color: var(--color-accent); text-align: right;">70%</span>
+        </div>
+      </div>
+
+      <div class="sounds-grid">
+        <div class="sound-row">
+          <span class="sound-label">Donate</span>
+          <select class="sound-select" id="snd-donate"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-donate')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Sub</span>
+          <select class="sound-select" id="snd-sub"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-sub')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Resub</span>
+          <select class="sound-select" id="snd-resub"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-resub')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Gift</span>
+          <select class="sound-select" id="snd-gift"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-gift')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Raid</span>
+          <select class="sound-select" id="snd-raid"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-raid')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Cheer</span>
+          <select class="sound-select" id="snd-cheer"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-cheer')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Follow</span>
+          <select class="sound-select" id="snd-follow"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-follow')">PLAY</button>
+        </div>
+        <div class="sound-row">
+          <span class="sound-label">Default</span>
+          <select class="sound-select" id="snd-default"></select>
+          <button type="button" class="sound-play-btn" onclick="testSound('snd-default')">PLAY</button>
+        </div>
+      </div>
+
+      <!-- Upload Custom Sound File -->
+      <div class="upload-box">
+        <div class="upload-box__info">
+          <span>Добавить новый звук (.wav, .mp3, .ogg):</span>
+        </div>
+        <div>
+          <input type="file" id="sound-upload-input" accept=".wav,.mp3,.ogg,.flac" style="display:none;" onchange="handleSoundUpload(this)">
+          <button type="button" class="btn-action" onclick="document.getElementById('sound-upload-input').click()">[ + ВЫБРАТЬ ФАЙЛ ]</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 6: Test Alerts Broadcast -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 06 // ТЕСТИРОВАНИЕ АЛЕРТОВ (FIRE TEST ALERTS) ]</span>
+      </div>
+      <span class="form-hint">Запуск тестовых оповещений в прямом эфире OBS с реальным звуком и ASCII-анимацией:</span>
+
+      <div class="test-alerts-grid">
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('donate')">[ TEST DONATE ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('sub')">[ TEST SUB ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('resub')">[ TEST RESUB ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('gift')">[ TEST GIFT SUB ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('raid')">[ TEST RAID ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('cheer')">[ TEST CHEER ]</button>
+        <button type="button" class="test-alert-btn" onclick="fireTestAlert('follow')">[ TEST FOLLOW ]</button>
+      </div>
+      <div class="test-status-line" id="test-alert-status"></div>
+    </section>
+
+    <!-- Module 2: Twitch Events -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 02 // TWITCH EVENTS & SUBS ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-twitch-toggle" onclick="toggleModule('twitch')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="twitch-client-id">Client ID</label>
+          <input type="text" id="twitch-client-id" class="form-input" placeholder="Client ID из dev.twitch.tv">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="twitch-client-secret">Client Secret</label>
+          <div class="form-input-wrap">
+            <input type="password" id="twitch-client-secret" class="form-input" placeholder="Секрет приложения">
+            <button type="button" class="peek-btn" onclick="togglePeek('twitch-client-secret')">SHOW</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 6px;">
+          <input type="checkbox" id="twitch-follows" style="accent-color: var(--color-accent); cursor: pointer;">
+          <label class="form-label" for="twitch-follows" style="cursor: pointer; text-transform: none;">
+            Включить алерты на новые фолловы (Follow Alerts)
+          </label>
+        </div>
+        <div class="form-group" style="align-items: flex-end; justify-content: center;">
+          <span class="btn-action btn-auth-ok" id="twitch-auth-status">[ АВТОРИЗОВАН ]</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 3: DonationAlerts -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 03 // DONATIONALERTS ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-da-toggle" onclick="toggleModule('da')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="da-client-id">DA Client ID</label>
+          <input type="text" id="da-client-id" class="form-input" placeholder="21416">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="da-client-secret">DA Client Secret / Token</label>
+          <div class="form-input-wrap">
+            <input type="password" id="da-client-secret" class="form-input" placeholder="Secret ключ приложения">
+            <button type="button" class="peek-btn" onclick="togglePeek('da-client-secret')">SHOW</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="da-access-token">Manual Access Token (опционально)</label>
+          <div class="form-input-wrap">
+            <input type="password" id="da-access-token" class="form-input" placeholder="Оставьте пустым при использовании Client ID & Secret">
+            <button type="button" class="peek-btn" onclick="togglePeek('da-access-token')">SHOW</button>
+          </div>
+        </div>
+        <div class="form-group" style="align-items: flex-end; justify-content: center;">
+          <button type="button" class="btn-action" id="btn-da-connect" onclick="connectDonationAlerts()">[ ПОДКЛЮЧИТЬ DONATIONALERTS ]</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 4: DonateX -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 04 // DONATEX (ДОНАТЫ И ЗАКАЗ ТРЕКОВ) ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-dx-toggle" onclick="toggleModule('dx')">ON</button>
+        </div>
+      </div>
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label class="form-label" for="dx-token">External Token</label>
+          <div class="form-input-wrap">
+            <input type="password" id="dx-token" class="form-input" placeholder="Вставьте токен из donatex.gg -> Settings -> Api">
+            <button type="button" class="peek-btn" onclick="togglePeek('dx-token')">SHOW</button>
+          </div>
+          <span class="form-hint">Бессрочный ключ из настроек API в личном кабинете DonateX</span>
+        </div>
+      </div>
+    </section>
+
+      </div>
+    </div>
+
+        <!-- Sticky Bottom Save Bar -->
     <div class="save-bar">
       <div class="save-bar__inner">
         <button type="button" class="save-btn" onclick="saveConfiguration()">СОХРАНИТЬ НАСТРОЙКИ</button>
