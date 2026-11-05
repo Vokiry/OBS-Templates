@@ -74,13 +74,33 @@ BOT_NAMES = frozenset({
 })
 
 
-def preprocess_text(text: str, max_length: int = 200) -> str:
+def filter_blacklist(text: str, blacklist: list[str]) -> str:
+    """Filter out banned words from TTS text, replacing with asterisks."""
+    if not text or not blacklist:
+        return text
+    result = text
+    for item in blacklist:
+        word = str(item).strip()
+        if not word:
+            continue
+        pattern = re.compile(rf"\b{re.escape(word)}\b", re.IGNORECASE)
+        result = pattern.sub("***", result)
+    return result
+
+
+def preprocess_text(text: str, max_length: int = 200, blacklist: list[str] | None = None) -> str:
     """Clean chat message text for TTS synthesis."""
     if not text:
         return ""
     # Skip bot commands
     if _RE_COMMAND.match(text.strip()):
         return ""
+    # Filter banned words
+    if blacklist:
+        text = filter_blacklist(text, blacklist)
+        # Drop if message is now only asterisks/spaces
+        if not text.replace("*", "").strip():
+            return ""
     # Remove URLs
     text = _RE_URL.sub("ссылка", text)
     # Collapse character spam (ааааааааа → аа)

@@ -37,6 +37,12 @@ def normalize(payload: dict) -> dict:
         res["aiVoiceUrl"] = str(payload["aiVoiceUrl"])
     if "aiResponse" in payload:
         res["aiResponse"] = str(payload["aiResponse"])
+    if "is_replay" in payload:
+        res["is_replay"] = bool(payload["is_replay"])
+    if "dnd" in payload:
+        res["dnd"] = bool(payload["dnd"])
+    if "isTest" in payload:
+        res["isTest"] = bool(payload["isTest"])
     return res
 
 

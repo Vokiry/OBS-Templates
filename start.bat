@@ -31,6 +31,11 @@ if /i "%~1"=="--obs" (
     shift
     goto parse_args
 )
+if /i "%~1"=="--open-browser" (
+    set "OPEN_BROWSER=1"
+    shift
+    goto parse_args
+)
 if /i "%~1"=="--config" (
     set "CUSTOM_CONFIG=%~2"
     shift
@@ -136,6 +141,7 @@ if "%LAUNCH_OBS%"=="1" (
 
 set "PY_ARGS="
 if "%SHOW_SETTINGS%"=="1" set "PY_ARGS=--settings"
+if "%OPEN_BROWSER%"=="1" set "PY_ARGS=%PY_ARGS% --open-browser"
 if not "%CUSTOM_CONFIG%"=="" set "PY_ARGS=%PY_ARGS% --config "%CUSTOM_CONFIG%""
 
 bridge\.venv\Scripts\python.exe bridge\alerts_bridge.py %PY_ARGS%

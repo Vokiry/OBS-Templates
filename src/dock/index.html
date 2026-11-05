@@ -75,8 +75,12 @@
       <div class="dock__section-label">live actions</div>
       <div class="dock__grid dock__grid--3">
         <button class="dock__btn" onclick="skipAlert()">SKIP ALERT</button>
+        <button class="dock__btn" onclick="replayAlert()" id="btn-replay-alert" title="Replay the last received alert">REPLAY</button>
         <button class="dock__btn" onclick="clearChat()">CLEAR CHAT</button>
+      </div>
+      <div class="dock__grid" style="margin-top: 3px;">
         <button class="dock__btn" onclick="stopTTS()" style="color: #E5484D;">STOP TTS</button>
+        <button class="dock__btn" onclick="toggleDND()" id="btn-dnd" title="Do Not Disturb: mute alert sounds & TTS during cutscenes">DND: OFF</button>
       </div>
     </div>
 
@@ -182,6 +186,24 @@
 
     function clearChat() {
       sendNotify({ type: 'chat_clear' });
+    }
+
+    function replayAlert() {
+      sendNotify({ type: 'alert_replay' });
+      showToast('REPLAY SENT');
+    }
+
+    let isDndActive = false;
+    function toggleDND() {
+      isDndActive = !isDndActive;
+      const btn = document.getElementById('btn-dnd');
+      if (btn) {
+        btn.textContent = isDndActive ? 'DND: ON' : 'DND: OFF';
+        btn.classList.toggle('dock__btn--active', isDndActive);
+        btn.style.color = isDndActive ? '#E9B13C' : '';
+      }
+      sendNotify({ type: 'dnd_control', active: isDndActive });
+      showToast(isDndActive ? 'DND: SILENT' : 'DND: NORMAL');
     }
 
     async function stopTTS() {

@@ -19,6 +19,9 @@ for arg in "$@"; do
     --settings)
       ENABLE_SETTINGS=true
       ;;
+    --open-browser)
+      OPEN_BROWSER=true
+      ;;
     -h|--help)
       echo "SYSTEM Broadcast Templates — Launcher"
       echo ""
@@ -101,6 +104,7 @@ if [ "$LAUNCH_OBS" = true ]; then
   echo "[*] Starting SYSTEM server in background..."
   EXTRA_FLAGS=()
   if [ "$ENABLE_SETTINGS" = true ]; then EXTRA_FLAGS+=("--settings"); fi
+  if [ "$OPEN_BROWSER" = true ]; then EXTRA_FLAGS+=("--open-browser"); fi
   ./bridge/.venv/bin/python bridge/alerts_bridge.py "${EXTRA_FLAGS[@]}" &
   SERVER_PID=$!
 
@@ -141,5 +145,6 @@ else
   echo ""
   EXTRA_FLAGS=()
   if [ "$ENABLE_SETTINGS" = true ]; then EXTRA_FLAGS+=("--settings"); fi
+  if [ "$OPEN_BROWSER" = true ]; then EXTRA_FLAGS+=("--open-browser"); fi
   exec ./bridge/.venv/bin/python bridge/alerts_bridge.py "${EXTRA_FLAGS[@]}"
 fi

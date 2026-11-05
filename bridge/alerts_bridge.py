@@ -39,6 +39,8 @@ class Broadcaster:
         self.goal_config = None
         self.last_goal = None
         self.config_path = None
+        self.last_alert = None
+        self.dnd_active = False
         self._background_tasks = set()  # prevent GC of fire-and-forget tasks
         # TTS state
         self.tts_config: dict = {}
@@ -107,9 +109,11 @@ class Broadcaster:
                 return
             if yandex_tts.is_bot(username):
                 return
+        blacklist = self.tts_config.get("blacklist", [])
         cleaned = yandex_tts.preprocess_text(
             text,
-            max_length=int(self.tts_config.get("max_length", 200))
+            max_length=int(self.tts_config.get("max_length", 200)),
+            blacklist=blacklist
         )
         if not cleaned:
             return
@@ -147,15 +151,18 @@ class Broadcaster:
                     auth_token=auth_token,
                 )
                 if audio:
-                    payload = {
-                        "type": "tts_speak",
-                        "audio_b64": base64.b64encode(audio).decode("ascii"),
-                        "nickname": item["username"],
-                        "text": item["text"],
-                        "show_card": item["show_card"],
-                        "volume": float(self.tts_config.get("volume", 0.8)),
-                    }
-                    await self.broadcast(payload)
+                    if self.dnd_active:
+                        log.debug("tts: skipping speech delivery because DND is active")
+                    else:
+                        payload = {
+                            "type": "tts_speak",
+                            "audio_b64": base64.b64encode(audio).decode("ascii"),
+                            "nickname": item["username"],
+                            "text": item["text"],
+                            "show_card": item["show_card"],
+                            "volume": float(self.tts_config.get("volume", 0.8)),
+                        }
+                        await self.broadcast(payload)
                     # Minimum gap between TTS generations (rate-limit protection)
                     await asyncio.sleep(0.8)
                 else:
@@ -258,6 +265,17 @@ class Broadcaster:
         elif msg_type == "tts_stop":
             log.info("TTS stop requested by client")
             await self.stop_tts()
+        elif msg_type == "alert_replay":
+            if self.last_alert:
+                log.info("replaying last alert: %s", self.last_alert.get("title"))
+                replay_payload = dict(self.last_alert)
+                replay_payload.pop("dnd", None)
+                replay_payload["is_replay"] = True
+                await self.broadcast(replay_payload)
+        elif msg_type == "dnd_control":
+            self.dnd_active = bool(data.get("active"))
+            log.info("DND mode toggled: %s", self.dnd_active)
+            await self.broadcast({"type": "dnd_status", "active": self.dnd_active})
         elif msg_type == "tts_test":
             self.enqueue_tts(
                 username=data.get("user", "Tester"),
@@ -298,8 +316,11 @@ class Broadcaster:
             self.last_stream_stats = payload
         elif msg_type == "goal_update":
             self.last_goal = payload
-        elif msg_type == "alert" and payload.get("kind") == "donate":
-            if self.goal_config and self.goal_config.get("enabled"):
+        elif msg_type == "alert":
+            self.last_alert = dict(payload)
+            if self.dnd_active:
+                payload["dnd"] = True
+            if payload.get("kind") == "donate" and self.goal_config and self.goal_config.get("enabled"):
                 amount_val = parse_amount(payload.get("amount"))
                 if amount_val > 0:
                     self.goal_config["current"] = round(float(self.goal_config.get("current", 0.0)) + amount_val, 2)
@@ -439,6 +460,12 @@ def serialize_toml(cfg: dict) -> str:
     pool = cfg.get("tts", {}).get("random_pool", yandex_tts.DEFAULT_RANDOM_POOL)
     pool_str = ", ".join(f'"{toml_escape(v)}"' for v in pool)
     lines.insert(-1, f"random_pool = [{pool_str}]")
+
+    # Serialize blacklist as TOML array
+    blacklist = cfg.get("tts", {}).get("blacklist", [])
+    if blacklist:
+        bl_str = ", ".join(f'"{toml_escape(w)}"' for w in blacklist)
+        lines.insert(-1, f"blacklist = [{bl_str}]")
 
     # Serialize vip_voices as [tts.vip_voices] sub-table
     vip = cfg.get("tts", {}).get("vip_voices", {})
@@ -1061,6 +1088,7 @@ async def main() -> None:
     parser = argparse.ArgumentParser(description="SYSTEM alerts bridge")
     parser.add_argument("--config", default=str(Path(__file__).parent / "config.toml"))
     parser.add_argument("--settings", action="store_true", help="Enable web settings panel and configuration API")
+    parser.add_argument("--open-browser", action="store_true", help="Open default web browser to dashboard on start")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -1094,6 +1122,10 @@ async def main() -> None:
     site = web.TCPSite(runner, host, port)
     await site.start()
     log.info("unified server ready at ws://%s:%d/events", host, port)
+    if args.open_browser:
+        import webbrowser
+        target_url = f"http://{host}:{port}/settings" if args.settings else f"http://{host}:{port}/dock"
+        loop.call_later(0.6, webbrowser.open, target_url)
     if host != "127.0.0.1":
         log.info("API key for external access: %s", API_KEY)
 

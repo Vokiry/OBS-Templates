@@ -69,6 +69,8 @@ reward_name = "TTS"
 auth_token = "14e2f152-e03a-439d-9abe-f470c27db24e"
 # Пул голосов для случайного выбора по нику зрителя
 random_pool = ["ermil", "zahar", "jane", "alyss", "omazh", "oksana", "kolya", "valtz", "kostya", "sasha", "krosh", "robot"]
+# Чёрный список запрещённых слов (автоматически цензурируются для защиты от бана на Twitch)
+blacklist = []
 
 # Персональные закрепленные голоса для избранных чаттеров (VIP-привязка)
 [tts.vip_voices]

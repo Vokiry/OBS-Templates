@@ -128,6 +128,14 @@
         </div>
       </div>
 
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label class="form-label" for="tts-blacklist">Чёрный список запрещённых слов (через запятую)</label>
+          <input type="text" id="tts-blacklist" class="form-input" placeholder="банворд1, банворд2, оскорбление">
+          <span class="form-hint">Слова, которые Алиса автоматически заглушит звёздочками (защита от бана на Twitch)</span>
+        </div>
+      </div>
+
       <!-- VIP Voices Table -->
       <div style="margin-top: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -766,6 +774,10 @@
         document.getElementById('tts-volume').value = ttsVol;
         document.getElementById('tts-volume-val').textContent = ttsVol + '%';
         document.getElementById('tts-max-length').value = tts.max_length !== undefined ? tts.max_length : 200;
+        const blInput = document.getElementById('tts-blacklist');
+        if (blInput) {
+          blInput.value = Array.isArray(tts.blacklist) ? tts.blacklist.join(', ') : '';
+        }
 
         const vipContainer = document.getElementById('vip-voices-container');
         if (vipContainer) {
@@ -857,6 +869,7 @@
         max_length: parseInt(document.getElementById('tts-max-length').value, 10) || 200,
         reward_name: document.getElementById('tts-reward-name').value.trim() || 'TTS',
         vip_voices: vipVoices,
+        blacklist: (document.getElementById('tts-blacklist')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
       };
       if (configData.tts?.auth_token) payload.tts.auth_token = configData.tts.auth_token;
       if (configData.tts?.random_pool) payload.tts.random_pool = configData.tts.random_pool;

@@ -246,3 +246,71 @@ async def test_tts_worker_delivers_volume_and_card(aiohttp_client):
             assert received_speak["text"] == "Проверка громкости"
             assert received_speak["volume"] == 0.42
             assert received_speak["show_card"] is False
+
+def test_tts_blacklist_filter():
+    blacklist = ["плохоеслово", "банворд"]
+
+    # 1. Banned words are replaced with asterisks
+    text = "Привет стрим это плохоеслово в эфире"
+    cleaned = yandex_tts.preprocess_text(text, blacklist=blacklist)
+    assert "плохоеслово" not in cleaned
+    assert "***" in cleaned
+    assert "Привет стрим" in cleaned
+
+    # 2. Case-insensitive matching
+    text_upper = "Смотри какой БАНВОРД тут"
+    cleaned_upper = yandex_tts.preprocess_text(text_upper, blacklist=blacklist)
+    assert "БАНВОРД" not in cleaned_upper
+    assert "***" in cleaned_upper
+
+    # 3. Message containing ONLY banned words is dropped completely
+    only_bad = "плохоеслово банворд"
+    assert yandex_tts.preprocess_text(only_bad, blacklist=blacklist) == ""
+
+
+@pytest.mark.asyncio
+async def test_broadcaster_dnd_and_alert_replay(aiohttp_client):
+    from unittest.mock import patch, AsyncMock
+    b = Broadcaster()
+    b.init_tts({"mode": "all"})
+
+    app = web.Application()
+    app.router.add_get("/events", b.attach)
+    client = await aiohttp_client(app)
+
+    async with client.ws_connect("/events") as ws:
+        # Drain cached messages
+        while True:
+            try:
+                await asyncio.wait_for(ws.receive(), timeout=0.1)
+            except asyncio.TimeoutError:
+                break
+
+        # 1. Fire normal alert -> cached in b.last_alert
+        alert_data = {"type": "alert", "kind": "donate", "user": "Donor", "amount": "500 ₽"}
+        await b.broadcast(alert_data)
+        assert b.last_alert is not None
+        assert b.last_alert["user"] == "Donor"
+        initial_msg = await asyncio.wait_for(ws.receive(), timeout=1.0)
+        assert json.loads(initial_msg.data)["user"] == "Donor"
+
+        # 2. Replay alert via client event
+        await ws.send_str(json.dumps({"type": "alert_replay"}))
+        msg = await asyncio.wait_for(ws.receive(), timeout=1.0)
+        replayed = json.loads(msg.data)
+        assert replayed["type"] == "alert"
+        assert replayed["user"] == "Donor"
+        assert replayed.get("is_replay") is True
+
+        # 3. Toggle DND on
+        await ws.send_str(json.dumps({"type": "dnd_control", "active": True}))
+        # Receive dnd_status confirmation broadcast
+        dnd_status_msg = await asyncio.wait_for(ws.receive(), timeout=1.0)
+        assert json.loads(dnd_status_msg.data)["type"] == "dnd_status"
+        assert b.dnd_active is True
+
+        # Alert broadcast during DND gets dnd=True flag
+        await b.broadcast({"type": "alert", "kind": "sub", "user": "Subber"})
+        msg = await asyncio.wait_for(ws.receive(), timeout=1.0)
+        dnd_alert = json.loads(msg.data)
+        assert dnd_alert.get("dnd") is True
