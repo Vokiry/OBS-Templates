@@ -123,4 +123,47 @@
   } else {
     triggerWakeup();
   }
+
+  // 3. Theme management (Catppuccin Mocha presets & Classic)
+  function applyTheme(themeName) {
+    if (!themeName) return;
+    document.documentElement.dataset.theme = themeName;
+    if (document.body) document.body.dataset.theme = themeName;
+    try {
+      localStorage.setItem('system_theme', themeName);
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('systemThemeChanged', { detail: { theme: themeName } }));
+  }
+
+  // Pre-apply theme from URL parameter (?theme=...) or cached theme to prevent flash of unstyled content
+  const themeParam = params.get('theme') || (() => {
+    try { return localStorage.getItem('system_theme'); } catch(e) { return null; }
+  })();
+  if (themeParam) {
+    applyTheme(themeParam);
+  }
+
+  window.systemApplyTheme = applyTheme;
+
+  // Intercept WebSocket creation to automatically receive theme_update on all overlays
+  try {
+    const OriginalWebSocket = window.WebSocket;
+    if (OriginalWebSocket) {
+      window.WebSocket = function(...args) {
+        const ws = new OriginalWebSocket(...args);
+        ws.addEventListener('message', (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data && data.type === 'theme_update' && data.theme) {
+              if (!params.get('theme')) {
+                applyTheme(data.theme);
+              }
+            }
+          } catch (e) {}
+        });
+        return ws;
+      };
+      window.WebSocket.prototype = OriginalWebSocket.prototype;
+    }
+  } catch (e) {}
 })();

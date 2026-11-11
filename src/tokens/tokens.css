@@ -1,19 +1,26 @@
 :root {
-  /* Color — роли цветов */
-  --color-base: #0B0F14;
-  --color-surface: #151C24;
-  --color-surface-raised: #1B242E;
-  --color-accent: #63E6BE;
-  --color-accent-dim: rgba(99, 230, 190, 0.35);
-  --color-text: #E8EEF2;
-  --color-muted: #7E8B96;
-  --color-warning: #E9B13C;
-  --color-danger: #E5484D;
-  --color-border: rgba(232, 238, 242, 0.35);
-  --color-border-faint: rgba(232, 238, 242, 0.12);
-  --color-border-hover: rgba(99, 230, 190, 0.45);
-  --color-overlay: rgba(11, 15, 20, 0.72);
-  --color-overlay-soft: rgba(11, 15, 20, 0.55);
+  /* Default Theme: Catppuccin Mocha — Teal */
+  --theme-id: "mocha-teal";
+
+  /* Color — роли цветов (Default: Catppuccin Mocha Teal) */
+  --color-base: #11111b;
+  --color-surface: #181825;
+  --color-surface-raised: #313244;
+  --color-accent: #94e2d5;
+  --color-accent-dim: rgba(148, 226, 213, 0.35);
+  --color-accent-secondary: #89dceb;
+  --color-accent-tertiary: #cba6f7;
+  --color-outcome-blue: #89dceb;
+  --color-outcome-pink: #f5c2e7;
+  --color-text: #cdd6f4;
+  --color-muted: #a6adc8;
+  --color-warning: #f9e2af;
+  --color-danger: #f38ba8;
+  --color-border: rgba(205, 214, 244, 0.25);
+  --color-border-faint: rgba(205, 214, 244, 0.10);
+  --color-border-hover: rgba(148, 226, 213, 0.50);
+  --color-overlay: rgba(24, 24, 37, 0.85);
+  --color-overlay-soft: rgba(17, 17, 27, 0.65);
   --label-color: var(--color-muted);
   --label-hover-color: var(--color-accent);
 
@@ -82,4 +89,138 @@
   --z-ui: 20;
   --z-alert: 30;
   --z-transition: 40;
+}
+
+/* ==========================================================================
+   THEME PRESETS (Catppuccin Mocha + SYSTEM Classic)
+   ========================================================================== */
+
+/* 1. Catppuccin Mocha — Teal (User Favorite) */
+[data-theme="mocha-teal"],
+[data-theme="teal"] {
+  --theme-id: "mocha-teal";
+  --color-base: #11111b;
+  --color-surface: #181825;
+  --color-surface-raised: #313244;
+  --color-accent: #94e2d5;
+  --color-accent-dim: rgba(148, 226, 213, 0.35);
+  --color-accent-secondary: #89dceb;
+  --color-accent-tertiary: #cba6f7;
+  --color-outcome-blue: #89dceb;
+  --color-outcome-pink: #f5c2e7;
+  --color-text: #cdd6f4;
+  --color-muted: #a6adc8;
+  --color-warning: #f9e2af;
+  --color-danger: #f38ba8;
+  --color-border: rgba(205, 214, 244, 0.25);
+  --color-border-faint: rgba(205, 214, 244, 0.10);
+  --color-border-hover: rgba(148, 226, 213, 0.50);
+  --color-overlay: rgba(24, 24, 37, 0.85);
+  --color-overlay-soft: rgba(17, 17, 27, 0.65);
+  --label-color: var(--color-muted);
+  --label-hover-color: var(--color-accent);
+}
+
+/* 2. Catppuccin Mocha — Harmony (Mixed: Mauve Brand / Teal Goals / Sky Info) */
+[data-theme="mocha-harmony"],
+[data-theme="harmony"] {
+  --theme-id: "mocha-harmony";
+  --color-base: #11111b;
+  --color-surface: #181825;
+  --color-surface-raised: #313244;
+  --color-accent: #cba6f7;
+  --color-accent-dim: rgba(203, 166, 247, 0.35);
+  --color-accent-secondary: #94e2d5;
+  --color-accent-tertiary: #89dceb;
+  --color-outcome-blue: #89dceb;
+  --color-outcome-pink: #f5c2e7;
+  --color-text: #cdd6f4;
+  --color-muted: #a6adc8;
+  --color-warning: #f9e2af;
+  --color-danger: #f38ba8;
+  --color-border: rgba(205, 214, 244, 0.25);
+  --color-border-faint: rgba(205, 214, 244, 0.10);
+  --color-border-hover: rgba(203, 166, 247, 0.50);
+  --color-overlay: rgba(24, 24, 37, 0.85);
+  --color-overlay-soft: rgba(17, 17, 27, 0.65);
+  --label-color: var(--color-muted);
+  --label-hover-color: var(--color-accent);
+}
+
+/* 3. Catppuccin Mocha — Mauve (Deep Lavender) */
+[data-theme="mocha-mauve"],
+[data-theme="mauve"] {
+  --theme-id: "mocha-mauve";
+  --color-base: #11111b;
+  --color-surface: #181825;
+  --color-surface-raised: #313244;
+  --color-accent: #cba6f7;
+  --color-accent-dim: rgba(203, 166, 247, 0.35);
+  --color-accent-secondary: #b4befe;
+  --color-accent-tertiary: #f5c2e7;
+  --color-outcome-blue: #89dceb;
+  --color-outcome-pink: #f5c2e7;
+  --color-text: #cdd6f4;
+  --color-muted: #a6adc8;
+  --color-warning: #f9e2af;
+  --color-danger: #f38ba8;
+  --color-border: rgba(205, 214, 244, 0.25);
+  --color-border-faint: rgba(205, 214, 244, 0.10);
+  --color-border-hover: rgba(203, 166, 247, 0.50);
+  --color-overlay: rgba(24, 24, 37, 0.85);
+  --color-overlay-soft: rgba(17, 17, 27, 0.65);
+  --label-color: var(--color-muted);
+  --label-hover-color: var(--color-accent);
+}
+
+/* 4. Catppuccin Mocha — Sky (Glacial Ice) */
+[data-theme="mocha-sky"],
+[data-theme="sky"] {
+  --theme-id: "mocha-sky";
+  --color-base: #11111b;
+  --color-surface: #181825;
+  --color-surface-raised: #313244;
+  --color-accent: #89dceb;
+  --color-accent-dim: rgba(137, 220, 235, 0.35);
+  --color-accent-secondary: #74c7ec;
+  --color-accent-tertiary: #94e2d5;
+  --color-outcome-blue: #89dceb;
+  --color-outcome-pink: #f5c2e7;
+  --color-text: #cdd6f4;
+  --color-muted: #a6adc8;
+  --color-warning: #f9e2af;
+  --color-danger: #f38ba8;
+  --color-border: rgba(205, 214, 244, 0.25);
+  --color-border-faint: rgba(205, 214, 244, 0.10);
+  --color-border-hover: rgba(137, 220, 235, 0.50);
+  --color-overlay: rgba(24, 24, 37, 0.85);
+  --color-overlay-soft: rgba(17, 17, 27, 0.65);
+  --label-color: var(--color-muted);
+  --label-hover-color: var(--color-accent);
+}
+
+/* 5. SYSTEM Classic (Original Terminal) */
+[data-theme="classic"],
+[data-theme="system-classic"] {
+  --theme-id: "classic";
+  --color-base: #0B0F14;
+  --color-surface: #151C24;
+  --color-surface-raised: #1B242E;
+  --color-accent: #63E6BE;
+  --color-accent-dim: rgba(99, 230, 190, 0.35);
+  --color-accent-secondary: #38bdf8;
+  --color-accent-tertiary: #c084fc;
+  --color-outcome-blue: #38bdf8;
+  --color-outcome-pink: #f472b6;
+  --color-text: #E8EEF2;
+  --color-muted: #7E8B96;
+  --color-warning: #E9B13C;
+  --color-danger: #E5484D;
+  --color-border: rgba(232, 238, 242, 0.35);
+  --color-border-faint: rgba(232, 238, 242, 0.12);
+  --color-border-hover: rgba(99, 230, 190, 0.45);
+  --color-overlay: rgba(11, 15, 20, 0.72);
+  --color-overlay-soft: rgba(11, 15, 20, 0.55);
+  --label-color: var(--color-muted);
+  --label-hover-color: var(--color-accent);
 }

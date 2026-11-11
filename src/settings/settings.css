@@ -285,6 +285,40 @@ body {
   pointer-events: none;
 }
 
+/* Theme Appearance Module */
+.theme-swatches {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(11, 15, 20, 0.4);
+  border: var(--border-width) solid var(--color-border-faint);
+  padding: 6px 12px;
+  min-height: 38px;
+}
+
+.theme-swatch-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-swatch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: inline-block;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.theme-swatch-name {
+  font-size: 10px;
+  font-family: var(--font-interface);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
 /* Sounds Module */
 .sounds-grid {
   display: grid;

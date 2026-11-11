@@ -84,6 +84,49 @@
       <!-- Left Column: Chat, Voice Synthesis & Screen Widgets -->
       <div class="settings-col">
         <div class="settings-col__title">// <span>SECTION A</span> : ЧАТ, ОЗВУЧКА И ВИДЖЕТЫ</div>
+
+    <!-- Module 0: Theme & Visual Appearance -->
+    <section class="settings-card" id="card-appearance">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 00 // ТЕМА ОФОРМЛЕНИЯ И БРЕНДИНГ ]</span>
+        <span id="theme-active-tag" style="font-size: 10px; color: var(--color-accent); letter-spacing: var(--letter-spacing-mono); font-weight: 600;">● MOCHA-TEAL</span>
+      </div>
+      <div class="form-grid">
+        <div class="form-group" style="flex: 2;">
+          <label class="form-label" for="appearance-theme">Цветовая палитра оверлеев</label>
+          <select id="appearance-theme" class="form-select">
+            <option value="mocha-teal">Catppuccin Mocha — Teal (Мятный бархат) ★</option>
+            <option value="mocha-harmony">Catppuccin Mocha — Harmony (Смешанный: Mauve / Teal / Sky)</option>
+            <option value="mocha-mauve">Catppuccin Mocha — Mauve (Лавандовый)</option>
+            <option value="mocha-sky">Catppuccin Mocha — Sky (Небесно-голубой)</option>
+            <option value="classic">SYSTEM Classic (Оригинал: Cyan / Carbon)</option>
+          </select>
+          <span class="form-hint">Мгновенно переключает палитру всех оверлеев в OBS Studio на лету по WebSocket</span>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label">Превью палитры</label>
+          <div class="theme-swatches" id="theme-swatches">
+            <div class="theme-swatch-item">
+              <span class="theme-swatch-dot" id="swatch-base" title="Фон"></span>
+              <span class="theme-swatch-name">Фон</span>
+            </div>
+            <div class="theme-swatch-item">
+              <span class="theme-swatch-dot" id="swatch-surface" title="Панели"></span>
+              <span class="theme-swatch-name">Панель</span>
+            </div>
+            <div class="theme-swatch-item">
+              <span class="theme-swatch-dot" id="swatch-accent" title="Главный акцент"></span>
+              <span class="theme-swatch-name">Акцент</span>
+            </div>
+            <div class="theme-swatch-item">
+              <span class="theme-swatch-dot" id="swatch-secondary" title="Вторичный"></span>
+              <span class="theme-swatch-name">Вторичный</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Module 1: Twitch Chat & 7TV -->
     <section class="settings-card">
       <div class="settings-card__header">
@@ -497,6 +540,30 @@
       goal: true,
       tts: false
     };
+
+    const THEME_PREVIEWS = {
+      'mocha-teal': { base: '#11111b', surface: '#181825', accent: '#94e2d5', secondary: '#89dceb', label: 'MOCHA-TEAL' },
+      'mocha-harmony': { base: '#11111b', surface: '#181825', accent: '#cba6f7', secondary: '#94e2d5', label: 'MOCHA-HARMONY' },
+      'mocha-mauve': { base: '#11111b', surface: '#181825', accent: '#cba6f7', secondary: '#b4befe', label: 'MOCHA-MAUVE' },
+      'mocha-sky': { base: '#11111b', surface: '#181825', accent: '#89dceb', secondary: '#74c7ec', label: 'MOCHA-SKY' },
+      'classic': { base: '#0B0F14', surface: '#151C24', accent: '#63E6BE', secondary: '#38bdf8', label: 'SYSTEM-CLASSIC' }
+    };
+
+    function applyThemeUI(themeKey) {
+      const info = THEME_PREVIEWS[themeKey] || THEME_PREVIEWS['mocha-teal'];
+      document.documentElement.dataset.theme = themeKey;
+      if (document.body) document.body.dataset.theme = themeKey;
+      const tag = document.getElementById('theme-active-tag');
+      if (tag) tag.textContent = '● ' + info.label;
+      const sBase = document.getElementById('swatch-base');
+      const sSurf = document.getElementById('swatch-surface');
+      const sAcc = document.getElementById('swatch-accent');
+      const sSec = document.getElementById('swatch-secondary');
+      if (sBase) sBase.style.backgroundColor = info.base;
+      if (sSurf) sSurf.style.backgroundColor = info.surface;
+      if (sAcc) sAcc.style.backgroundColor = info.accent;
+      if (sSec) sSec.style.backgroundColor = info.secondary;
+    }
 
     function setToggleState(id, isActive) {
       const btn = document.getElementById(id);
@@ -954,6 +1021,15 @@ async function loadConfig() {
         availableSoundFiles = sounds.available_files || [];
         const mapping = sounds.mapping || {};
 
+        // 0. Appearance & Theme
+        const appCfg = configData.appearance || {};
+        const curTheme = appCfg.theme || 'mocha-teal';
+        const themeSel = document.getElementById('appearance-theme');
+        if (themeSel) {
+          themeSel.value = curTheme;
+        }
+        applyThemeUI(curTheme);
+
         // 1. Chat
         const tc = configData.twitch_chat || {};
         modules.chat = tc.enabled !== false;
@@ -1112,6 +1188,9 @@ async function loadConfig() {
         sounds: {
           mapping: soundMapping,
           masterVolume: (parseInt(document.getElementById('alerts-volume').value, 10) || 70) / 100
+        },
+        appearance: {
+          theme: document.getElementById('appearance-theme')?.value || 'mocha-teal'
         }
       };
 
@@ -1169,6 +1248,10 @@ async function loadConfig() {
         console.error('Save failed:', e);
       }
     }
+
+    document.getElementById('appearance-theme')?.addEventListener('change', (e) => {
+      applyThemeUI(e.target.value);
+    });
 
     loadConfig();
   </script>

@@ -46,6 +46,9 @@ class Broadcaster:
         self.last_alert = None
         self.dnd_active = False
         self._background_tasks = set()  # prevent GC of fire-and-forget tasks
+        # Appearance & Theme
+        self.current_theme = "mocha-teal"
+        self.last_theme = None
         # TTS state
         self.tts_config: dict = {}
         self._tts_queue: _deque = _deque(maxlen=4)
@@ -82,6 +85,15 @@ class Broadcaster:
                 self.config_path.write_text(new_txt, "utf-8")
         except Exception as e:
             log.warning("failed to persist goal progress to config.toml: %s", e)
+
+    # ── Appearance & Theme ───────────────────────────────────────────────
+
+    def init_appearance(self, appearance_cfg: dict) -> None:
+        if not appearance_cfg:
+            return
+        theme = str(appearance_cfg.get("theme", "mocha-teal")).strip() or "mocha-teal"
+        self.current_theme = theme
+        self.last_theme = {"type": "theme_update", "theme": theme}
 
     # ── TTS integration ──────────────────────────────────────────────────
 
@@ -210,6 +222,8 @@ class Broadcaster:
         try:
             if self.last_status:
                 await socket.send_str(base.encode(self.last_status))
+            if self.last_theme:
+                await socket.send_str(base.encode(self.last_theme))
             if self.last_7tv_emotes:
                 await socket.send_str(base.encode(self.last_7tv_emotes))
             if self.last_twitch_badges:
@@ -329,6 +343,9 @@ class Broadcaster:
             self.last_7tv_emotes = payload
         elif msg_type == "twitch_badges":
             self.last_twitch_badges = payload
+        elif msg_type == "theme_update":
+            self.last_theme = payload
+            self.current_theme = payload.get("theme", self.current_theme)
         elif msg_type == "sounds_update":
             self.last_sounds_config = payload
         elif msg_type == "stream_stats":
@@ -495,6 +512,11 @@ def serialize_toml(cfg: dict) -> str:
             lines.append(f'{toml_escape(nick)} = "{toml_escape(voice)}"')
         lines.append("")
 
+    # 7. APPEARANCE & THEME PRESET
+    lines.append("[appearance]")
+    lines.append(f'theme = "{toml_escape(cfg.get("appearance", {}).get("theme", "mocha-teal"))}"')
+    lines.append("")
+
     return "\n".join(lines)
 
 
@@ -660,6 +682,10 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
     tts_cfg = dict(config.get("tts", {}))
     broadcaster.init_tts(tts_cfg)
 
+    # Initialize Appearance & Theme
+    if "appearance" in config:
+        broadcaster.init_appearance(config["appearance"])
+
     adapter_states = {
         name: bool(config.get(name, {}).get("enabled"))
         for name in ("twitch", "twitch_chat", "donationalerts", "donatex")
@@ -709,6 +735,7 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
             "adapters": states,
             "settings_enabled": enable_settings,
             "stream_stats": broadcaster.last_stream_stats,
+            "theme": broadcaster.current_theme,
         })
 
     async def root_redirect(request):
@@ -769,6 +796,11 @@ def build_app(broadcaster: Broadcaster, config: dict, enable_settings: bool = Fa
         if "tts" in payload:
             config.setdefault("tts", {}).update(payload["tts"])
             broadcaster.init_tts(config["tts"])
+        if "appearance" in payload:
+            config.setdefault("appearance", {}).update(payload["appearance"])
+            broadcaster.init_appearance(config["appearance"])
+            if broadcaster.last_theme:
+                await broadcaster.broadcast(broadcaster.last_theme)
 
         # Backup existing config
         if config_path.exists():

@@ -78,3 +78,9 @@ blacklist = []
 [tts.vip_voices]
 # streamer_friend = "krosh"
 # top_moderator = "robot"
+
+# 7. ВНЕШНИЙ ВИД И ТЕМА ОФОРМЛЕНИЯ
+# Пресеты: "mocha-teal" (Мятный Catppuccin Mocha) | "mocha-harmony" (Смешанный: Mauve / Teal / Sky) |
+#          "mocha-mauve" (Лавандовый Mocha) | "mocha-sky" (Небесно-голубой Mocha) | "classic" (SYSTEM Оригинал)
+[appearance]
+theme = "mocha-teal"

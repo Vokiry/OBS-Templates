@@ -272,3 +272,56 @@ async def test_backup_export_and_import(aiohttp_client, tmp_path):
     # Verify restored config
     restored_txt = test_cfg.read_text(encoding="utf-8")
     assert "restored_pro" in restored_txt
+
+
+def test_appearance_theme_serialization():
+    cfg = {
+        "appearance": {
+            "theme": "mocha-harmony"
+        }
+    }
+    serialized = serialize_toml(cfg)
+    assert "[appearance]" in serialized
+    assert 'theme = "mocha-harmony"' in serialized
+
+
+@pytest.mark.asyncio
+async def test_appearance_theme_api_and_broadcast(aiohttp_client, tmp_path):
+    test_cfg = tmp_path / "config.toml"
+    test_cfg.write_text("[server]\nhost = \"127.0.0.1\"\nport = 8787\n[appearance]\ntheme = \"mocha-teal\"\n", encoding="utf-8")
+
+    broadcaster = Broadcaster()
+    broadcaster.init_appearance({"theme": "mocha-teal"})
+
+    config = {
+        "server": {"host": "127.0.0.1", "port": 8787},
+        "appearance": {"theme": "mocha-teal"}
+    }
+
+    app = build_app(broadcaster, config, enable_settings=True, config_path=test_cfg)
+    client = await aiohttp_client(app)
+
+    # 1. Verify health returns current theme
+    health_res = await client.get("/health")
+    assert health_res.status == 200
+    health_data = await health_res.json()
+    assert health_data.get("theme") == "mocha-teal"
+
+    # 2. Change theme to mocha-harmony via /api/config
+    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    save_res = await client.post("/api/config", json={
+        "appearance": {
+            "theme": "mocha-harmony"
+        }
+    }, headers=headers)
+
+    assert save_res.status == 200
+    assert (await save_res.json()).get("ok") is True
+
+    # 3. Verify Broadcaster state updated
+    assert broadcaster.current_theme == "mocha-harmony"
+    assert broadcaster.last_theme == {"type": "theme_update", "theme": "mocha-harmony"}
+
+    # 4. Verify config.toml persisted on disk
+    saved_toml = test_cfg.read_text(encoding="utf-8")
+    assert 'theme = "mocha-harmony"' in saved_toml

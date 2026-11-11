@@ -107,6 +107,11 @@
   </div>
 
   <script>
+    try {
+      const cachedTheme = localStorage.getItem('system_theme');
+      if (cachedTheme) document.documentElement.dataset.theme = cachedTheme;
+    } catch (e) {}
+
     const API_BASE = window.location.origin;
 
     async function sendNotify(payload) {
@@ -427,6 +432,11 @@
           badge.classList.remove('is-off');
           badge.classList.add('is-ok');
           badge.style.color = '#63E6BE';
+
+          if (data.theme && document.documentElement.dataset.theme !== data.theme) {
+            document.documentElement.dataset.theme = data.theme;
+            if (document.body) document.body.dataset.theme = data.theme;
+          }
 
           if (data.stream_stats !== undefined) {
             currentStreamStats = data.stream_stats;
