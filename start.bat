@@ -46,7 +46,13 @@ shift
 goto parse_args
 :done_args
 
-:: 1. Check Python
+:: 1. Detect Python (Embedded Portable or System / Virtualenv)
+if exist "python\python.exe" (
+    set "PYTHON_EXE=python\python.exe"
+    echo [*] Standalone portable mode: using bundled embedded Python.
+    goto python_ready
+)
+
 where python >nul 2>nul
 if %ERRORLEVEL% neq 0 (
     where py >nul 2>nul
@@ -80,6 +86,9 @@ if not exist "bridge\.venv" (
         exit /b 1
     )
 )
+set "PYTHON_EXE=bridge\.venv\Scripts\python.exe"
+
+:python_ready
 
 :: 3. Check config.toml
 if not exist "bridge\config.toml" (
@@ -92,17 +101,17 @@ set "OBS_SCENES_DIR=%APPDATA%\obs-studio\basic\scenes"
 if exist "%OBS_SCENES_DIR%" (
     if not exist "%OBS_SCENES_DIR%\SYSTEM.json" (
         echo [*] First run: importing SYSTEM scene collection to OBS...
-        bridge\.venv\Scripts\python.exe obs\generate_collection.py >nul 2>nul
+        "%PYTHON_EXE%" obs\generate_collection.py >nul 2>nul
         copy obs\SYSTEM_Scene_Collection.json "%OBS_SCENES_DIR%\SYSTEM.json" >nul 2>nul
         echo     [+] Created %OBS_SCENES_DIR%\SYSTEM.json
     ) else if "%RESET_SCENES%"=="1" (
         echo [!] Backing up existing scenes and restoring template defaults...
         copy "%OBS_SCENES_DIR%\SYSTEM.json" "%OBS_SCENES_DIR%\SYSTEM.json.bak" >nul 2>nul
-        bridge\.venv\Scripts\python.exe obs\generate_collection.py >nul 2>nul
+        "%PYTHON_EXE%" obs\generate_collection.py >nul 2>nul
         copy obs\SYSTEM_Scene_Collection.json "%OBS_SCENES_DIR%\SYSTEM.json" >nul 2>nul
         echo     [+] Reset %OBS_SCENES_DIR%\SYSTEM.json to template defaults.
     ) else (
-        bridge\.venv\Scripts\python.exe obs\sync_scenes.py --target "%OBS_SCENES_DIR%\SYSTEM.json" >nul 2>nul
+        "%PYTHON_EXE%" obs\sync_scenes.py --target "%OBS_SCENES_DIR%\SYSTEM.json" >nul 2>nul
         echo     [+] OBS scene collection synchronized: custom sources preserved.
     )
 )
@@ -144,4 +153,4 @@ if "%SHOW_SETTINGS%"=="1" set "PY_ARGS=--settings"
 if "%OPEN_BROWSER%"=="1" set "PY_ARGS=%PY_ARGS% --open-browser"
 if not "%CUSTOM_CONFIG%"=="" set "PY_ARGS=%PY_ARGS% --config "%CUSTOM_CONFIG%""
 
-bridge\.venv\Scripts\python.exe bridge\alerts_bridge.py %PY_ARGS%
+"%PYTHON_EXE%" bridge\alerts_bridge.py %PY_ARGS%

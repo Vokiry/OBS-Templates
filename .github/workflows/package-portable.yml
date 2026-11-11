@@ -1,0 +1,145 @@
+name: Package Portable Windows Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-portable-windows:
+    name: Build Standalone Windows Portable (.zip)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare build directories
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "build_staging\SYSTEM-OBS-Templates-Portable\python"
+          New-Item -ItemType Directory -Force -Path "dist"
+
+      - name: Download and configure Embedded Python 3.12
+        shell: pwsh
+        run: |
+          $embedUrl = "https://www.python.org/ftp/python/3.12.9/python-3.12.9-embed-amd64.zip"
+          $zipPath = "$env:TEMP\python-3.12-embed.zip"
+          $pythonTarget = "build_staging\SYSTEM-OBS-Templates-Portable\python"
+
+          Write-Host "[+] Downloading embedded Python from $embedUrl..."
+          Invoke-WebRequest -Uri $embedUrl -OutFile $zipPath
+
+          Write-Host "[+] Extracting embedded Python to $pythonTarget..."
+          Expand-Archive -Path $zipPath -DestinationPath $pythonTarget -Force
+          Remove-Item -Force $zipPath
+
+          # Configure python312._pth to enable site-packages and standard imports
+          $pthFile = Get-ChildItem -Path $pythonTarget -Filter "python*._pth" | Select-Object -First 1
+          if ($pthFile) {
+              Write-Host "[+] Configuring $($pthFile.FullName) to enable site-packages..."
+              $lines = Get-Content $pthFile.FullName
+              $newLines = @()
+              foreach ($line in $lines) {
+                  if ($line -match "^#\s*import site") {
+                      $newLines += "Lib\site-packages"
+                      $newLines += "import site"
+                  } else {
+                      $newLines += $line
+                  }
+              }
+              Set-Content -Path $pthFile.FullName -Value $newLines
+          }
+
+          # Bootstrap pip inside embedded Python
+          $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
+          $getPipPath = "$env:TEMP\get-pip.py"
+          Write-Host "[+] Downloading get-pip.py..."
+          Invoke-WebRequest -Uri $getPipUrl -OutFile $getPipPath
+
+          $pyExe = Join-Path $pythonTarget "python.exe"
+          Write-Host "[+] Installing pip into embedded Python..."
+          & $pyExe $getPipPath --no-warn-script-location
+
+          # Install project requirements into embedded Python
+          Write-Host "[+] Installing project requirements from bridge/requirements.txt..."
+          & $pyExe -m pip install --no-warn-script-location -r bridge/requirements.txt
+
+          # Cleanup unnecessary files to keep zip lightweight
+          Write-Host "[+] Cleaning up pip cache and temporary files..."
+          Remove-Item -Force -ErrorAction SilentlyContinue $getPipPath
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $pythonTarget "Scripts")
+          Get-ChildItem -Path $pythonTarget -Include "__pycache__", "*.pyc" -Recurse | Remove-Item -Force -Recurse
+
+      - name: Copy project files to staging
+        shell: pwsh
+        run: |
+          $dest = "build_staging\SYSTEM-OBS-Templates-Portable"
+
+          # Copy overlays and OBS scenes
+          Copy-Item -Path "src" -Destination "$dest\src" -Recurse
+          Copy-Item -Path "obs" -Destination "$dest\obs" -Recurse
+
+          # Copy bridge backend (excluding venv, caches, tokens)
+          New-Item -ItemType Directory -Force -Path "$dest\bridge"
+          Get-ChildItem -Path "bridge" -Exclude ".venv", "__pycache__", ".pytest_cache", "*.token.json", "*.bak" | Copy-Item -Destination "$dest\bridge" -Recurse
+
+          # Copy launch scripts and metadata
+          Copy-Item "start.bat" "$dest\"
+          Copy-Item "settings.bat" "$dest\"
+          Copy-Item "start.sh" "$dest\"
+          Copy-Item "settings.sh" "$dest\"
+          Copy-Item "README.md" "$dest\"
+          Copy-Item "LICENSE" "$dest\"
+          if (Test-Path "pytest.ini") { Copy-Item "pytest.ini" "$dest\" }
+
+          # Ensure bridge/config.toml exists from example if not already present
+          if (-not (Test-Path "$dest\bridge\config.toml")) {
+              Copy-Item "bridge\config.example.toml" "$dest\bridge\config.toml"
+          }
+
+      - name: Verify embedded Python environment
+        shell: pwsh
+        run: |
+          $pyExe = "build_staging\SYSTEM-OBS-Templates-Portable\python\python.exe"
+          Write-Host "[*] Verifying embedded Python runtime and imports..."
+          & $pyExe -c "import aiohttp, websockets, twitchAPI; print('[✓] All dependencies imported successfully!')"
+          & $pyExe -c "import sys; print('[✓] Python version:', sys.version)"
+
+      - name: Package into ZIP archive
+        shell: pwsh
+        run: |
+          $rawRef = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "latest" }
+          $cleanRef = $rawRef -replace '[^a-zA-Z0-9._-]', '_'
+          $zipName = "SYSTEM-OBS-Templates-${cleanRef}-Windows-Portable.zip"
+          $zipPath = "dist\$zipName"
+
+          Write-Host "[+] Compressing into $zipPath..."
+          Compress-Archive -Path "build_staging\SYSTEM-OBS-Templates-Portable\*" -DestinationPath $zipPath -CompressionLevel Optimal
+
+          $sizeMb = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+          Write-Host "[✓] Archive created successfully: $zipName ($sizeMb MB)"
+
+          Add-Content -Path $env:GITHUB_ENV -Value "ARCHIVE_NAME=$zipName"
+          Add-Content -Path $env:GITHUB_ENV -Value "ARCHIVE_PATH=$zipPath"
+
+      - name: Upload artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARCHIVE_NAME }}
+          path: ${{ env.ARCHIVE_PATH }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach archive to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ARCHIVE_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
