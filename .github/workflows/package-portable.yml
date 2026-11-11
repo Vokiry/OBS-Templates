@@ -1,12 +1,14 @@
 name: Package Portable Windows Release
 
-on:
-  workflow_dispatch:
-  release:
-    types: [published]
+'on':
   push:
+    branches:
+      - unstable
     tags:
       - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
 
 jobs:
   build-portable-windows:
@@ -111,20 +113,40 @@ jobs:
           & $pyExe -c "import aiohttp, websockets, twitchAPI; print('[✓] All dependencies imported successfully!')"
           & $pyExe -c "import sys; print('[✓] Python version:', sys.version)"
 
-      - name: Package into ZIP archive
+      - name: Package into ZIP archive and determine release metadata
         shell: pwsh
         run: |
-          $rawRef = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "latest" }
-          $cleanRef = $rawRef -replace '[^a-zA-Z0-9._-]', '_'
-          $zipName = "SYSTEM-OBS-Templates-${cleanRef}-Windows-Portable.zip"
-          $zipPath = "dist\$zipName"
+          $refName = $env:GITHUB_REF_NAME
+          $refType = $env:GITHUB_REF_TYPE
+          $eventName = $env:GITHUB_EVENT_NAME
+          $shaShort = $env:GITHUB_SHA.Substring(0, 7)
 
+          if ($refType -eq "tag" -or $eventName -eq "release") {
+              $releaseTag = if ($refName) { $refName } else { "release" }
+              $isPreRelease = "false"
+              $makeLatest = "true"
+              $releaseTitle = "SYSTEM OBS Templates $releaseTag"
+              $zipName = "SYSTEM-OBS-Templates-$releaseTag-Windows-Portable.zip"
+          } else {
+              # Push to unstable or manual workflow_dispatch triggers rolling nightly build
+              $releaseTag = "nightly"
+              $isPreRelease = "true"
+              $makeLatest = "false"
+              $releaseTitle = "SYSTEM OBS Templates — Nightly (commit $shaShort)"
+              $zipName = "SYSTEM-OBS-Templates-nightly-Windows-Portable.zip"
+          }
+
+          $zipPath = "dist\$zipName"
           Write-Host "[+] Compressing into $zipPath..."
           Compress-Archive -Path "build_staging\SYSTEM-OBS-Templates-Portable\*" -DestinationPath $zipPath -CompressionLevel Optimal
 
           $sizeMb = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
           Write-Host "[✓] Archive created successfully: $zipName ($sizeMb MB)"
 
+          Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_TAG=$releaseTag"
+          Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_TITLE=$releaseTitle"
+          Add-Content -Path $env:GITHUB_ENV -Value "IS_PRERELEASE=$isPreRelease"
+          Add-Content -Path $env:GITHUB_ENV -Value "MAKE_LATEST=$makeLatest"
           Add-Content -Path $env:GITHUB_ENV -Value "ARCHIVE_NAME=$zipName"
           Add-Content -Path $env:GITHUB_ENV -Value "ARCHIVE_PATH=$zipPath"
 
@@ -136,10 +158,21 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Attach archive to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+      - name: Publish or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TITLE }}
+          body: |
+            ## SYSTEM Broadcast Templates — Windows Portable
+            - **Branch**: `${{ github.ref_name }}`
+            - **Commit**: `${{ github.sha }}`
+            - **Type**: ${{ env.IS_PRERELEASE == 'true' && 'Rolling Nightly Pre-release (Auto-built from unstable)' || 'Official Release' }}
+
+            Self-contained standalone package with embedded Python 3.12 x64.
+            No Python installation required: extract anywhere and launch `start.bat` or `settings.bat`.
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          make_latest: ${{ env.MAKE_LATEST == 'true' }}
           files: ${{ env.ARCHIVE_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
