@@ -1,8 +1,9 @@
 import json
+
 import pytest
-from aiohttp import web
-from bridge.alerts_bridge import Broadcaster, build_app
+
 from bridge.adapters.base import normalize
+from bridge.alerts_bridge import Broadcaster, build_app
 
 
 def test_normalize_stream_stats():
@@ -11,7 +12,7 @@ def test_normalize_stream_stats():
         "live": True,
         "viewers": 42,
         "chatters": 35,
-        "started_at": "2026-10-29T18:00:00Z"
+        "started_at": "2026-10-29T18:00:00Z",
     }
     assert normalize(payload) == payload
 
@@ -24,7 +25,7 @@ async def test_stream_stats_caching_and_delivery(aiohttp_client):
         "live": True,
         "viewers": 42,
         "chatters": 35,
-        "started_at": "2026-10-29T18:00:00Z"
+        "started_at": "2026-10-29T18:00:00Z",
     }
     await b.broadcast(stats_event)
     assert b.last_stream_stats == stats_event
@@ -34,7 +35,7 @@ async def test_stream_stats_caching_and_delivery(aiohttp_client):
         "twitch_chat": {"enabled": False},
         "twitch": {"enabled": False},
         "donationalerts": {"enabled": False},
-        "donatex": {"enabled": False}
+        "donatex": {"enabled": False},
     }
     app = build_app(b, config, enable_settings=False)
     client = await aiohttp_client(app)

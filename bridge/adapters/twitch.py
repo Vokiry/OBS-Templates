@@ -44,6 +44,7 @@ async def run(config: dict, broadcast) -> None:
                 await broadcast(extract(data.event))
             except Exception:
                 log.exception("%s handler failed", kind)
+
         return handler
 
     def sub_event(event):
@@ -73,12 +74,14 @@ async def run(config: dict, broadcast) -> None:
             total_votes = sum(c.votes for c in event.choices) if event.choices else 0
             for c in event.choices:
                 pct = round((c.votes / total_votes * 100), 1) if total_votes > 0 else 0
-                choices.append({
-                    "id": c.id,
-                    "title": c.title,
-                    "votes": c.votes,
-                    "percent": pct,
-                })
+                choices.append(
+                    {
+                        "id": c.id,
+                        "title": c.title,
+                        "votes": c.votes,
+                        "percent": pct,
+                    }
+                )
             ends_at = event.ends_at.isoformat() if getattr(event, "ends_at", None) else None
             status = getattr(event, "status", "active")
             return {
@@ -91,6 +94,7 @@ async def run(config: dict, broadcast) -> None:
                 "status": str(status).lower(),
                 "endsAt": ends_at,
             }
+
         return extractor
 
     def prediction_event(kind):
@@ -100,15 +104,17 @@ async def run(config: dict, broadcast) -> None:
             winning_outcome_id = getattr(event, "winning_outcome_id", None)
             for o in event.outcomes:
                 pct = round((o.channel_points / total_points * 100), 1) if total_points > 0 else 0
-                outcomes.append({
-                    "id": o.id,
-                    "title": o.title,
-                    "color": getattr(o, "color", "blue"),
-                    "points": o.channel_points,
-                    "users": getattr(o, "users", 0),
-                    "percent": pct,
-                    "isWinner": o.id == winning_outcome_id,
-                })
+                outcomes.append(
+                    {
+                        "id": o.id,
+                        "title": o.title,
+                        "color": getattr(o, "color", "blue"),
+                        "points": o.channel_points,
+                        "users": getattr(o, "users", 0),
+                        "percent": pct,
+                        "isWinner": o.id == winning_outcome_id,
+                    }
+                )
             return {
                 "type": "prediction",
                 "action": kind,
@@ -119,6 +125,7 @@ async def run(config: dict, broadcast) -> None:
                 "totalPoints": total_points,
                 "winningOutcomeId": winning_outcome_id,
             }
+
         return extractor
 
     def redemption_event(event):
@@ -140,7 +147,9 @@ async def run(config: dict, broadcast) -> None:
         while True:
             try:
                 twitch = await Twitch(config["client_id"], config["client_secret"])
-                helper = UserAuthenticationStorageHelper(twitch, scopes, storage_path=storage_path, auth_generator_func=auth_gen)
+                helper = UserAuthenticationStorageHelper(
+                    twitch, scopes, storage_path=storage_path, auth_generator_func=auth_gen
+                )
                 await helper.bind()
                 user = await first(twitch.get_users())
                 user_id = user.id
@@ -158,83 +167,117 @@ async def run(config: dict, broadcast) -> None:
                 # 2. Subscriptions (channel:read:subscriptions)
                 try:
                     await eventsub.listen_channel_subscribe(user_id, make_handler("sub", sub_event))
-                    await eventsub.listen_channel_subscription_message(user_id, make_handler("resub", resub_event))
+                    await eventsub.listen_channel_subscription_message(
+                        user_id, make_handler("resub", resub_event)
+                    )
                     await eventsub.listen_channel_subscription_gift(user_id, make_handler("gift", gift_event))
                 except Exception as e:
-                    log.warning("twitch subscription listeners failed (channel may not be affiliate/partner): %s", e)
+                    log.warning(
+                        "twitch subscription listeners failed (channel may not be affiliate/partner): %s", e
+                    )
 
                 # 3. Raids (no scope required)
                 try:
-                    await eventsub.listen_channel_raid(make_handler("raid", raid_event), to_broadcaster_user_id=user_id)
+                    await eventsub.listen_channel_raid(
+                        make_handler("raid", raid_event), to_broadcaster_user_id=user_id
+                    )
                 except Exception as e:
                     log.warning("twitch raid listener failed: %s", e)
 
                 # 4. Follows (moderator:read:followers)
                 if config.get("include_follows"):
                     try:
-                        await eventsub.listen_channel_follow_v2(user_id, user_id, make_handler("follow", follow_event))
+                        await eventsub.listen_channel_follow_v2(
+                            user_id, user_id, make_handler("follow", follow_event)
+                        )
                     except Exception as e:
                         log.warning("twitch follow listener failed: %s", e)
 
                 # 5. Polls (channel:read:polls)
                 try:
-                    await eventsub.listen_channel_poll_begin(user_id, make_handler("poll_begin", poll_event("begin")))
-                    await eventsub.listen_channel_poll_progress(user_id, make_handler("poll_progress", poll_event("progress")))
-                    await eventsub.listen_channel_poll_end(user_id, make_handler("poll_end", poll_event("end")))
+                    await eventsub.listen_channel_poll_begin(
+                        user_id, make_handler("poll_begin", poll_event("begin"))
+                    )
+                    await eventsub.listen_channel_poll_progress(
+                        user_id, make_handler("poll_progress", poll_event("progress"))
+                    )
+                    await eventsub.listen_channel_poll_end(
+                        user_id, make_handler("poll_end", poll_event("end"))
+                    )
                 except Exception as e:
                     log.warning("twitch poll listeners failed (channel may not be affiliate/partner): %s", e)
 
                 # 6. Predictions (channel:read:predictions)
                 try:
-                    await eventsub.listen_channel_prediction_begin(user_id, make_handler("pred_begin", prediction_event("begin")))
-                    await eventsub.listen_channel_prediction_progress(user_id, make_handler("pred_prog", prediction_event("progress")))
-                    await eventsub.listen_channel_prediction_lock(user_id, make_handler("pred_lock", prediction_event("lock")))
-                    await eventsub.listen_channel_prediction_end(user_id, make_handler("pred_end", prediction_event("end")))
+                    await eventsub.listen_channel_prediction_begin(
+                        user_id, make_handler("pred_begin", prediction_event("begin"))
+                    )
+                    await eventsub.listen_channel_prediction_progress(
+                        user_id, make_handler("pred_prog", prediction_event("progress"))
+                    )
+                    await eventsub.listen_channel_prediction_lock(
+                        user_id, make_handler("pred_lock", prediction_event("lock"))
+                    )
+                    await eventsub.listen_channel_prediction_end(
+                        user_id, make_handler("pred_end", prediction_event("end"))
+                    )
                 except Exception as e:
                     log.warning("twitch prediction listeners failed: %s", e)
 
                 # 7. Channel Points Redemptions (channel:read:redemptions)
                 try:
-                    await eventsub.listen_channel_points_custom_reward_redemption_add(user_id, make_handler("redemption", redemption_event))
+                    await eventsub.listen_channel_points_custom_reward_redemption_add(
+                        user_id, make_handler("redemption", redemption_event)
+                    )
                 except Exception as e:
                     log.warning("twitch redemption listener failed: %s", e)
 
                 log.info("twitch eventsub active")
 
-                async def poll_stream_stats():
+                async def poll_stream_stats(client, uid):
                     while True:
                         try:
-                            stream = await first(twitch.get_streams(user_id=[user_id]))
+                            stream = await first(client.get_streams(user_id=[uid]))
                             if stream:
                                 viewers = getattr(stream, "viewer_count", 0)
                                 st_at = getattr(stream, "started_at", None)
-                                started_at = st_at.isoformat() if hasattr(st_at, "isoformat") else (str(st_at) if st_at else None)
+                                started_at = (
+                                    st_at.isoformat()
+                                    if hasattr(st_at, "isoformat")
+                                    else (str(st_at) if st_at else None)
+                                )
                                 chatters = None
                                 try:
-                                    c_resp = await twitch.get_chatters(broadcaster_id=user_id, moderator_id=user_id, first=1)
+                                    c_resp = await client.get_chatters(
+                                        broadcaster_id=uid, moderator_id=uid, first=1
+                                    )
                                     chatters = getattr(c_resp, "total", None)
                                 except Exception:
                                     pass
-                                await broadcast({
-                                    "type": "stream_stats",
-                                    "live": True,
-                                    "viewers": viewers,
-                                    "chatters": chatters,
-                                    "started_at": started_at
-                                })
+                                await broadcast(
+                                    {
+                                        "type": "stream_stats",
+                                        "live": True,
+                                        "viewers": viewers,
+                                        "chatters": chatters,
+                                        "started_at": started_at,
+                                    }
+                                )
                             else:
-                                await broadcast({
-                                    "type": "stream_stats",
-                                    "live": False,
-                                    "viewers": 0,
-                                    "chatters": 0,
-                                    "started_at": None
-                                })
+                                await broadcast(
+                                    {
+                                        "type": "stream_stats",
+                                        "live": False,
+                                        "viewers": 0,
+                                        "chatters": 0,
+                                        "started_at": None,
+                                    }
+                                )
                         except Exception as poll_err:
                             log.debug("twitch stream stats poll error: %s", poll_err)
                         await asyncio.sleep(45)
 
-                stats_task = asyncio.create_task(poll_stream_stats())
+                stats_task = asyncio.create_task(poll_stream_stats(twitch, user_id))
                 try:
                     while True:
                         await asyncio.sleep(3600)

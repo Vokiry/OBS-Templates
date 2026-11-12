@@ -2,9 +2,10 @@ import asyncio
 import json
 import logging
 import os
-from pathlib import Path
 import random
 import re
+from pathlib import Path
+
 import aiohttp
 import websockets
 
@@ -13,7 +14,9 @@ log = logging.getLogger("bridge.twitch_chat")
 IRC_WS_URL = "wss://irc-ws.chat.twitch.tv:443"
 
 
-async def fetch_7tv_emotes(room_id: str, source: str = "direct", mirror: str = "https://enhanced.jeetbot.cc") -> tuple[dict, str]:
+async def fetch_7tv_emotes(
+    room_id: str, source: str = "direct", mirror: str = "https://enhanced.jeetbot.cc"
+) -> tuple[dict, str]:
     source = (source or "direct").lower()
     mirror_clean = (mirror or "https://enhanced.jeetbot.cc").rstrip("/")
     direct_api = f"https://7tv.io/v3/users/twitch/{room_id}"
@@ -43,7 +46,12 @@ async def fetch_7tv_emotes(room_id: str, source: str = "direct", mirror: str = "
                             eid = e.get("id")
                             if name and eid:
                                 emotes[name] = f"{cdn}/{eid}/2x.webp"
-                        log.info("loaded %d 7TV channel emotes for room %s (source: %s)", len(emotes), room_id, mode)
+                        log.info(
+                            "loaded %d 7TV channel emotes for room %s (source: %s)",
+                            len(emotes),
+                            room_id,
+                            mode,
+                        )
                         return emotes, cdn
         except Exception as e:
             log.debug("could not fetch 7TV emotes from %s: %s", url, e)
@@ -51,8 +59,8 @@ async def fetch_7tv_emotes(room_id: str, source: str = "direct", mirror: str = "
 
 
 MEDIA_REGEX = re.compile(
-    r'(https?://(?:[a-zA-Z0-9-]+\.)*drisnya\.online/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*tenor\.com/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*giphy\.com/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*imgur\.com/[^\s]+)',
-    re.IGNORECASE
+    r"(https?://(?:[a-zA-Z0-9-]+\.)*drisnya\.online/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*tenor\.com/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*giphy\.com/[^\s]+|https?://(?:[a-zA-Z0-9-]+\.)*imgur\.com/[^\s]+)",
+    re.IGNORECASE,
 )
 
 
@@ -75,10 +83,14 @@ async def resolve_drisnya_media(url: str) -> str:
                         if cdn_base and file_path:
                             return f"{cdn_base}/{file_path}"
             # Fallback: scrape og:image from the HTML page
-            async with session.get(f"https://img.drisnya.online/post/{slug}", headers={"Accept": "text/html"}) as resp:
+            async with session.get(
+                f"https://img.drisnya.online/post/{slug}", headers={"Accept": "text/html"}
+            ) as resp:
                 if resp.status == 200:
                     html = await resp.text()
-                    og_match = re.search(r'<meta\s+property=["\x27]og:image["\x27]\s+content=["\x27]([^"\x27]+)["\x27]', html)
+                    og_match = re.search(
+                        r'<meta\s+property=["\x27]og:image["\x27]\s+content=["\x27]([^"\x27]+)["\x27]', html
+                    )
                     if og_match:
                         return og_match.group(1)
     except Exception as e:
@@ -118,7 +130,9 @@ def get_cached_badges() -> dict:
     return cached_badge_map
 
 
-async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", room_id: str | None = None) -> dict:
+async def fetch_all_twitch_badges(
+    client_id: str = "", client_secret: str = "", room_id: str | None = None
+) -> dict:
     global cached_badge_map
 
     if not client_id or not client_secret:
@@ -133,7 +147,7 @@ async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", 
                     "client_id": client_id,
                     "client_secret": client_secret,
                     "grant_type": "client_credentials",
-                }
+                },
             ) as r:
                 if r.status != 200:
                     return cached_badge_map
@@ -159,14 +173,18 @@ async def fetch_all_twitch_badges(client_id: str = "", client_secret: str = "", 
 
             # 3. Fetch channel-specific badges if room_id is known (subscriber tiers, bits, etc.)
             if room_id:
-                async with session.get(f"https://api.twitch.tv/helix/chat/badges?broadcaster_id={room_id}", headers=headers) as r:
+                async with session.get(
+                    f"https://api.twitch.tv/helix/chat/badges?broadcaster_id={room_id}", headers=headers
+                ) as r:
                     if r.status == 200:
                         chan_data = await r.json()
                         for b in chan_data.get("data", []):
                             set_id = b.get("set_id")
                             for v in b.get("versions", []):
                                 v_id = v.get("id")
-                                img_url = v.get("image_url_2x") or v.get("image_url_1x") or v.get("image_url_4x")
+                                img_url = (
+                                    v.get("image_url_2x") or v.get("image_url_1x") or v.get("image_url_4x")
+                                )
                                 if set_id and v_id and img_url:
                                     cached_badge_map[f"{set_id}/{v_id}"] = img_url
                         log.info("loaded channel badges for room %s", room_id)
@@ -203,12 +221,14 @@ def parse_emotes(emotes_tag: str | None) -> list[dict]:
                     if "-" in r:
                         try:
                             start, end = map(int, r.split("-", 1))
-                            twitch_emotes.append({
-                                "id": emote_id,
-                                "start": start,
-                                "end": end + 1,
-                                "url": f"https://static-cdn.jtvnw.net/emoticons/v2/{emote_id}/default/dark/2.0",
-                            })
+                            twitch_emotes.append(
+                                {
+                                    "id": emote_id,
+                                    "start": start,
+                                    "end": end + 1,
+                                    "url": f"https://static-cdn.jtvnw.net/emoticons/v2/{emote_id}/default/dark/2.0",
+                                }
+                            )
                         except ValueError:
                             pass
     return twitch_emotes
@@ -223,7 +243,13 @@ def parse_irc_message(line: str, channel: str) -> dict | None:
             for pair in tag_str.split(";"):
                 if "=" in pair:
                     k, v = pair.split("=", 1)
-                    v = v.replace(r"\s", " ").replace(r"\:", ";").replace(r"\r", "\r").replace(r"\n", "\n").replace(r"\\", "\\")
+                    v = (
+                        v.replace(r"\s", " ")
+                        .replace(r"\:", ";")
+                        .replace(r"\r", "\r")
+                        .replace(r"\n", "\n")
+                        .replace(r"\\", "\\")
+                    )
                     tags[k] = v
         except ValueError:
             rest = line
@@ -314,13 +340,15 @@ async def run(config: dict, broadcast) -> None:
         await broadcast({"type": "twitch_badges", "badges": badges})
         emotes, cdn_base = await fetch_7tv_emotes(room_id, source=source, mirror=mirror)
         if emotes:
-            await broadcast({
-                "type": "7tv_emotes",
-                "channel": channel,
-                "roomId": room_id,
-                "cdnBase": cdn_base,
-                "emotes": emotes,
-            })
+            await broadcast(
+                {
+                    "type": "7tv_emotes",
+                    "channel": channel,
+                    "roomId": room_id,
+                    "cdnBase": cdn_base,
+                    "emotes": emotes,
+                }
+            )
 
     while True:
         try:
@@ -348,7 +376,13 @@ async def run(config: dict, broadcast) -> None:
                                         val = item.split("room-id=")[1].split()[0]
                                         room_id_fetched = True
                                         _task = asyncio.create_task(broadcast_badges_and_7tv(val))
-                                        _task.add_done_callback(lambda t: t.result() if not t.cancelled() and not t.exception() else None)
+                                        _task.add_done_callback(
+                                            lambda t: (
+                                                t.result()
+                                                if not t.cancelled() and not t.exception()
+                                                else None
+                                            )
+                                        )
                                     except Exception:
                                         pass
                                     break
@@ -356,7 +390,7 @@ async def run(config: dict, broadcast) -> None:
                         if msg:
                             m_match = MEDIA_REGEX.search(msg["text"])
                             if m_match:
-                                raw_url = m_match.group(1).rstrip(".,!?;:)\"")
+                                raw_url = m_match.group(1).rstrip('.,!?;:)"')
                                 resolved_url = await resolve_drisnya_media(raw_url)
                                 msg["mediaUrl"] = resolved_url
                             await broadcast(msg)

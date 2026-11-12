@@ -1,9 +1,9 @@
 import json
+
 import pytest
-from pathlib import Path
-from aiohttp import web
-from bridge.alerts_bridge import Broadcaster, build_app, parse_amount
+
 from bridge.adapters.base import normalize
+from bridge.alerts_bridge import Broadcaster, build_app, parse_amount
 
 
 def test_parse_amount_various_formats():
@@ -25,7 +25,7 @@ def test_normalize_goal_update():
         "current": 5000.0,
         "target": 20000.0,
         "currency": "RUB",
-        "percent": 25.0
+        "percent": 25.0,
     }
     assert normalize(payload) == payload
 
@@ -33,13 +33,16 @@ def test_normalize_goal_update():
 @pytest.mark.asyncio
 async def test_goal_auto_increment_on_donate(tmp_path, aiohttp_client):
     cfg_file = tmp_path / "config.toml"
-    cfg_file.write_text("""[goal]
+    cfg_file.write_text(
+        """[goal]
 enabled = true
 title = "Тестовый сбор"
 current = 1000.0
 target = 10000.0
 currency = "RUB"
-""", encoding="utf-8")
+""",
+        encoding="utf-8",
+    )
 
     b = Broadcaster()
     goal_cfg = {
@@ -47,13 +50,15 @@ currency = "RUB"
         "title": "Тестовый сбор",
         "current": 1000.0,
         "target": 10000.0,
-        "currency": "RUB"
+        "currency": "RUB",
     }
     b.init_goal(goal_cfg, cfg_file)
     assert b.last_goal["current"] == 1000.0
     assert b.last_goal["percent"] == 10.0
 
-    app = build_app(b, {"goal": goal_cfg, "server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True)
+    app = build_app(
+        b, {"goal": goal_cfg, "server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True
+    )
     client = await aiohttp_client(app)
 
     async with client.ws_connect("/events") as ws:
@@ -75,7 +80,7 @@ currency = "RUB"
             "kind": "donate",
             "user": "Dave",
             "amount": "1 500 ₽",
-            "message": "Удачи со сбором!"
+            "message": "Удачи со сбором!",
         }
         await b.broadcast(donate_alert)
 

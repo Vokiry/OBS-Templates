@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
+
 import aiohttp
 import websockets
 
@@ -104,7 +105,7 @@ class DonationAlertsAdapter:
                     raise ValueError("DonationAlerts access token is invalid or expired (HTTP 401)")
                 resp.raise_for_status()
                 data = await resp.json()
-        
+
         user_data = data.get("data", {})
         user_id = user_data.get("id")
         socket_token = user_data.get("socket_connection_token") or self.token
@@ -119,10 +120,14 @@ class DonationAlertsAdapter:
 
         async with websockets.connect(WS_URL) as ws:
             # 1. Connect to Centrifugo with socket_connection_token
-            await ws.send(json.dumps({
-                "params": {"token": socket_token},
-                "id": 1,
-            }))
+            await ws.send(
+                json.dumps(
+                    {
+                        "params": {"token": socket_token},
+                        "id": 1,
+                    }
+                )
+            )
 
             client = None
             for _ in range(5):
@@ -161,14 +166,18 @@ class DonationAlertsAdapter:
 
         channels = payload.get("channels", [])
         for ch in channels:
-            await ws.send(json.dumps({
-                "params": {
-                    "channel": ch["channel"],
-                    "token": ch["token"],
-                },
-                "method": 1,
-                "id": 2,
-            }))
+            await ws.send(
+                json.dumps(
+                    {
+                        "params": {
+                            "channel": ch["channel"],
+                            "token": ch["token"],
+                        },
+                        "method": 1,
+                        "id": 2,
+                    }
+                )
+            )
             log.info("donationalerts subscribed to %s", ch["channel"])
 
     async def _handle(self, message: dict) -> None:
@@ -196,7 +205,9 @@ class DonationAlertsAdapter:
             except Exception:
                 pass
 
-        if not isinstance(donation, dict) or not (donation.get("amount") or donation.get("username") or donation.get("name")):
+        if not isinstance(donation, dict) or not (
+            donation.get("amount") or donation.get("username") or donation.get("name")
+        ):
             return
 
         log.info("donationalerts donation received from %s", donation.get("username") or donation.get("name"))
@@ -229,7 +240,7 @@ async def run(config: dict, broadcast) -> None:
             current_token = token
             if not current_token and TOKEN_FILE.exists():
                 try:
-                    with open(TOKEN_FILE, "r", encoding="utf-8") as f:
+                    with open(TOKEN_FILE, encoding="utf-8") as f:
                         cached = json.load(f)
                         current_token = cached.get("access_token", "")
                 except Exception:
@@ -249,14 +260,19 @@ async def run(config: dict, broadcast) -> None:
                         "    Открой эту ссылку в браузере:\n"
                         "    %s\n"
                         "========================================================================",
-                        auth_url
+                        auth_url,
                     )
                     try:
-                        import subprocess, shutil
+                        import shutil
+                        import subprocess
+
                         if shutil.which("xdg-open"):
-                            subprocess.Popen(["xdg-open", auth_url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            subprocess.Popen(
+                                ["xdg-open", auth_url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                            )
                         else:
                             import webbrowser
+
                             webbrowser.open(auth_url)
                     except Exception:
                         pass
@@ -280,7 +296,7 @@ async def run(config: dict, broadcast) -> None:
             # Handle token expiry by attempting refresh
             if "401" in str(exc) and client_id and client_secret and TOKEN_FILE.exists():
                 try:
-                    with open(TOKEN_FILE, "r", encoding="utf-8") as f:
+                    with open(TOKEN_FILE, encoding="utf-8") as f:
                         cached = json.load(f)
                     ref = cached.get("refresh_token")
                     if ref:

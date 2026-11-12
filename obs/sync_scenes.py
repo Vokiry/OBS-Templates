@@ -16,16 +16,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from obs.generate_collection import build_collection
+from obs.generate_collection import build_collection  # noqa: E402
 
 log = logging.getLogger("sync_scenes")
 
 
-def sync_collection(
-    target_path: Path,
-    dry_run: bool = False,
-    backup: bool = True
-) -> dict:
+def sync_collection(target_path: Path, dry_run: bool = False, backup: bool = True) -> dict:
     """Safely inject missing SYSTEM sources into an existing OBS collection.
 
     Returns a summary dict with added sources and scenes modified.
@@ -37,12 +33,8 @@ def sync_collection(
     target_data = json.loads(target_path.read_text(encoding="utf-8"))
     template_data = build_collection()
 
-    existing_sources_by_name = {
-        s.get("name"): s for s in target_data.get("sources", [])
-    }
-    template_sources_by_name = {
-        s.get("name"): s for s in template_data.get("sources", [])
-    }
+    existing_sources_by_name = {s.get("name"): s for s in target_data.get("sources", [])}
+    template_sources_by_name = {s.get("name"): s for s in template_data.get("sources", [])}
 
     added_sources = []
     scenes_updated = set()
@@ -70,9 +62,7 @@ def sync_collection(
                     curr_settings[key] = tmpl_settings[key]
 
     # 2. Inject missing items into existing scenes
-    template_scenes = {
-        s.get("name"): s for s in template_data.get("sources", []) if s.get("id") == "scene"
-    }
+    template_scenes = {s.get("name"): s for s in template_data.get("sources", []) if s.get("id") == "scene"}
 
     for target_source in target_data.get("sources", []):
         if target_source.get("id") != "scene":
@@ -117,18 +107,23 @@ def sync_collection(
 
         # Save merged collection
         target_path.write_text(json.dumps(target_data, indent=4, ensure_ascii=False), encoding="utf-8")
-        log.info("synchronized collection: %s (added %d sources, updated %d scenes)",
-                 target_path, len(added_sources), len(scenes_updated))
+        log.info(
+            "synchronized collection: %s (added %d sources, updated %d scenes)",
+            target_path,
+            len(added_sources),
+            len(scenes_updated),
+        )
 
     return {
         "status": "updated" if (added_sources or scenes_updated) else "in_sync",
         "added_sources": added_sources,
-        "scenes_updated": sorted(list(scenes_updated))
+        "scenes_updated": sorted(list(scenes_updated)),
     }
 
 
 def get_default_obs_path() -> Path:
     import os
+
     if sys.platform == "win32":
         appdata = os.environ.get("APPDATA")
         if appdata:
@@ -142,6 +137,7 @@ def main():
     default_obs_path = get_default_obs_path()
 
     import argparse
+
     parser = argparse.ArgumentParser(description="Safely sync SYSTEM sources into active OBS collection")
     parser.add_argument("--target", default=str(default_obs_path), help="Path to SYSTEM.json")
     parser.add_argument("--dry-run", action="store_true", help="Inspect changes without writing")

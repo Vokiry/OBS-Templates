@@ -1,7 +1,9 @@
 import asyncio
 import json
+
 import pytest
 from aiohttp import web
+
 from bridge.alerts_bridge import Broadcaster, serialize_toml
 from bridge.services import yandex_tts
 
@@ -13,7 +15,10 @@ def test_preprocess_text():
     assert yandex_tts.preprocess_text(".bot command") == ""
 
     # URLs replaced with word "ссылка"
-    assert yandex_tts.preprocess_text("check this https://youtube.com/watch?v=123 out") == "check this ссылка out"
+    assert (
+        yandex_tts.preprocess_text("check this https://youtube.com/watch?v=123 out")
+        == "check this ссылка out"
+    )
 
     # Character spam collapsed
     assert yandex_tts.preprocess_text("привееееееет") == "привеет"
@@ -24,7 +29,9 @@ def test_preprocess_text():
     assert yandex_tts.preprocess_text("да да да стример") == "да стример"
 
     # Max length truncation
-    long_text = "слово раз два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать"
+    long_text = (
+        "слово раз два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать"
+    )
     cleaned = yandex_tts.preprocess_text(long_text, max_length=40)
     assert len(cleaned) <= 45  # plus ellipsis
     assert cleaned.endswith("…")
@@ -55,15 +62,14 @@ def test_pick_voice_deterministic():
 
 def test_vip_voice_lookup():
     b = Broadcaster()
-    b.init_tts({
-        "mode": "all",
-        "voice": "shitova.us",
-        "random_pool": ["ermil", "zahar"],
-        "vip_voices": {
-            "best_friend": "krosh",
-            "moderator": "robot"
+    b.init_tts(
+        {
+            "mode": "all",
+            "voice": "shitova.us",
+            "random_pool": ["ermil", "zahar"],
+            "vip_voices": {"best_friend": "krosh", "moderator": "robot"},
         }
-    })
+    )
 
     # VIP voices take strict precedence
     assert b._tts_voice_for_user("best_friend") == "krosh"
@@ -130,24 +136,21 @@ def test_serialize_toml_tts():
             "reward_name": "TTS Речь",
             "auth_token": "custom-token-123",
             "random_pool": ["krosh", "robot"],
-            "vip_voices": {
-                "admin": "robot",
-                "friend": "krosh"
-            }
-        }
+            "vip_voices": {"admin": "robot", "friend": "krosh"},
+        },
     }
     toml_str = serialize_toml(cfg)
 
-    assert '[tts]' in toml_str
+    assert "[tts]" in toml_str
     assert 'mode = "rewards"' in toml_str
     assert 'speed = "1.1"' in toml_str
     assert 'emotion = "good"' in toml_str
-    assert 'volume = 0.65' in toml_str
-    assert 'max_length = 180' in toml_str
+    assert "volume = 0.65" in toml_str
+    assert "max_length = 180" in toml_str
     assert 'reward_name = "TTS Речь"' in toml_str
     assert 'auth_token = "custom-token-123"' in toml_str
     assert 'random_pool = ["krosh", "robot"]' in toml_str
-    assert '[tts.vip_voices]' in toml_str
+    assert "[tts.vip_voices]" in toml_str
     assert 'admin = "robot"' in toml_str
     assert 'friend = "krosh"' in toml_str
 
@@ -155,6 +158,7 @@ def test_serialize_toml_tts():
 @pytest.mark.asyncio
 async def test_tts_stop_api(aiohttp_client):
     from bridge.alerts_bridge import build_app
+
     b = Broadcaster()
     b.init_tts({"mode": "all"})
     b._tts_queue.append({"username": "u1", "text": "t1", "voice": "ermil", "show_card": False})
@@ -170,8 +174,10 @@ async def test_tts_stop_api(aiohttp_client):
 
 @pytest.mark.asyncio
 async def test_tts_notify_test_trigger(aiohttp_client):
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import AsyncMock, patch
+
     from bridge.alerts_bridge import build_app
+
     b = Broadcaster()
     b.init_tts({"mode": "off"})  # Even if off, tts_test forces enqueuing
 
@@ -181,12 +187,11 @@ async def test_tts_notify_test_trigger(aiohttp_client):
     headers = {"Referer": "http://127.0.0.1:8787/settings"}
     with patch("bridge.alerts_bridge.yandex_tts.generate", new_callable=AsyncMock) as mock_gen:
         mock_gen.return_value = b"OggOpusFakeAudioData"
-        res = await client.post("/notify", json={
-            "type": "tts_test",
-            "user": "Tester",
-            "text": "Тестовое сообщение",
-            "voice": "krosh"
-        }, headers=headers)
+        res = await client.post(
+            "/notify",
+            json={"type": "tts_test", "user": "Tester", "text": "Тестовое сообщение", "voice": "krosh"},
+            headers=headers,
+        )
         assert res.status == 200
 
         # Allow background worker to execute
@@ -219,7 +224,8 @@ def test_pick_voice_empty_pool_fallback():
 
 @pytest.mark.asyncio
 async def test_tts_worker_delivers_volume_and_card(aiohttp_client):
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import AsyncMock, patch
+
     b = Broadcaster()
     b.init_tts({"mode": "all", "volume": 0.42})
 
@@ -247,6 +253,7 @@ async def test_tts_worker_delivers_volume_and_card(aiohttp_client):
             assert received_speak["volume"] == 0.42
             assert received_speak["show_card"] is False
 
+
 def test_tts_blacklist_filter():
     blacklist = ["плохоеслово", "банворд"]
 
@@ -270,7 +277,6 @@ def test_tts_blacklist_filter():
 
 @pytest.mark.asyncio
 async def test_broadcaster_dnd_and_alert_replay(aiohttp_client):
-    from unittest.mock import patch, AsyncMock
     b = Broadcaster()
     b.init_tts({"mode": "all"})
 

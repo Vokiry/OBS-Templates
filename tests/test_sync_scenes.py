@@ -1,6 +1,5 @@
 import json
-import pytest
-from pathlib import Path
+
 from obs.sync_scenes import sync_collection
 
 
@@ -15,27 +14,22 @@ def test_sync_collection_preserves_user_sources(tmp_path):
                 "name": "SYSTEM: Background",
                 "id": "browser_source",
                 "uuid": "uuid-bg",
-                "settings": {"url": "http://localhost:8787/src/overlays/background.html"}
+                "settings": {"url": "http://localhost:8787/src/overlays/background.html"},
             },
             {
                 "name": "SYSTEM: Alerts",
                 "id": "browser_source",
                 "uuid": "uuid-alerts",
-                "settings": {"url": "http://localhost:8787/src/overlays/alerts.html"}
+                "settings": {"url": "http://localhost:8787/src/overlays/alerts.html"},
             },
             # Custom user sources
             {
                 "name": "Screen Capture (PipeWire)",
                 "id": "pipewire_screen_capture",
                 "uuid": "uuid-pipewire",
-                "settings": {}
+                "settings": {},
             },
-            {
-                "name": "DroidCam OBS",
-                "id": "droidcam_source",
-                "uuid": "uuid-droidcam",
-                "settings": {}
-            },
+            {"name": "DroidCam OBS", "id": "droidcam_source", "uuid": "uuid-droidcam", "settings": {}},
             # Main scene with user sources mixed with SYSTEM sources
             {
                 "name": "SYSTEM: Main (Gameplay)",
@@ -46,23 +40,18 @@ def test_sync_collection_preserves_user_sources(tmp_path):
                     "items": [
                         {"name": "SYSTEM: Background", "id": 1, "visible": True},
                         {"name": "Screen Capture (PipeWire)", "id": 9, "visible": True},
-                        {"name": "SYSTEM: Alerts", "id": 5, "visible": True}
-                    ]
-                }
+                        {"name": "SYSTEM: Alerts", "id": 5, "visible": True},
+                    ],
+                },
             },
             # Custom user scene
             {
                 "name": "camera",
                 "id": "scene",
                 "uuid": "uuid-scene-camera",
-                "settings": {
-                    "id_counter": 2,
-                    "items": [
-                        {"name": "DroidCam OBS", "id": 1, "visible": True}
-                    ]
-                }
-            }
-        ]
+                "settings": {"id_counter": 2, "items": [{"name": "DroidCam OBS", "id": 1, "visible": True}]},
+            },
+        ],
     }
 
     target_file.write_text(json.dumps(user_scene_collection), encoding="utf-8")
@@ -104,7 +93,9 @@ def test_sync_collection_preserves_user_sources(tmp_path):
     # IDs must be unique
     assert len(item_ids) == len(set(item_ids))
     # User's id 9 was preserved
-    pipewire_item = next(it for it in main_scene["settings"]["items"] if it["name"] == "Screen Capture (PipeWire)")
+    pipewire_item = next(
+        it for it in main_scene["settings"]["items"] if it["name"] == "Screen Capture (PipeWire)"
+    )
     assert pipewire_item["id"] == 9
 
     # Custom scene 'camera' was untouched
@@ -133,9 +124,9 @@ def test_sync_collection_preserves_audio_routing(tmp_path):
                 "settings": {
                     "url": "http://localhost:8787/src/overlays/alerts.html",
                     "reroute_audio": False,
-                    "restart_when_active": True
+                    "restart_when_active": True,
                 },
-                "monitoring_type": 0  # Monitor Off
+                "monitoring_type": 0,  # Monitor Off
             },
             {
                 "name": "SYSTEM: Main (Gameplay)",
@@ -143,17 +134,15 @@ def test_sync_collection_preserves_audio_routing(tmp_path):
                 "uuid": "uuid-main",
                 "settings": {
                     "id_counter": 2,
-                    "items": [
-                        {"name": "SYSTEM: Alerts", "id": 1, "visible": True}
-                    ]
-                }
-            }
-        ]
+                    "items": [{"name": "SYSTEM: Alerts", "id": 1, "visible": True}],
+                },
+            },
+        ],
     }
     target_file.write_text(json.dumps(collection), encoding="utf-8")
 
     # Run sync
-    res = sync_collection(target_file, dry_run=False, backup=False)
+    sync_collection(target_file, dry_run=False, backup=False)
 
     # Inspect results
     updated = json.loads(target_file.read_text(encoding="utf-8"))
@@ -162,6 +151,7 @@ def test_sync_collection_preserves_audio_routing(tmp_path):
     # Audio routing settings MUST NOT be overwritten
     assert alerts_src["settings"]["reroute_audio"] is False
     assert alerts_src["monitoring_type"] == 0
+
 
 def test_get_default_obs_path_cross_platform(monkeypatch):
     from obs.sync_scenes import get_default_obs_path

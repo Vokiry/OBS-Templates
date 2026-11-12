@@ -3,140 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SYSTEM — Media Request (YouTube Player)</title>
+  <title>SYSTEM — media request</title>
   <link rel="stylesheet" href="../base/fonts.css">
   <link rel="stylesheet" href="../tokens/tokens.css">
   <link rel="stylesheet" href="../base/reset.css">
   <link rel="stylesheet" href="../base/overlay.css">
   <style>
     .media-card {
-      display: flex;
-      flex-direction: column;
+      display: none;
       width: 480px;
       max-width: 100%;
-      background: var(--color-surface);
+      background: var(--color-overlay);
       border: var(--border-width) solid var(--color-border);
-      border-left: 4px solid var(--color-accent);
-      border-radius: var(--radius-none, 0);
+      border-radius: var(--radius-panel);
+      padding: var(--space-3);
       font-family: var(--font-interface);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-      opacity: 0;
-      transform: translateY(12px);
-      pointer-events: none;
-      transition:
-        opacity var(--anim-normal) var(--anim-ease),
-        transform var(--anim-normal) var(--anim-ease);
-      overflow: hidden;
+      box-sizing: border-box;
+      transition: border-color var(--border-hover-transition);
     }
 
     .media-card.is-active {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
+      display: block;
+      animation: fadeIn var(--anim-normal) var(--anim-ease);
     }
 
     .media-card__header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 6px 12px;
-      background: rgba(21, 28, 36, 0.6);
-      border-bottom: var(--border-width) solid var(--color-border-faint);
+      align-items: center;
       font-size: var(--text-xs);
-      letter-spacing: var(--letter-spacing-mono);
-      text-transform: lowercase;
+      font-weight: var(--text-weight-medium);
       color: var(--label-color);
+      text-transform: uppercase;
+      letter-spacing: var(--letter-spacing-mono);
+      margin-bottom: var(--space-2);
     }
 
-    .media-card__header::before {
-      content: "[ media request // ";
-      color: var(--color-muted);
-    }
-
-    .media-card__header::after {
-      content: " ]";
-      color: var(--color-muted);
-    }
-
-    .media-card__info {
+    .media-card__title {
       color: var(--color-accent);
-      font-weight: var(--text-weight-semibold);
+    }
+
+    .media-card__donor {
+      color: var(--color-text);
+      font-weight: var(--text-weight-bold);
     }
 
     .media-card__queue {
-      font-size: 11px;
-      letter-spacing: var(--letter-spacing-mono);
-      color: var(--color-warning);
+      font-size: 10px;
+      padding: 1px 6px;
+      background: rgba(99, 230, 190, 0.15);
+      border: 1px solid var(--color-accent);
+      color: var(--color-accent);
+      margin-left: var(--space-2);
     }
 
     .media-card__player {
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 9;
+      padding-top: 56.25%; /* 16:9 Aspect Ratio */
       background: #000;
-      display: block;
+      border: 1px solid var(--color-border-faint);
       overflow: hidden;
+      margin-bottom: var(--space-2);
     }
 
-    #yt-player-container {
+    .media-card__player-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
     }
 
-    .media-card__player iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-    }
-
-    .media-card__footer {
+    .media-card__info {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      padding: var(--space-2) var(--space-3);
-      background: var(--color-surface);
-      border-top: var(--border-width) solid var(--color-border-faint);
-      font-size: var(--text-xs);
     }
 
     .media-card__message {
+      font-size: var(--text-sm);
       color: var(--color-text);
-      font-style: italic;
-      word-break: break-word;
-    }
-
-    .media-card__message::before {
-      content: "“ ";
-      color: var(--color-warning);
-    }
-
-    .media-card__message::after {
-      content: " ”";
-      color: var(--color-warning);
+      line-height: 1.4;
+      max-height: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
 
     .media-card__status {
       display: flex;
       justify-content: space-between;
-      color: var(--color-muted);
+      align-items: center;
       font-size: 11px;
-      letter-spacing: var(--letter-spacing-mono);
+      color: var(--color-muted);
+      border-top: 1px dashed var(--color-border-faint);
+      padding-top: 4px;
+      margin-top: 2px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <div class="overlay overlay--bottom-left">
+  <div class="overlay">
     <div class="media-card" id="media-card">
       <div class="media-card__header">
-        <span class="media-card__info" id="media-donor">user</span>
+        <span class="media-card__title">
+          [ MEDIA // <span class="media-card__donor" id="media-donor">viewer</span> ]
+        </span>
         <span class="media-card__queue" id="media-queue" style="display: none;">queue [ 0 ]</span>
       </div>
+
       <div class="media-card__player">
-        <div id="yt-player-container"></div>
+        <div class="media-card__player-inner" id="yt-player-container"></div>
       </div>
-      <div class="media-card__footer">
-        <div class="media-card__message" id="media-message" style="display:none;"></div>
+
+      <div class="media-card__info">
+        <div class="media-card__message" id="media-message" style="display: none;"></div>
         <div class="media-card__status">
           <span id="media-track-title">YouTube Track</span>
           <span id="media-duration">PLAYING</span>
@@ -147,316 +136,6 @@
 
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="overlay.js"></script>
-  <script>
-    (() => {
-    const params = new URLSearchParams(location.search);
-    const card = document.getElementById('media-card');
-    const donorEl = document.getElementById('media-donor');
-    const queueBadgeEl = document.getElementById('media-queue');
-    const messageEl = document.getElementById('media-message');
-    const titleEl = document.getElementById('media-track-title');
-    const statusEl = document.getElementById('media-duration');
-    const container = document.getElementById('yt-player-container');
-
-    let socketRef = null;
-    let ytPlayer = null;
-    let ytApiReady = false;
-    let trackQueue = [];
-    let currentTrack = null;
-    let isPlaying = false;
-    let endCheckTimer = null;
-
-    window.onYouTubeIframeAPIReady = () => {
-      ytApiReady = true;
-    };
-
-    if (params.get('width')) {
-      card.style.width = params.get('width') + 'px';
-    }
-
-    function updateQueueBadge() {
-      if (!queueBadgeEl) return;
-      if (trackQueue.length > 0) {
-        queueBadgeEl.textContent = `queue [ ${trackQueue.length} ]`;
-        queueBadgeEl.style.display = 'inline-block';
-      } else {
-        queueBadgeEl.style.display = 'none';
-      }
-    }
-
-    function updateTrackDisplay(track) {
-      donorEl.textContent = `${track.user || 'viewer'}${track.amount ? ' · ' + track.amount : ''}`;
-      titleEl.textContent = track.title || 'YouTube Track';
-      statusEl.textContent = 'PLAYING';
-
-      if (track.message) {
-        messageEl.textContent = track.message;
-        messageEl.style.display = 'block';
-      } else {
-        messageEl.style.display = 'none';
-      }
-    }
-
-    function enqueueTrack(item) {
-      if (!item || !item.youtubeId) return;
-
-      // 1. If same track is already playing, enrich metadata if previous was generic
-      if (currentTrack && currentTrack.youtubeId === item.youtubeId) {
-        if (item.title && item.title !== 'YouTube Track') currentTrack.title = item.title;
-        if (item.amount) currentTrack.amount = item.amount;
-        if (item.message) currentTrack.message = item.message;
-        updateTrackDisplay(currentTrack);
-        return;
-      }
-
-      // 2. If same track is already in queue, enrich metadata
-      const existing = trackQueue.find(t => t.youtubeId === item.youtubeId);
-      if (existing) {
-        if (item.title && item.title !== 'YouTube Track') existing.title = item.title;
-        if (item.amount) existing.amount = item.amount;
-        if (item.message) existing.message = item.message;
-        return;
-      }
-
-      trackQueue.push(item);
-      updateQueueBadge();
-
-      if (!isPlaying) {
-        playNextTrack();
-      }
-    }
-
-    function playNextTrack() {
-      if (endCheckTimer) {
-        clearInterval(endCheckTimer);
-        endCheckTimer = null;
-      }
-
-      if (trackQueue.length === 0) {
-        currentTrack = null;
-        isPlaying = false;
-        stopPlayback();
-        return;
-      }
-
-      currentTrack = trackQueue.shift();
-      isPlaying = true;
-      updateQueueBadge();
-      updateTrackDisplay(currentTrack);
-
-      card.classList.add('is-active');
-
-      if (ytApiReady && window.YT && window.YT.Player) {
-        try {
-          if (!ytPlayer) {
-            container.innerHTML = '<div id="yt-player-target"></div>';
-            ytPlayer = new YT.Player('yt-player-target', {
-              width: '100%',
-              height: '100%',
-              videoId: currentTrack.youtubeId,
-              playerVars: {
-                autoplay: 1,
-                controls: 1,
-                rel: 0,
-                enablejsapi: 1,
-                origin: window.location.origin
-              },
-              events: {
-                onReady: (e) => { e.target.playVideo(); },
-                onStateChange: (e) => {
-                  if (e.data === 0) { // 0 === YT.PlayerState.ENDED
-                    onTrackEnded();
-                  }
-                },
-                onError: (e) => {
-                  console.warn('YouTube playback error:', e.data);
-                  setTimeout(onTrackEnded, 2000);
-                }
-              }
-            });
-          } else {
-            ytPlayer.loadVideoById(currentTrack.youtubeId);
-          }
-          return;
-        } catch (e) {
-          console.warn('YT.Player init failed, falling back to standard iframe:', e);
-        }
-      }
-
-      // Standard IFrame fallback (with postMessage listener)
-      container.innerHTML = `
-        <iframe
-          id="yt-iframe"
-          src="https://www.youtube.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&origin=${encodeURIComponent(window.location.origin)}"
-          style="width: 100%; height: 100%; border: 0; display: block;"
-          allow="autoplay; encrypted-media; picture-in-picture"
-          allowfullscreen>
-        </iframe>
-      `;
-    }
-
-    function onTrackEnded() {
-      if (!isPlaying) return;
-      statusEl.textContent = 'FINISHED';
-      isPlaying = false;
-
-      const endedTrack = currentTrack;
-      currentTrack = null;
-
-      // Notify bridge to skip DonateX track if it came from DonateX
-      if (endedTrack && endedTrack.source === 'donatex' && socketRef && socketRef.readyState === WebSocket.OPEN) {
-        try {
-          socketRef.send(JSON.stringify({
-            type: 'media_finished',
-            source: 'donatex',
-            youtubeId: endedTrack.youtubeId
-          }));
-        } catch (e) {}
-      }
-
-      // If we have more tracks in local queue:
-      if (trackQueue.length > 0) {
-        setTimeout(playNextTrack, 600);
-      } else {
-        // Wait up to 1.8 seconds in case DonateX server pushes ReceiveNewSong for the next track in its playlist!
-        setTimeout(() => {
-          if (!isPlaying && trackQueue.length === 0) {
-            stopPlayback();
-          }
-        }, 1800);
-      }
-    }
-
-    function skipTrack(origin) {
-      if (!isPlaying && !currentTrack) return;
-      if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-        try { ytPlayer.stopVideo(); } catch (e) {}
-      }
-
-      const skippedTrack = currentTrack;
-      isPlaying = false;
-      currentTrack = null;
-
-      // Only notify bridge if the skip did NOT originate from donatex server
-      if (origin !== 'donatex_server' && skippedTrack && skippedTrack.source === 'donatex' && socketRef && socketRef.readyState === WebSocket.OPEN) {
-        try {
-          socketRef.send(JSON.stringify({
-            type: 'media_finished',
-            source: 'donatex',
-            youtubeId: skippedTrack.youtubeId
-          }));
-        } catch (e) {}
-      }
-
-      if (trackQueue.length > 0) {
-        setTimeout(playNextTrack, 400);
-      } else {
-        setTimeout(() => {
-          if (!isPlaying && trackQueue.length === 0) {
-            stopPlayback();
-          }
-        }, 1800);
-      }
-    }
-
-    let isPaused = false;
-    function togglePause(forcedAction) {
-      if (!isPlaying) return;
-      if (forcedAction === 'pause') isPaused = true;
-      else if (forcedAction === 'resume' || forcedAction === 'play') isPaused = false;
-      else isPaused = !isPaused;
-
-      if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
-        try {
-          if (isPaused) {
-            ytPlayer.pauseVideo();
-            statusEl.textContent = 'PAUSED';
-          } else {
-            ytPlayer.playVideo();
-            statusEl.textContent = 'PLAYING';
-          }
-          return;
-        } catch (e) {}
-      }
-
-      const iframe = container.querySelector('iframe');
-      if (iframe && iframe.contentWindow) {
-        const cmd = isPaused ? 'pauseVideo' : 'playVideo';
-        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: '' }), '*');
-        statusEl.textContent = isPaused ? 'PAUSED' : 'PLAYING';
-      }
-    }
-
-    function stopPlayback() {
-      card.classList.remove('is-active');
-      isPaused = false;
-      setTimeout(() => {
-        if (!isPlaying) {
-          container.innerHTML = '';
-          ytPlayer = null;
-        }
-      }, 350);
-    }
-
-    // Listen for YouTube iframe postMessage events (works even without iframe_api)
-    window.addEventListener('message', (event) => {
-      if (!event.data) return;
-      let data = event.data;
-      if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch (e) { return; }
-      }
-      if (data && data.event === 'onStateChange' && data.info === 0) {
-        onTrackEnded();
-      }
-    });
-
-    // Support testing via URL: ?yt=dQw4w9WgXcQ&donor=Alex&amount=500RUB
-    if (params.has('yt')) {
-      enqueueTrack({
-        youtubeId: params.get('yt'),
-        user: params.get('donor') || 'TestDonor',
-        amount: params.get('amount') || '$10.00',
-        message: params.get('msg') || 'Track request test!',
-        title: params.get('title') || 'YouTube Track'
-      });
-    }
-
-    const wsParam = params.get('ws');
-    if (wsParam !== 'off') {
-      const wsUrl = wsParam || `ws://${location.host || '127.0.0.1:8787'}/events`;
-      let retryDelay = 1000;
-      const connect = () => {
-        const socket = new WebSocket(wsUrl);
-        socketRef = socket;
-        socket.onopen = () => { retryDelay = 1000; };
-        socket.onmessage = (msg) => {
-          try {
-            const data = JSON.parse(msg.data);
-            if (data.type === 'media_request' && data.youtubeId) {
-              enqueueTrack(data);
-            } else if (data.type === 'media_control') {
-              if (data.action === 'skip') {
-                skipTrack(data.origin);
-              } else if (data.action === 'toggle_pause' || data.action === 'pause' || data.action === 'resume') {
-                togglePause(data.action);
-              } else if (data.action === 'stop') {
-                trackQueue = [];
-                updateQueueBadge();
-                stopPlayback();
-              }
-            }
-          } catch (e) {}
-        };
-        socket.onclose = () => {
-          socketRef = null;
-          setTimeout(connect, retryDelay);
-          retryDelay = Math.min(retryDelay * 2, 10000);
-        };
-        socket.onerror = () => socket.close();
-      };
-      connect();
-    }
-    })();
-  </script>
+  <script src="../components/media-request.js"></script>
 </body>
 </html>

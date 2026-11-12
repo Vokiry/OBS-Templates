@@ -1,20 +1,18 @@
-import json
 import pytest
-from pathlib import Path
-from aiohttp import web
+
 from bridge.alerts_bridge import (
     Broadcaster,
     build_app,
-    toml_escape,
-    serialize_toml,
     get_sounds_catalog,
-    save_sounds_catalog
+    save_sounds_catalog,
+    serialize_toml,
+    toml_escape,
 )
 
 
 def test_toml_escaping():
-    assert toml_escape('hello "world"') == r'hello \"world\"'
-    assert toml_escape("path\\to\\file") == r'path\\to\\file'
+    assert toml_escape('hello "world"') == r"hello \"world\""
+    assert toml_escape("path\\to\\file") == r"path\\to\\file"
     assert toml_escape("line1\nline2") == "line1line2"
     assert toml_escape(None) == ""
 
@@ -25,11 +23,11 @@ def test_toml_serialization_roundtrip(tmp_path):
         "twitch_chat": {"enabled": True, "channel": "vokkiry", "seven_tv_source": "direct"},
         "twitch": {"enabled": False, "client_id": "test_id", "client_secret": "test_secret"},
         "donationalerts": {"enabled": False, "client_id": "da_id"},
-        "donatex": {"enabled": True, "token": "dx_token"}
+        "donatex": {"enabled": True, "token": "dx_token"},
     }
     serialized = serialize_toml(cfg)
     assert 'channel = "vokkiry"' in serialized
-    assert 'enabled = true' in serialized
+    assert "enabled = true" in serialized
     assert 'token = "dx_token"' in serialized
 
 
@@ -42,10 +40,7 @@ def test_sounds_catalog_save_and_load(tmp_path):
     (sounds_dir / "burn.wav").write_bytes(b"RIFFmock")
     (sounds_dir / "magic_sound.wav").write_bytes(b"RIFFmock")
 
-    mapping = {
-        "donate": "burn.wav",
-        "follow": "magic_sound.wav"
-    }
+    mapping = {"donate": "burn.wav", "follow": "magic_sound.wav"}
 
     data = save_sounds_catalog(src_dir, mapping, master_volume=0.85)
     assert data["sounds"]["donate"]["file"] == "../sounds/burn.wav"
@@ -68,7 +63,7 @@ async def test_notify_endpoint_and_test_alerts(aiohttp_client):
         "twitch_chat": {"enabled": False},
         "twitch": {"enabled": False},
         "donationalerts": {"enabled": False},
-        "donatex": {"enabled": False}
+        "donatex": {"enabled": False},
     }
     app = build_app(b, config, enable_settings=True)
     client = await aiohttp_client(app)
@@ -85,7 +80,7 @@ async def test_notify_endpoint_and_test_alerts(aiohttp_client):
         "kind": "donate",
         "user": "system_dev",
         "amount": "500 ₽",
-        "message": "Тестовый донат из панели настроек"
+        "message": "Тестовый донат из панели настроек",
     }
     headers = {"Referer": "http://127.0.0.1:8787/settings"}
     res_notify = await client.post("/notify", json=donate_payload, headers=headers)
@@ -103,6 +98,7 @@ async def test_upload_sound_api_validation(aiohttp_client):
 
     # 1. Disallowed format (.exe) must be rejected with 400
     from aiohttp import FormData
+
     data = FormData()
     data.add_field("file", b"fake binary", filename="malicious.exe", content_type="application/octet-stream")
     res = await client.post("/api/sounds/upload", data=data, headers=headers)
@@ -119,9 +115,10 @@ async def test_upload_sound_api_validation(aiohttp_client):
 @pytest.mark.asyncio
 async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
     from bridge.alerts_bridge import AdapterManager
+
     b = Broadcaster()
     b.init_tts({"mode": "all", "volume": 0.8, "speed": "1.0"})
-    
+
     config = {
         "server": {"host": "127.0.0.1", "port": 8787},
         "twitch_chat": {"enabled": False, "channel": "old_channel"},
@@ -129,40 +126,40 @@ async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
         "donationalerts": {"enabled": False},
         "donatex": {"enabled": False},
         "goal": {"enabled": True, "title": "Старый сбор", "current": 0.0, "target": 5000.0},
-        "tts": {"mode": "all", "volume": 0.8, "speed": "1.0"}
+        "tts": {"mode": "all", "volume": 0.8, "speed": "1.0"},
     }
-    
+
     mgr = AdapterManager(b.broadcast)
     await mgr.start_all(config)
-    
+
     test_cfg_path = tmp_path / "test_config.toml"
-    test_cfg_path.write_text("[server]\nhost = \"127.0.0.1\"\nport = 8787\n")
+    test_cfg_path.write_text('[server]\nhost = "127.0.0.1"\nport = 8787\n')
     app = build_app(b, config, enable_settings=True, adapter_mgr=mgr, config_path=test_cfg_path)
     client = await aiohttp_client(app)
-    
+
     headers = {"Referer": "http://127.0.0.1:8787/settings"}
     save_payload = {
         "goal": {"enabled": True, "title": "Новый сбор", "current": 100.0, "target": 10000.0},
         "tts": {"mode": "all", "volume": 0.45, "speed": "1.2"},
-        "twitch_chat": {"enabled": False, "channel": "new_streamer"}
+        "twitch_chat": {"enabled": False, "channel": "new_streamer"},
     }
-    
+
     res = await client.post("/api/config", json=save_payload, headers=headers)
     assert res.status == 200
     res_data = await res.json()
     assert res_data.get("ok") is True
-    
+
     # 1. Goal updated live
     assert b.last_goal["title"] == "Новый сбор"
     assert b.last_goal["target"] == 10000.0
-    
+
     # 2. TTS volume and speed updated live
     assert b.tts_config["volume"] == 0.45
     assert b.tts_config["speed"] == "1.2"
-    
+
     # 3. Adapter manager updated config live without server restart
     assert mgr.configs["twitch_chat"]["channel"] == "new_streamer"
-    
+
     await mgr.stop_all()
 
 
@@ -184,9 +181,11 @@ async def test_panels_redirect_route(aiohttp_client):
     res_css = await client.get("/src/panels/panels.css")
     assert res_css.status == 200
 
+
 @pytest.mark.asyncio
 async def test_system_doctor_api(aiohttp_client):
     from bridge.alerts_bridge import AdapterManager
+
     b = Broadcaster()
     b.init_tts({"mode": "all", "voice": "shitova.us", "volume": 0.8})
 
@@ -196,7 +195,7 @@ async def test_system_doctor_api(aiohttp_client):
         "twitch": {"enabled": False},
         "donationalerts": {"enabled": False},
         "donatex": {"enabled": False},
-        "tts": {"mode": "all", "voice": "shitova.us", "volume": 0.8}
+        "tts": {"mode": "all", "voice": "shitova.us", "volume": 0.8},
     }
     mgr = AdapterManager(b.broadcast)
     await mgr.start_all(config)
@@ -219,18 +218,26 @@ async def test_system_doctor_api(aiohttp_client):
 
     await mgr.stop_all()
 
+
 @pytest.mark.asyncio
 async def test_backup_export_and_import(aiohttp_client, tmp_path):
     import io
     import zipfile
+
     from aiohttp import FormData
+
     b = Broadcaster()
 
     # Isolated test config path
     test_cfg = tmp_path / "test_config.toml"
-    test_cfg.write_text("[server]\nhost = \"127.0.0.1\"\nport = 8787\n[twitch_chat]\nchannel = \"backup_streamer\"\n", encoding="utf-8")
+    test_cfg.write_text(
+        '[server]\nhost = "127.0.0.1"\nport = 8787\n[twitch_chat]\nchannel = "backup_streamer"\n',
+        encoding="utf-8",
+    )
 
-    app = build_app(b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True, config_path=test_cfg)
+    app = build_app(
+        b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True, config_path=test_cfg
+    )
     client = await aiohttp_client(app)
     headers = {"Referer": "http://127.0.0.1:8787/settings"}
 
@@ -261,10 +268,15 @@ async def test_backup_export_and_import(aiohttp_client, tmp_path):
     # 3. Test valid backup import restores files cleanly
     valid_buf = io.BytesIO()
     with zipfile.ZipFile(valid_buf, "w") as vz:
-        vz.writestr("config.toml", "[server]\nhost = \"127.0.0.1\"\nport = 8787\n[twitch_chat]\nchannel = \"restored_pro\"\n")
+        vz.writestr(
+            "config.toml",
+            '[server]\nhost = "127.0.0.1"\nport = 8787\n[twitch_chat]\nchannel = "restored_pro"\n',
+        )
 
     valid_form = FormData()
-    valid_form.add_field("file", valid_buf.getvalue(), filename="valid_backup.zip", content_type="application/zip")
+    valid_form.add_field(
+        "file", valid_buf.getvalue(), filename="valid_backup.zip", content_type="application/zip"
+    )
     res_import = await client.post("/api/backup/import", data=valid_form, headers=headers)
     assert res_import.status == 200
     assert (await res_import.json()).get("ok") is True
@@ -275,11 +287,7 @@ async def test_backup_export_and_import(aiohttp_client, tmp_path):
 
 
 def test_appearance_theme_serialization():
-    cfg = {
-        "appearance": {
-            "theme": "mocha-harmony"
-        }
-    }
+    cfg = {"appearance": {"theme": "mocha-harmony"}}
     serialized = serialize_toml(cfg)
     assert "[appearance]" in serialized
     assert 'theme = "mocha-harmony"' in serialized
@@ -288,15 +296,14 @@ def test_appearance_theme_serialization():
 @pytest.mark.asyncio
 async def test_appearance_theme_api_and_broadcast(aiohttp_client, tmp_path):
     test_cfg = tmp_path / "config.toml"
-    test_cfg.write_text("[server]\nhost = \"127.0.0.1\"\nport = 8787\n[appearance]\ntheme = \"mocha-teal\"\n", encoding="utf-8")
+    test_cfg.write_text(
+        '[server]\nhost = "127.0.0.1"\nport = 8787\n[appearance]\ntheme = "mocha-teal"\n', encoding="utf-8"
+    )
 
     broadcaster = Broadcaster()
     broadcaster.init_appearance({"theme": "mocha-teal"})
 
-    config = {
-        "server": {"host": "127.0.0.1", "port": 8787},
-        "appearance": {"theme": "mocha-teal"}
-    }
+    config = {"server": {"host": "127.0.0.1", "port": 8787}, "appearance": {"theme": "mocha-teal"}}
 
     app = build_app(broadcaster, config, enable_settings=True, config_path=test_cfg)
     client = await aiohttp_client(app)
@@ -309,11 +316,9 @@ async def test_appearance_theme_api_and_broadcast(aiohttp_client, tmp_path):
 
     # 2. Change theme to mocha-harmony via /api/config
     headers = {"Referer": "http://127.0.0.1:8787/settings"}
-    save_res = await client.post("/api/config", json={
-        "appearance": {
-            "theme": "mocha-harmony"
-        }
-    }, headers=headers)
+    save_res = await client.post(
+        "/api/config", json={"appearance": {"theme": "mocha-harmony"}}, headers=headers
+    )
 
     assert save_res.status == 200
     assert (await save_res.json()).get("ok") is True

@@ -1,7 +1,9 @@
 import asyncio
 import json
+
 import pytest
 from aiohttp import web
+
 from bridge.alerts_bridge import Broadcaster
 
 
@@ -12,11 +14,7 @@ async def test_broadcaster_chat_history_buffer():
 
     # Add 35 chat messages
     for i in range(35):
-        await b.broadcast({
-            "type": "chat",
-            "user": f"user_{i}",
-            "text": f"message {i}"
-        })
+        await b.broadcast({"type": "chat", "user": f"user_{i}", "text": f"message {i}"})
 
     # Circular buffer maxlen=30: only the last 30 messages should remain
     assert len(b.chat_history) == 30
@@ -61,6 +59,7 @@ async def test_broadcaster_connection_limit(aiohttp_client):
     b.clients = set(range(50))
 
     app = web.Application()
+
     async def ws_handler(request):
         return await b.attach(request)
 

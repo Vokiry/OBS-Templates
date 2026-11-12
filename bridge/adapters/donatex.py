@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+
 import aiohttp
 
 log = logging.getLogger("bridge.donatex")
@@ -18,8 +19,8 @@ MUSIC_SKIP_API = "https://donatex.gg/api/v1/music/skip-current"
 RECORD_SEP = "\x1e"
 
 YOUTUBE_REGEX = re.compile(
-    r'(?:https?://)?(?:www\.|m\.|music\.)?(?:youtu\.be/|youtube\.com/(?:watch\?v=|shorts/|live/|embed/))([A-Za-z0-9_-]{11})',
-    re.IGNORECASE
+    r"(?:https?://)?(?:www\.|m\.|music\.)?(?:youtu\.be/|youtube\.com/(?:watch\?v=|shorts/|live/|embed/))([A-Za-z0-9_-]{11})",
+    re.IGNORECASE,
 )
 
 
@@ -48,14 +49,16 @@ class DonateXAdapter:
                             yt_id = extract_youtube_id(data["musicLink"])
                             if yt_id:
                                 log.info("donatex: queue has active track on startup: %s", data["musicLink"])
-                                await self.broadcast({
-                                    "type": "media_request",
-                                    "user": "Заказ трека",
-                                    "amount": "",
-                                    "message": "",
-                                    "youtubeId": yt_id,
-                                    "title": "YouTube Track",
-                                })
+                                await self.broadcast(
+                                    {
+                                        "type": "media_request",
+                                        "user": "Заказ трека",
+                                        "amount": "",
+                                        "message": "",
+                                        "youtubeId": yt_id,
+                                        "title": "YouTube Track",
+                                    }
+                                )
                         return self.widget_id
         except Exception as e:
             log.warning("could not fetch music widget ID from DonateX API: %s", e)
@@ -75,7 +78,9 @@ class DonateXAdapter:
     async def skip_current_donation(self) -> bool:
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
-                async with session.post("https://donatex.gg/api/v1/donations/skip-current", headers=self.headers) as resp:
+                async with session.post(
+                    "https://donatex.gg/api/v1/donations/skip-current", headers=self.headers
+                ) as resp:
                     if resp.status == 200:
                         log.info("donatex: current donation skipped via API")
                         return True
@@ -91,7 +96,9 @@ class DonateXAdapter:
                 async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
                     async with session.post(PUBLIC_HUB_NEGOTIATE, headers=self.headers) as resp:
                         if resp.status == 401:
-                            log.error("donatex: 401 Unauthorized. Check External token in donatex.gg -> Settings -> Api")
+                            log.error(
+                                "donatex: 401 Unauthorized. Check External token in donatex.gg -> Settings -> Api"
+                            )
                             await asyncio.sleep(25)
                             continue
                         resp.raise_for_status()
@@ -151,12 +158,17 @@ class DonateXAdapter:
                         await ws.receive_str()
 
                         # 1. Join widget group to report presence to DonateX dashboard
-                        await ws.send_str(json.dumps({
-                            "type": 1,
-                            "invocationId": "join_1",
-                            "target": "JoinWidget",
-                            "arguments": [self.widget_id]
-                        }) + RECORD_SEP)
+                        await ws.send_str(
+                            json.dumps(
+                                {
+                                    "type": 1,
+                                    "invocationId": "join_1",
+                                    "target": "JoinWidget",
+                                    "arguments": [self.widget_id],
+                                }
+                            )
+                            + RECORD_SEP
+                        )
                         log.info("donatex: music widget connected & joined group! (OBS widget online)")
 
                         # 2. Start periodic Heartbeat task
@@ -166,12 +178,17 @@ class DonateXAdapter:
                                 while True:
                                     await asyncio.sleep(10)
                                     hb_id += 1
-                                    await ws.send_str(json.dumps({
-                                        "type": 1,
-                                        "invocationId": f"hb_{hb_id}",
-                                        "target": "Heartbeat",
-                                        "arguments": []
-                                    }) + RECORD_SEP)
+                                    await ws.send_str(
+                                        json.dumps(
+                                            {
+                                                "type": 1,
+                                                "invocationId": f"hb_{hb_id}",
+                                                "target": "Heartbeat",
+                                                "arguments": [],
+                                            }
+                                        )
+                                        + RECORD_SEP
+                                    )
                             except asyncio.CancelledError:
                                 pass
 
@@ -249,15 +266,17 @@ class DonateXAdapter:
 
             if not music_link and youtube_id:
                 log.info("donatex: ad-hoc YouTube link in donation message: %s", youtube_id)
-                await self.broadcast({
-                    "type": "media_request",
-                    "user": user,
-                    "amount": amount_str,
-                    "message": message,
-                    "youtubeId": youtube_id,
-                    "title": "YouTube Track",
-                    "source": "donation_message",
-                })
+                await self.broadcast(
+                    {
+                        "type": "media_request",
+                        "user": user,
+                        "amount": amount_str,
+                        "message": message,
+                        "youtubeId": youtube_id,
+                        "title": "YouTube Track",
+                        "source": "donation_message",
+                    }
+                )
 
     async def handle_music_message(self, msg: dict, ws) -> None:
         if msg.get("type") != 1:
@@ -275,21 +294,25 @@ class DonateXAdapter:
 
             if yt_id:
                 log.info("donatex: ReceiveNewSong: %s (%s)", title, yt_id)
-                await self.broadcast({
-                    "type": "media_request",
-                    "user": donor,
-                    "title": title,
-                    "youtubeId": yt_id,
-                    "link": link,
-                })
+                await self.broadcast(
+                    {
+                        "type": "media_request",
+                        "user": donor,
+                        "title": title,
+                        "youtubeId": yt_id,
+                        "link": link,
+                    }
+                )
 
         elif target in ("SongSkipped", "SkipSong", "PlayNextSong"):
             log.info("donatex: music skipped by server dashboard (%s)", target)
-            await self.broadcast({
-                "type": "media_control",
-                "action": "skip",
-                "origin": "donatex_server",
-            })
+            await self.broadcast(
+                {
+                    "type": "media_control",
+                    "action": "skip",
+                    "origin": "donatex_server",
+                }
+            )
 
     async def run(self) -> None:
         await asyncio.gather(

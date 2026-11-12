@@ -57,19 +57,21 @@ def make_scene(name: str, scene_sources: list) -> dict:
             s, visible = item
         else:
             s, visible = item, True
-        items.append({
-            "name": s["name"],
-            "source_uuid": s["uuid"],
-            "visible": visible,
-            "locked": True,
-            "rot": 0.0,
-            "pos": {"x": 0.0, "y": 0.0},
-            "scale": {"x": 1.0, "y": 1.0},
-            "scale_filter": "disable",
-            "blend_method": "default",
-            "blend_type": "normal",
-            "id": idx + 1,
-        })
+        items.append(
+            {
+                "name": s["name"],
+                "source_uuid": s["uuid"],
+                "visible": visible,
+                "locked": True,
+                "rot": 0.0,
+                "pos": {"x": 0.0, "y": 0.0},
+                "scale": {"x": 1.0, "y": 1.0},
+                "scale_filter": "disable",
+                "blend_method": "default",
+                "blend_type": "normal",
+                "id": idx + 1,
+            }
+        )
 
     return {
         "prev_ver": 537001985,
@@ -100,12 +102,20 @@ def build_collection() -> dict:
     alerts = make_browser_source("SYSTEM: Alerts", "alerts.html", "pos=top-center")
     pulse = make_browser_source("SYSTEM: Pulse", "activity-pulse.html", "pos=top-right")
 
-    ind_starting = make_browser_source("SYSTEM: State [Starting]", "scene-indicator.html", "state=starting&pos=top-left")
+    ind_starting = make_browser_source(
+        "SYSTEM: State [Starting]", "scene-indicator.html", "state=starting&pos=top-left"
+    )
     ind_main = make_browser_source("SYSTEM: State [Main]", "scene-indicator.html", "state=main&pos=top-left")
-    ind_chatting = make_browser_source("SYSTEM: State [Chatting]", "scene-indicator.html", "state=chatting&pos=top-center")
-    ind_focus = make_browser_source("SYSTEM: State [Focus]", "scene-indicator.html", "state=focus&pos=top-left")
+    ind_chatting = make_browser_source(
+        "SYSTEM: State [Chatting]", "scene-indicator.html", "state=chatting&pos=top-center"
+    )
+    ind_focus = make_browser_source(
+        "SYSTEM: State [Focus]", "scene-indicator.html", "state=focus&pos=top-left"
+    )
     ind_brb = make_browser_source("SYSTEM: State [BRB]", "scene-indicator.html", "state=brb&pos=top-left")
-    ind_ending = make_browser_source("SYSTEM: State [Ending]", "scene-indicator.html", "state=ending&pos=top-left")
+    ind_ending = make_browser_source(
+        "SYSTEM: State [Ending]", "scene-indicator.html", "state=ending&pos=top-left"
+    )
 
     chat_half = make_browser_source("SYSTEM: Chat (Starting Soon)", "chat.html", "pos=top-right&layout=half")
     chat_main = make_browser_source("SYSTEM: Chat (Main Sidebar)", "chat.html", "pos=main-right")
@@ -120,31 +130,41 @@ def build_collection() -> dict:
     tts = make_browser_source("SYSTEM: TTS", "tts.html")
 
     all_browser_sources = [
-        bg, alerts, pulse,
-        ind_starting, ind_main, ind_chatting, ind_focus, ind_brb, ind_ending,
-        chat_half, chat_main, chat_standard, (feed_right),
-        countdown, ending_card, media_request, goal, tts
+        bg,
+        alerts,
+        pulse,
+        ind_starting,
+        ind_main,
+        ind_chatting,
+        ind_focus,
+        ind_brb,
+        ind_ending,
+        chat_half,
+        chat_main,
+        chat_standard,
+        (feed_right),
+        countdown,
+        ending_card,
+        media_request,
+        goal,
+        tts,
     ]
 
     # 2. Build Scenes (ordered layers from bottom to top)
-    scene_starting = make_scene("SYSTEM: Starting Soon", [
-        bg, ind_starting, countdown, chat_half, alerts, media_request, goal, tts
-    ])
-    scene_main = make_scene("SYSTEM: Main (Gameplay)", [
-        bg, ind_main, chat_main, alerts, media_request, goal, tts
-    ])
-    scene_chatting = make_scene("SYSTEM: Chatting", [
-        bg, ind_chatting, chat_standard, alerts, media_request, goal, tts
-    ])
-    scene_focus = make_scene("SYSTEM: Focus", [
-        ind_focus, alerts, tts
-    ])
-    scene_break = make_scene("SYSTEM: Break (BRB)", [
-        bg, ind_brb, chat_standard, alerts, media_request, goal, tts
-    ])
-    scene_ending = make_scene("SYSTEM: Ending", [
-        bg, ind_ending, ending_card
-    ])
+    scene_starting = make_scene(
+        "SYSTEM: Starting Soon", [bg, ind_starting, countdown, chat_half, alerts, media_request, goal, tts]
+    )
+    scene_main = make_scene(
+        "SYSTEM: Main (Gameplay)", [bg, ind_main, chat_main, alerts, media_request, goal, tts]
+    )
+    scene_chatting = make_scene(
+        "SYSTEM: Chatting", [bg, ind_chatting, chat_standard, alerts, media_request, goal, tts]
+    )
+    scene_focus = make_scene("SYSTEM: Focus", [ind_focus, alerts, tts])
+    scene_break = make_scene(
+        "SYSTEM: Break (BRB)", [bg, ind_brb, chat_standard, alerts, media_request, goal, tts]
+    )
+    scene_ending = make_scene("SYSTEM: Ending", [bg, ind_ending, ending_card])
 
     all_scenes = [
         scene_starting,
@@ -171,4 +191,6 @@ if __name__ == "__main__":
     out_path = Path(__file__).parent / "SYSTEM_Scene_Collection.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(collection, f, indent=4, ensure_ascii=False)
-    print(f"Generated {out_path} with {len(collection['scene_order'])} scenes and {len(collection['sources'])} sources.")
+    print(
+        f"Generated {out_path} with {len(collection['scene_order'])} scenes and {len(collection['sources'])} sources."
+    )

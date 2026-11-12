@@ -10,7 +10,6 @@ import logging
 import re
 import uuid
 import zlib
-from typing import Optional
 
 import aiohttp
 
@@ -54,8 +53,18 @@ VOICES = {
 }
 
 DEFAULT_RANDOM_POOL = [
-    "ermil", "zahar", "jane", "alyss", "omazh", "oksana",
-    "kolya", "valtz", "kostya", "sasha", "krosh", "robot",
+    "ermil",
+    "zahar",
+    "jane",
+    "alyss",
+    "omazh",
+    "oksana",
+    "kolya",
+    "valtz",
+    "kostya",
+    "sasha",
+    "krosh",
+    "robot",
 ]
 
 FALLBACK_VOICE = "shitova.us"
@@ -64,14 +73,24 @@ FALLBACK_VOICE = "shitova.us"
 # Text preprocessing for safe and clean TTS output
 # ---------------------------------------------------------------------------
 _RE_URL = re.compile(r"https?://\S+", re.IGNORECASE)
-_RE_CHAR_SPAM = re.compile(r"(.)\1{4,}")          # ааааааа → аа
+_RE_CHAR_SPAM = re.compile(r"(.)\1{4,}")  # ааааааа → аа
 _RE_WORD_SPAM = re.compile(r"\b(\S+)(?:\s+\1){2,}\b", re.IGNORECASE)  # kek kek kek → kek
-_RE_COMMAND = re.compile(r"^[!/.]")                # !command, /me, .бот
+_RE_COMMAND = re.compile(r"^[!/.]")  # !command, /me, .бот
 
-BOT_NAMES = frozenset({
-    "nightbot", "streamelements", "moobot", "fossabot", "streamlabs",
-    "wizebot", "botrix", "soundalerts", "pretzelrocks", "sery_bot",
-})
+BOT_NAMES = frozenset(
+    {
+        "nightbot",
+        "streamelements",
+        "moobot",
+        "fossabot",
+        "streamlabs",
+        "wizebot",
+        "botrix",
+        "soundalerts",
+        "pretzelrocks",
+        "sery_bot",
+    }
+)
 
 
 def filter_blacklist(text: str, blacklist: list[str]) -> str:
@@ -147,7 +166,7 @@ async def generate(
     endpoint: str = DEFAULT_WS_ENDPOINT,
     auth_token: str = DEFAULT_AUTH_TOKEN,
     timeout_sec: float = 25.0,
-) -> Optional[bytes]:
+) -> bytes | None:
     """Generate Ogg Opus audio from text via Yandex Uniproxy.
 
     Returns raw Ogg Opus bytes on success, or None on failure.
