@@ -107,11 +107,13 @@ jobs:
 
       - name: Verify embedded Python environment
         shell: pwsh
+        env:
+          PYTHONIOENCODING: utf-8
         run: |
           $pyExe = "build_staging\SYSTEM-OBS-Templates-Portable\python\python.exe"
           Write-Host "[*] Verifying embedded Python runtime and imports..."
-          & $pyExe -c "import aiohttp, websockets, twitchAPI; print('[✓] All dependencies imported successfully!')"
-          & $pyExe -c "import sys; print('[✓] Python version:', sys.version)"
+          & $pyExe -c "import aiohttp, websockets, twitchAPI; print('[OK] All dependencies imported successfully!')"
+          & $pyExe -c "import sys; print('[OK] Python version:', sys.version)"
 
       - name: Package into ZIP archive and determine release metadata
         shell: pwsh
@@ -141,7 +143,7 @@ jobs:
           Compress-Archive -Path "build_staging\SYSTEM-OBS-Templates-Portable\*" -DestinationPath $zipPath -CompressionLevel Optimal
 
           $sizeMb = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
-          Write-Host "[✓] Archive created successfully: $zipName ($sizeMb MB)"
+          Write-Host "[OK] Archive created successfully: $zipName ($sizeMb MB)"
 
           Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_TAG=$releaseTag"
           Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_TITLE=$releaseTitle"
