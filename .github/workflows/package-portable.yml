@@ -175,6 +175,7 @@ jobs:
             No Python installation required: extract anywhere and launch `start.bat` or `settings.bat`.
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           make_latest: ${{ env.MAKE_LATEST == 'true' }}
+          generate_release_notes: ${{ env.IS_PRERELEASE != 'true' }}
           files: ${{ env.ARCHIVE_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
