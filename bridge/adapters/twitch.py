@@ -10,7 +10,19 @@ def normalize_twitch(kind: str, user: str, detail: str) -> dict:
     return {"kind": kind, "body": f"{user} · {detail}".strip(" ·")}
 
 
+is_connected: bool = False
+last_error: str | None = None
+
+
+def get_status() -> dict:
+    return {
+        "connected": is_connected,
+        "error": last_error,
+    }
+
+
 async def run(config: dict, broadcast) -> None:
+    global is_connected, last_error
     from twitchAPI.eventsub.websocket import EventSubWebsocket
     from twitchAPI.helper import first
     from twitchAPI.oauth import UserAuthenticationStorageHelper, UserAuthenticator
@@ -157,6 +169,8 @@ async def run(config: dict, broadcast) -> None:
 
                 eventsub = EventSubWebsocket(twitch)
                 eventsub.start()
+                is_connected = True
+                last_error = None
 
                 # 1. Cheers (bits:read)
                 try:
@@ -286,6 +300,8 @@ async def run(config: dict, broadcast) -> None:
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
+                is_connected = False
+                last_error = str(exc)
                 log.warning("twitch connection lost (%s), reconnecting in 10s", exc)
                 await asyncio.sleep(10)
     finally:

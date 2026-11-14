@@ -329,19 +329,44 @@ async function pollHealth() {
       const ovl = document.getElementById('tag-ovl');
       if (ovl) ovl.textContent = `${data.overlays ?? 0} OVL`;
 
-      const setTag = (id, label, active) => {
+      const setTag = (id, label, detail, fallbackActive) => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.textContent = (active ? '● ' : '○ ') + label;
-        el.classList.toggle('is-off', !active);
-        el.classList.toggle('is-ok', !!active);
-        el.style.color = active ? '#63E6BE' : '#E5484D';
+
+        let status = 'off';
+        let err = null;
+        if (detail && typeof detail === 'object') {
+          status = detail.status || (detail.connected ? 'connected' : (detail.enabled ? 'error' : 'off'));
+          err = detail.error;
+        } else {
+          status = fallbackActive ? 'connected' : 'off';
+        }
+
+        el.classList.remove('is-ok', 'is-warn', 'is-off');
+
+        if (status === 'connected') {
+          el.textContent = '● ' + label;
+          el.classList.add('is-ok');
+          el.style.color = 'var(--color-accent, #63E6BE)';
+          el.title = `${label}: Подключено и работает`;
+        } else if (status === 'connecting' || status === 'error') {
+          el.textContent = '◌ ' + label;
+          el.classList.add('is-warn');
+          el.style.color = 'var(--color-warning, #E9B13C)';
+          el.title = `${label}: Не подключено (${err || 'ошибка сети / таймаут'})`;
+        } else {
+          el.textContent = '○ ' + label;
+          el.classList.add('is-off');
+          el.style.color = 'var(--color-danger, #E5484D)';
+          el.title = `${label}: Отключено в настройках`;
+        }
       };
 
-      setTag('tag-tw', 'TW', data.adapters?.twitch);
-      setTag('tag-chat', 'CHAT', data.adapters?.twitch_chat);
-      setTag('tag-da', 'DA', data.adapters?.donationalerts);
-      setTag('tag-dx', 'DX', data.adapters?.donatex);
+      const details = data.adapter_details || {};
+      setTag('tag-tw', 'TW', details.twitch, data.adapters?.twitch);
+      setTag('tag-chat', 'CHAT', details.twitch_chat, data.adapters?.twitch_chat);
+      setTag('tag-da', 'DA', details.donationalerts, data.adapters?.donationalerts);
+      setTag('tag-dx', 'DX', details.donatex, data.adapters?.donatex);
 
       const cfgBtn = document.getElementById('dock-config-btn');
       const panelsBtn = document.getElementById('dock-panels-btn');

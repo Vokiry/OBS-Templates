@@ -27,12 +27,25 @@ def register_system_routes(
     """Register /health, /api/system/doctor, /api/backup/export, and /api/backup/import."""
 
     async def health_handler(request: web.Request) -> web.Response:
-        states = adapter_mgr.states if adapter_mgr else adapter_states
+        statuses = (
+            adapter_mgr.get_adapter_statuses()
+            if adapter_mgr and hasattr(adapter_mgr, "get_adapter_statuses")
+            else {
+                name: {
+                    "enabled": bool(adapter_states.get(name)),
+                    "connected": bool(adapter_states.get(name)),
+                    "status": "connected" if adapter_states.get(name) else "off",
+                    "error": None,
+                }
+                for name in ("twitch", "twitch_chat", "donationalerts", "donatex")
+            }
+        )
         return web.json_response(
             {
                 "status": "running",
                 "overlays": len(broadcaster.clients),
-                "adapters": states,
+                "adapters": {k: v["connected"] for k, v in statuses.items()},
+                "adapter_details": statuses,
                 "settings_enabled": enable_settings,
                 "stream_stats": broadcaster.last_stream_stats,
                 "theme": broadcaster.current_theme,

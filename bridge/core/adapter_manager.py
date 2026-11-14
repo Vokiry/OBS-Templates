@@ -97,3 +97,33 @@ class AdapterManager:
             except (asyncio.TimeoutError, Exception):
                 pass
         self.tasks.clear()
+
+    def get_adapter_statuses(self) -> dict[str, dict]:
+        """Collect live connection status from all adapters."""
+        import sys
+
+        res = {}
+        for name in ("twitch", "twitch_chat", "donationalerts", "donatex"):
+            enabled = bool(self.configs.get(name, {}).get("enabled"))
+            if not enabled:
+                res[name] = {"enabled": False, "connected": False, "status": "off", "error": None}
+                continue
+
+            try:
+                mod = sys.modules.get(f"adapters.{name}")
+                if mod and hasattr(mod, "get_status"):
+                    s = mod.get_status()
+                    connected = bool(s.get("connected"))
+                    err = s.get("error")
+                    status = "connected" if connected else ("error" if err else "connecting")
+                    res[name] = {"enabled": True, "connected": connected, "status": status, "error": err}
+                else:
+                    res[name] = {
+                        "enabled": True,
+                        "connected": self.states.get(name, False),
+                        "status": "connected" if self.states.get(name) else "connecting",
+                        "error": None,
+                    }
+            except Exception:
+                res[name] = {"enabled": True, "connected": False, "status": "error", "error": "status check failed"}
+        return res

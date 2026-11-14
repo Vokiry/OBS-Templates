@@ -90,6 +90,7 @@ class DonateXAdapter:
 
     async def run_donations_hub(self) -> None:
         """Connects to public-donations-hub for real-time donations & alerts."""
+        global is_connected, last_error
         while True:
             try:
                 log.info("donatex: negotiating public donations hub...")
@@ -110,6 +111,8 @@ class DonateXAdapter:
                     async with session.ws_connect(ws_url, headers=self.headers, heartbeat=15) as ws:
                         await ws.send_str(json.dumps({"protocol": "json", "version": 1}) + RECORD_SEP)
                         await ws.receive_str()
+                        is_connected = True
+                        last_error = None
                         log.info("donatex: donations hub connected & listening for donations!")
 
                         buffer = ""
@@ -130,6 +133,8 @@ class DonateXAdapter:
             except asyncio.CancelledError:
                 raise
             except Exception as e:
+                is_connected = False
+                last_error = str(e)
                 log.warning("donatex donations hub error (%s), reconnecting in 10s...", e)
                 await asyncio.sleep(10)
 
@@ -322,6 +327,15 @@ class DonateXAdapter:
 
 
 active_adapter = None
+is_connected: bool = False
+last_error: str | None = None
+
+
+def get_status() -> dict:
+    return {
+        "connected": is_connected,
+        "error": last_error,
+    }
 
 
 async def skip_track() -> bool:

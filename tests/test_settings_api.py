@@ -215,6 +215,15 @@ async def test_system_doctor_api(aiohttp_client):
     assert d["tts"]["voice"] == "shitova.us"
     assert "overlays" in d
     assert "sounds" in d
+    assert d["donationalerts"]["status"] == "off"
+
+    # Test health endpoint details
+    res_health = await client.get("/health")
+    assert res_health.status == 200
+    h = await res_health.json()
+    assert "adapter_details" in h
+    assert "donationalerts" in h["adapter_details"]
+    assert h["adapter_details"]["donationalerts"]["status"] == "off"
 
     await mgr.stop_all()
 

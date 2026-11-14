@@ -32,7 +32,11 @@ def collect_doctor_diagnostics(
         if sounds_dir.exists()
         else 0
     )
-    states = adapter_mgr.states if adapter_mgr else (adapter_states or {})
+    statuses = (
+        adapter_mgr.get_adapter_statuses()
+        if adapter_mgr and hasattr(adapter_mgr, "get_adapter_statuses")
+        else {}
+    )
 
     return {
         "status": "ok",
@@ -44,7 +48,9 @@ def collect_doctor_diagnostics(
         "twitch_chat": {
             "enabled": bool(tc_cfg.get("enabled")),
             "channel": tc_cfg.get("channel", "").strip(),
-            "connected": states.get("twitch_chat", False),
+            "connected": statuses.get("twitch_chat", {}).get("connected", False),
+            "status": statuses.get("twitch_chat", {}).get("status", "off"),
+            "error": statuses.get("twitch_chat", {}).get("error"),
             "badges_count": len(cached_badges) if cached_badges else 0,
             "emotes_count": len(broadcaster.last_7tv_emotes.get("emotes", []))
             if broadcaster.last_7tv_emotes
@@ -55,16 +61,24 @@ def collect_doctor_diagnostics(
             "enabled": bool(tw_cfg.get("enabled")),
             "configured": bool(tw_cfg.get("client_id") and tw_cfg.get("client_secret")),
             "authenticated": has_twitch_token,
+            "connected": statuses.get("twitch", {}).get("connected", False),
+            "status": statuses.get("twitch", {}).get("status", "off"),
+            "error": statuses.get("twitch", {}).get("error"),
         },
         "donationalerts": {
             "enabled": bool(da_cfg.get("enabled")),
             "configured": bool(da_cfg.get("client_id")),
             "authenticated": has_da_token or bool(da_cfg.get("access_token")),
+            "connected": statuses.get("donationalerts", {}).get("connected", False),
+            "status": statuses.get("donationalerts", {}).get("status", "off"),
+            "error": statuses.get("donationalerts", {}).get("error"),
         },
         "donatex": {
             "enabled": bool(dx_cfg.get("enabled")),
             "configured": bool(dx_cfg.get("token")),
-            "connected": states.get("donatex", False),
+            "connected": statuses.get("donatex", {}).get("connected", False),
+            "status": statuses.get("donatex", {}).get("status", "off"),
+            "error": statuses.get("donatex", {}).get("error"),
         },
         "sounds": {
             "count": sounds_count,

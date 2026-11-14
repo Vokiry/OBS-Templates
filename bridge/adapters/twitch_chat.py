@@ -319,7 +319,19 @@ def parse_irc_message(line: str, channel: str) -> dict | None:
     return None
 
 
+is_connected: bool = False
+last_error: str | None = None
+
+
+def get_status() -> dict:
+    return {
+        "connected": is_connected,
+        "error": last_error,
+    }
+
+
 async def run(config: dict, broadcast) -> None:
+    global is_connected, last_error
     channel = config.get("channel", "").strip().lstrip("#").lower()
     if not channel:
         log.warning("twitch_chat: channel is not specified in config, chat listener disabled")
@@ -359,6 +371,8 @@ async def run(config: dict, broadcast) -> None:
                 await ws.send(f"PASS oauth:{nick}")
                 await ws.send(f"NICK {nick}")
                 await ws.send(f"JOIN #{channel}")
+                is_connected = True
+                last_error = None
                 log.info("connected and listening to #%s chat", channel)
 
                 room_id_fetched = False
@@ -397,5 +411,7 @@ async def run(config: dict, broadcast) -> None:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            is_connected = False
+            last_error = str(exc)
             log.warning("twitch_chat connection dropped (%s), reconnecting in 5s...", exc)
             await asyncio.sleep(5)

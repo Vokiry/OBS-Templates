@@ -65,6 +65,10 @@ body {
   color: var(--color-accent, #63E6BE) !important;
 }
 
+.dock__tag.is-warn {
+  color: var(--color-warning, #E9B13C) !important;
+}
+
 .dock__tag.is-off {
   color: var(--color-danger, #E5484D) !important;
   opacity: 0.9;

@@ -114,6 +114,7 @@ class DonationAlertsAdapter:
         return user_id, socket_token
 
     async def run(self) -> None:
+        global is_connected, last_error
         user_id, socket_token = await self.get_user_info()
         self.channel = f"$alerts:donation_{user_id}"
         log.info("donationalerts authenticated (user_id: %s, channel: %s)", user_id, self.channel)
@@ -141,6 +142,8 @@ class DonationAlertsAdapter:
             if not client:
                 raise ValueError("Could not get Centrifugo client ID from handshake response")
 
+            is_connected = True
+            last_error = None
             log.info("donationalerts centrifugo connected (client: %s)", client)
 
             # 2. Subscribe to user channel via REST API
@@ -215,6 +218,15 @@ class DonationAlertsAdapter:
 
 
 active_adapter = None
+is_connected: bool = False
+last_error: str | None = None
+
+
+def get_status() -> dict:
+    return {
+        "connected": is_connected,
+        "error": last_error,
+    }
 
 
 async def skip_donation() -> bool:
@@ -225,7 +237,7 @@ async def skip_donation() -> bool:
 
 
 async def run(config: dict, broadcast) -> None:
-    global active_adapter
+    global active_adapter, is_connected, last_error
     token = config.get("access_token", "").strip()
     client_id = str(config.get("client_id", "")).strip()
     client_secret = str(config.get("client_secret", "")).strip()
@@ -307,5 +319,7 @@ async def run(config: dict, broadcast) -> None:
                     log.warning("donationalerts: could not refresh token: %s", ref_err)
                     TOKEN_FILE.unlink(missing_ok=True)
 
+            is_connected = False
+            last_error = str(exc)
             log.warning("donationalerts connection error (%s), retrying in 10s...", exc)
             await asyncio.sleep(10)

@@ -453,9 +453,16 @@ async function runSystemDoctor() {
     const daEl = document.getElementById('doc-da');
     if (daEl) {
       const da = d.donationalerts || {};
-      if (da.authenticated) {
+      if (da.connected) {
         daEl.textContent = '● DonationAlerts: Подключен [ OK ]';
         daEl.className = 'doctor-badge is-ok';
+      } else if (da.enabled && da.error) {
+        daEl.textContent = '◌ DA: Ошибка сети / таймаут';
+        daEl.className = 'doctor-badge is-warn';
+        daEl.title = da.error;
+      } else if (da.authenticated) {
+        daEl.textContent = '◌ DA: Подключение...';
+        daEl.className = 'doctor-badge is-warn';
       } else if (da.configured) {
         daEl.textContent = '○ DA: Нажмите Подключить';
         daEl.className = 'doctor-badge is-warn';
