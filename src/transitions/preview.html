@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — Transition Mask Preview</title>
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <style>
+    body {
+      background: var(--color-base);
+      color: var(--color-text);
+      font-family: var(--font-family);
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+      color: var(--color-text-muted);
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    select, input[type=range] {
+      background: var(--color-surface);
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+      font-family: inherit;
+      font-size: 0.875rem;
+    }
+    button {
+      background: var(--color-accent);
+      color: var(--color-base);
+      border: none;
+      padding: 0.5rem 1rem;
+      font-family: inherit;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card h2 {
+      font-size: 0.875rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--color-text-muted);
+      letter-spacing: 0.05em;
+    }
+    .card video {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      background: repeating-linear-gradient(
+        45deg,
+        var(--color-base) 0,
+        var(--color-base) 10px,
+        var(--color-surface) 10px,
+        var(--color-surface) 20px
+      );
+    }
+    .muted {
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>SYSTEM · Transition Mask Preview</h1>
+
+  <div class="controls">
+    <label>Effect:</label>
+    <select id="effect">
+      <option value="doom-melt">Doom Melt (800 ms)</option>
+      <option value="datamosh">Datamosh (600 ms)</option>
+      <option value="scanline">Scanline (400 ms)</option>
+    </select>
+    <label>Duration:</label>
+    <span id="dur" class="muted">—</span>
+    <button id="play">▶ Play</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Doom Melt</h2>
+      <video id="vid-doom-melt" src="../transitions/doom-melt.mp4"></video>
+    </div>
+    <div class="card">
+      <h2>Datamosh</h2>
+      <video id="vid-datamosh" src="../transitions/datamosh.mp4"></video>
+    </div>
+    <div class="card">
+      <h2>Scanline</h2>
+      <video id="vid-scanline" src="../transitions/scanline.mp4"></video>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const select = document.getElementById('effect');
+      const dur = document.getElementById('dur');
+      const playBtn = document.getElementById('play');
+      const videos = {
+        'doom-melt': document.getElementById('vid-doom-melt'),
+        'datamosh': document.getElementById('vid-datamosh'),
+        'scanline': document.getElementById('vid-scanline'),
+      };
+
+      const durations = {
+        'doom-melt': '800 ms',
+        'datamosh': '600 ms',
+        'scanline': '400 ms',
+      };
+
+      function show(effect) {
+        dur.textContent = durations[effect];
+        Object.values(videos).forEach(v => { v.pause(); v.style.display = 'none'; });
+        videos[effect].style.display = 'block';
+        videos[effect].currentTime = 0;
+        videos[effect].play();
+      }
+
+      select.addEventListener('change', () => show(select.value));
+      playBtn.addEventListener('click', () => {
+        const v = videos[select.value];
+        v.currentTime = 0;
+        v.play();
+      });
+
+      show(select.value);
+    })();
+  </script>
+</body>
+</html>

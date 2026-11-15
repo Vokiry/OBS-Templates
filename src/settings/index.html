@@ -495,6 +495,46 @@
       </div>
     </section>
 
+    <!-- Module 9: Scene Transitions -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 09 // ПЕРЕХОДЫ СЦЕН (SCENE TRANSITIONS) ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn is-active" id="btn-transitions-toggle" onclick="toggleModule('transitions')">ON</button>
+        </div>
+      </div>
+      <span class="form-hint">Маски переходов для OBS Stinger (Track Matte → Layout: Mask). Живые пиксели сцен без кодеков с альфа-каналом.</span>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="transitions-effect">Эффект перехода</label>
+          <select id="transitions-effect" class="form-select">
+            <option value="doom-melt">Doom Melt — оммаж экрану загрузки Doom (800 мс)</option>
+            <option value="datamosh">Datamosh — цифровой сбой кодека (600 мс)</option>
+            <option value="scanline">Scanline — чистый горизонтальный вайп (400 мс)</option>
+          </select>
+          <span class="form-hint">Выберите стиль маски. Файлы лежат в <code>src/transitions/</code></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="transitions-duration">Длительность (мс)</label>
+          <input type="number" id="transitions-duration" class="form-input" value="600" min="200" max="2000" step="100">
+          <span class="form-hint">Укажите в настройках перехода OBS то же значение</span>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--full">
+        <div class="form-group">
+          <label class="form-label">Превью масок</label>
+          <button type="button" class="btn-action" style="width: 100%;" onclick="openTransitionsPreview()">[ ОТКРЫТЬ ПРЕВЬЮ ]</button>
+          <span class="form-hint">Лаконичная страница с тремя эффектами для проверки перед эфиром</span>
+        </div>
+      </div>
+
+      <div class="form-hint" style="margin-top: 8px;">
+        Настройка в OBS Studio: Настройки → Переходы → + → Stinger → Видео: <code>src/transitions/&lt;эффект&gt;.mp4</code> → Track Matte → Layout: <b>Mask</b> → Duration: <span id="transitions-dur-hint">600</span> мс → Audio Fade Style: CrossFade
+      </div>
+    </section>
+
       </div>
     </div>
 

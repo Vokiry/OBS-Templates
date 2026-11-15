@@ -34,7 +34,8 @@ const modules = {
   da: true,
   dx: true,
   goal: true,
-  tts: false
+  tts: false,
+  transitions: true
 };
 
 const THEME_PREVIEWS = {
@@ -76,7 +77,8 @@ function toggleModule(mod) {
     da: 'btn-da-toggle',
     dx: 'btn-dx-toggle',
     goal: 'btn-goal-toggle',
-    tts: 'btn-tts-toggle'
+    tts: 'btn-tts-toggle',
+    transitions: 'btn-transitions-toggle'
   };
   setToggleState(map[mod], modules[mod]);
   if (mod === 'tts') {
@@ -588,6 +590,14 @@ async function loadConfig() {
     document.getElementById('goal-current').value = goal.current !== undefined ? goal.current : 0;
     document.getElementById('goal-target').value = goal.target !== undefined ? goal.target : 10000;
 
+    // 9. Scene Transitions
+    const tr = configData.transitions || {};
+    modules.transitions = tr.enabled !== false;
+    setToggleState('btn-transitions-toggle', modules.transitions);
+    document.getElementById('transitions-effect').value = tr.effect || 'doom-melt';
+    document.getElementById('transitions-duration').value = tr.duration_ms !== undefined ? tr.duration_ms : 600;
+    document.getElementById('transitions-dur-hint').textContent = tr.duration_ms !== undefined ? tr.duration_ms : 600;
+
     // 6. Sounds Mapping
     const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
     soundTypes.forEach(t => {
@@ -688,6 +698,11 @@ async function saveConfiguration() {
       current: parseFloat(document.getElementById('goal-current').value || 0),
       target: Math.max(0.01, parseFloat(document.getElementById('goal-target').value || 10000))
     },
+    transitions: {
+      enabled: modules.transitions,
+      effect: document.getElementById('transitions-effect')?.value || 'doom-melt',
+      duration_ms: parseInt(document.getElementById('transitions-duration')?.value, 10) || 600
+    },
     sounds: {
       mapping: soundMapping,
       masterVolume: (parseInt(document.getElementById('alerts-volume').value, 10) || 70) / 100
@@ -755,5 +770,19 @@ async function saveConfiguration() {
 document.getElementById('appearance-theme')?.addEventListener('change', (e) => {
   applyThemeUI(e.target.value);
 });
+
+// Transitions: sync hint with duration input
+document.getElementById('transitions-duration')?.addEventListener('input', (e) => {
+  const hint = document.getElementById('transitions-dur-hint');
+  if (hint) hint.textContent = e.target.value || '600';
+});
+
+function openTransitionsPreview() {
+  const url = `${API_BASE}/src/transitions/preview.html`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => showStatus('[ ✓ URL ПРЕВЬЮ СКОПИРОВАН: ' + url + ' ]'));
+  }
+  window.open(url, '_blank');
+}
 
 loadConfig();
