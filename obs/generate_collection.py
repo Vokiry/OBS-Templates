@@ -128,6 +128,13 @@ def build_collection() -> dict:
     media_request = make_browser_source("SYSTEM: Media Request", "media-request.html", "pos=bottom-left")
     goal = make_browser_source("SYSTEM: Goal", "goal.html", "pos=bottom-left")
     tts = make_browser_source("SYSTEM: TTS", "tts.html")
+    now_playing = make_browser_source("SYSTEM: Now Playing", "now-playing.html", "variant=compact&pos=top-right")
+    now_playing_lyrics = make_browser_source(
+        "SYSTEM: Lyrics (Starting Soon)", "now-playing.html", "variant=lyrics-only&pos=center"
+    )
+    now_playing_brb = make_browser_source(
+        "SYSTEM: Now Playing (Center)", "now-playing.html", "variant=full&pos=center"
+    )
 
     all_browser_sources = [
         bg,
@@ -148,21 +155,25 @@ def build_collection() -> dict:
         media_request,
         goal,
         tts,
+        now_playing,
+        now_playing_lyrics,
+        now_playing_brb,
     ]
 
     # 2. Build Scenes (ordered layers from bottom to top)
     scene_starting = make_scene(
-        "SYSTEM: Starting Soon", [bg, ind_starting, countdown, chat_half, alerts, media_request, goal, tts]
+        "SYSTEM: Starting Soon",
+        [bg, ind_starting, countdown, now_playing_lyrics, chat_half, alerts, media_request, goal, tts],
     )
     scene_main = make_scene(
-        "SYSTEM: Main (Gameplay)", [bg, ind_main, chat_main, alerts, media_request, goal, tts]
+        "SYSTEM: Main (Gameplay)", [bg, ind_main, now_playing, chat_main, alerts, media_request, goal, tts]
     )
     scene_chatting = make_scene(
-        "SYSTEM: Chatting", [bg, ind_chatting, chat_standard, alerts, media_request, goal, tts]
+        "SYSTEM: Chatting", [bg, ind_chatting, now_playing, chat_standard, alerts, media_request, goal, tts]
     )
     scene_focus = make_scene("SYSTEM: Focus", [ind_focus, alerts, tts])
     scene_break = make_scene(
-        "SYSTEM: Break (BRB)", [bg, ind_brb, chat_standard, alerts, media_request, goal, tts]
+        "SYSTEM: Break (BRB)", [bg, ind_brb, now_playing_brb, chat_standard, alerts, media_request, goal, tts]
     )
     scene_ending = make_scene("SYSTEM: Ending", [bg, ind_ending, ending_card])
 

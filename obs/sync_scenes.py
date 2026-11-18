@@ -57,7 +57,7 @@ def sync_collection(target_path: Path, dry_run: bool = False, backup: bool = Tru
             curr = existing_sources_by_name[name]
             curr_settings = curr.setdefault("settings", {})
             tmpl_settings = tmpl_source.get("settings", {})
-            for key in ("restart_when_active", "fps", "width", "height"):
+            for key in ("restart_when_active", "shutdown", "fps", "width", "height"):
                 if key in tmpl_settings:
                     curr_settings[key] = tmpl_settings[key]
 

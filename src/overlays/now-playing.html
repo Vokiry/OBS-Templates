@@ -125,20 +125,34 @@
         return `[${'#'.repeat(filled)}${'-'.repeat(empty)}]`;
       }
 
+      const autohideSec = params.has('autohide') ? parseFloat(params.get('autohide')) : 8;
+
       function updateCardVisibility() {
-        const shouldShow = state.available && state.status !== 'Stopped';
-        if (shouldShow) {
+        if (state.available && state.status === 'Playing' && state.title) {
+          // Track is actively playing -> show immediately and cancel any hide timers
           if (hideTimeout) {
             clearTimeout(hideTimeout);
             hideTimeout = null;
           }
           card.classList.remove('is-hidden');
-        } else if (!card.classList.contains('is-hidden') && !hideTimeout) {
-          // Debounce hiding by 2 seconds to avoid flickering between tracks
-          hideTimeout = setTimeout(() => {
-            card.classList.add('is-hidden');
-            hideTimeout = null;
-          }, 2000);
+        } else if (state.available && state.status === 'Paused') {
+          // Track is paused -> auto-hide after autohideSec (default 8s)
+          if (autohideSec > 0) {
+            if (!hideTimeout && !card.classList.contains('is-hidden')) {
+              hideTimeout = setTimeout(() => {
+                card.classList.add('is-hidden');
+                hideTimeout = null;
+              }, autohideSec * 1000);
+            }
+          }
+        } else {
+          // Track stopped, unavailable, or empty -> hide after 2s debounce
+          if (!hideTimeout && !card.classList.contains('is-hidden')) {
+            hideTimeout = setTimeout(() => {
+              card.classList.add('is-hidden');
+              hideTimeout = null;
+            }, 2000);
+          }
         }
       }
 
