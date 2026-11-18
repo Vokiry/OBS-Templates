@@ -57,6 +57,7 @@ class DonateXAdapter:
                                         "message": "",
                                         "youtubeId": yt_id,
                                         "title": "YouTube Track",
+                                        "source": "donatex",
                                     }
                                 )
                         return self.widget_id
@@ -306,6 +307,7 @@ class DonateXAdapter:
                         "title": title,
                         "youtubeId": yt_id,
                         "link": link,
+                        "source": "donatex",
                     }
                 )
 

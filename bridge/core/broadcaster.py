@@ -312,10 +312,13 @@ class Broadcaster:
         """Handle events received from client overlays or OBS dock."""
         msg_type = data.get("type")
         if msg_type == "media_finished":
-            log.info("media playback finished, notifying DonateX skip...")
+            log.info("media playback finished, notifying DonateX skip and resuming local music...")
+            self.last_media_request = None
             from adapters import donatex
 
             await donatex.skip_track()
+            if self.media_coordinator:
+                await self.media_coordinator.handle_media_request_ended()
         elif msg_type == "media_control":
             if data.get("action") == "skip":
                 log.info("media skip requested by client")
@@ -353,7 +356,7 @@ class Broadcaster:
                 force_speed=data.get("speed"),
                 force_emotion=data.get("emotion"),
             )
-        elif msg_type in ("media_request_ended", "media_finished"):
+        elif msg_type == "media_request_ended":
             self.last_media_request = None
             if self.media_coordinator:
                 await self.media_coordinator.handle_media_request_ended()
@@ -406,6 +409,8 @@ class Broadcaster:
             action = payload.get("action")
             if action in ("skip", "stop"):
                 self.last_media_request = None
+                if self.media_coordinator and self.media_coordinator.current_mode == "request":
+                    self._create_background_task(self.media_coordinator.handle_media_request_ended())
         elif msg_type == "alert":
             self.last_alert = dict(payload)
             if self.dnd_active:

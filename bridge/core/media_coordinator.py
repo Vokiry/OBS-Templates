@@ -52,15 +52,20 @@ class MediaCoordinator:
 
     async def handle_media_request_ended(self) -> None:
         """Called when a media request video finishes or queue empties."""
+        if self.current_mode != "request" and not self._was_playing_before_request:
+            return
+
         log.info("media_coordinator: media request playback completed")
         self._active_request = None
         self.current_mode = "local"
 
-        # Resume local music player if it was playing previously
-        if self.auto_pause_enabled and self._was_playing_before_request and self.media_service:
-            log.info("media_coordinator: resuming local player after media request")
-            self._was_playing_before_request = False
-            await self.media_service.play()
+        # Resume local music player if it was paused or playing before the request
+        if self.auto_pause_enabled and self.media_service:
+            local_status = self.media_service.last_track_state.get("status")
+            if self._was_playing_before_request or local_status == "Paused":
+                log.info("media_coordinator: resuming local player after media request")
+                self._was_playing_before_request = False
+                await self.media_service.play()
 
         await self.broadcaster.broadcast({
             "type": "media_mode",

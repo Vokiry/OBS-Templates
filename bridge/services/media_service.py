@@ -297,10 +297,19 @@ class LinuxMprisTracker(BaseMediaTracker):
         return None, "image/jpeg"
 
     async def _run_cmd(self, action: str) -> bool:
-        player = self._last_active_player or (self.player_target if self.player_target != "auto" else "%any")
         cmd = ["playerctl"]
-        if player:
-            cmd.extend(["-p", player])
+        if self.player_target and self.player_target != "auto":
+            cmd.extend(["-p", self.player_target])
+        else:
+            if self._last_active_player and self._last_active_player not in self.ignore_players:
+                cmd.extend(["-p", self._last_active_player])
+            else:
+                cmd.extend(["-p", "%any"])
+
+        for ign in self.ignore_players:
+            if ign:
+                cmd.extend(["-i", ign])
+
         cmd.append(action)
         try:
             p = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
