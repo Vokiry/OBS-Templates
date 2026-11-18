@@ -1,5 +1,6 @@
 """System Doctor diagnostic service."""
 
+import sys
 from pathlib import Path
 
 
@@ -96,6 +97,18 @@ def collect_doctor_diagnostics(
             "title": goal_cfg.get("title", ""),
             "current": float(goal_cfg.get("current", 0)),
             "target": float(goal_cfg.get("target", 10000)),
+        },
+        "media": {
+            "enabled": bool(config.get("media", {}).get("enabled", False)),
+            "platform": sys.platform,
+            "player": (broadcaster.last_now_playing or {}).get("player", ""),
+            "status": (broadcaster.last_now_playing or {}).get("status", "Stopped"),
+            "track": (
+                f"{(broadcaster.last_now_playing or {}).get('artist', '')} — {(broadcaster.last_now_playing or {}).get('title', '')}"
+                if (broadcaster.last_now_playing or {}).get("artist") and (broadcaster.last_now_playing or {}).get("title")
+                else (broadcaster.last_now_playing or {}).get("title", "")
+            ),
+            "has_lyrics": bool((broadcaster.last_lyrics or {}).get("has_synced", False)),
         },
         "stream_stats": broadcaster.last_stream_stats,
     }

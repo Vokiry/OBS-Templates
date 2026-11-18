@@ -75,6 +75,7 @@
         <div class="doctor-badge" id="doc-dx">● DonateX: Проверка...</div>
         <div class="doctor-badge" id="doc-sounds">● Звуковой тракт: 8 файлов</div>
         <div class="doctor-badge" id="doc-tts">● Озвучка TTS: Проверка...</div>
+        <div class="doctor-badge" id="doc-media">● Медиаплеер: Проверка...</div>
       </div>
     </section>
 
@@ -532,6 +533,63 @@
 
       <div class="form-hint" style="margin-top: 8px;">
         Настройка в OBS Studio: Настройки → Переходы → + → Stinger → Видео: <code>src/transitions/&lt;эффект&gt;.mp4</code> → Track Matte → Layout: <b>Mask</b> → Duration: <span id="transitions-dur-hint">600</span> мс → Audio Fade Style: CrossFade
+      </div>
+    </section>
+
+    <!-- Module 10: Media Player & Synchronized Lyrics -->
+    <section class="settings-card">
+      <div class="settings-card__header">
+        <span class="settings-card__label">[ 10 // МЕДИАПЛЕЕР И КАРАОКЕ (NOW PLAYING & LYRICS) ]</span>
+        <div class="settings-card__toggle">
+          <button type="button" class="toggle-btn" id="btn-media-toggle" onclick="toggleModule('media')">OFF</button>
+        </div>
+      </div>
+      <span class="form-hint">Кроссплатформенный трекер музыки (Linux MPRIS / Windows SMTC) с обложками и караоке-текстами песен (LRCLIB).</span>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="media-player">Целевой плеер</label>
+          <input type="text" id="media-player" class="form-input" placeholder="auto (или vlc, spotify, cider, kopuz)" value="auto">
+          <span class="form-hint">"auto" выбирает первый активный системный плеер</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="media-ignore">Игнорировать плееры</label>
+          <input type="text" id="media-ignore" class="form-input" placeholder="firefox, chrome" value="firefox">
+          <span class="form-hint">Через запятую (чтобы вкладки браузера не перехватывали виджет)</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Авто-пауза при донатных заказах</label>
+          <div style="margin-top: 6px;">
+            <label style="display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 13px;">
+              <input type="checkbox" id="media-auto-pause" checked>
+              <span>Ставить фон на паузу, когда играет клип из DonateX</span>
+            </label>
+          </div>
+          <span class="form-hint">После завершения клипа локальный плеер автоматически возобновит воспроизведение</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Караоке-тексты (LRC)</label>
+          <div style="margin-top: 6px;">
+            <label style="display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 13px;">
+              <input type="checkbox" id="media-show-lyrics" checked>
+              <span>Авто-подтяжка синхронизированных слов (LRCLIB + локальные .lrc)</span>
+            </label>
+          </div>
+          <span class="form-hint">Поддерживает латиницу и кириллицу без API-ключей</span>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--full" style="margin-top: 8px;">
+        <label class="form-label">Ссылки для добавления Browser Source в OBS</label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+          <button type="button" class="btn-action" style="flex: 1; min-width: 160px; font-size: 11px;" onclick="copyMediaOverlayUrl('compact')">[ ⎘ ОВЕРЛЕЙ: КОМПАКТ ]</button>
+          <button type="button" class="btn-action" style="flex: 1; min-width: 160px; font-size: 11px;" onclick="copyMediaOverlayUrl('full')">[ ⎘ ОВЕРЛЕЙ: С ОБЛОЖКОЙ ]</button>
+          <button type="button" class="btn-action" style="flex: 1; min-width: 160px; font-size: 11px;" onclick="copyMediaOverlayUrl('lyrics-only')">[ ⎘ STARTING SOON: КАРАОКЕ ]</button>
+        </div>
+        <span class="form-hint">Нажмите кнопку, чтобы скопировать готовый URL источника браузера для вашей сцены OBS</span>
       </div>
     </section>
 

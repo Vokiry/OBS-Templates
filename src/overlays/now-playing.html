@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM — Now Playing & Lyrics</title>
+  <link rel="stylesheet" href="../base/fonts.css">
+  <link rel="stylesheet" href="../tokens/tokens.css">
+  <link rel="stylesheet" href="../base/reset.css">
+  <link rel="stylesheet" href="../base/overlay.css">
+  <link rel="stylesheet" href="../components/now-playing.css">
+</head>
+<body>
+  <div class="overlay">
+    <div class="now-playing is-hidden" id="np-card">
+      <!-- Header -->
+      <div class="np-header">
+        <span class="np-player-tag" id="np-player">[ NOW PLAYING // MEDIA ]</span>
+        <span class="np-status-tag is-playing" id="np-status">PLAYING</span>
+      </div>
+
+      <!-- Main Track Row -->
+      <div class="np-body">
+        <div class="np-cover-wrap" id="np-cover-box">
+          <img class="np-cover-img" id="np-cover" alt="Album Art">
+          <div class="np-cover-fallback" id="np-fallback">[ NO<br>ART ]</div>
+        </div>
+        <div class="np-meta">
+          <div class="np-title" id="np-title">Waiting for audio...</div>
+          <div class="np-artist" id="np-artist">—</div>
+          <div class="np-album" id="np-album"></div>
+        </div>
+      </div>
+
+      <!-- Timeline & ASCII Progress Bar -->
+      <div class="np-timeline" id="np-timeline">
+        <span class="np-ascii-bar" id="np-bar">[--------------------]</span>
+        <span class="np-time" id="np-time">00:00 / 00:00</span>
+      </div>
+
+      <!-- Synchronized Lyrics Box -->
+      <div class="np-lyrics-box" id="np-lyrics-box" style="display: none;">
+        <div class="np-lyrics-header">[ LYRICS // SYNCHRONIZED ]</div>
+        <div id="np-lyrics-lines">
+          <div class="np-lyric-line is-past" id="lyric-prev">&nbsp;</div>
+          <div class="np-lyric-line is-active" id="lyric-curr">&gt; [00:00] ... &lt;</div>
+          <div class="np-lyric-line is-future" id="lyric-next">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="overlay.js"></script>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const card = document.getElementById('np-card');
+      const playerEl = document.getElementById('np-player');
+      const statusEl = document.getElementById('np-status');
+      const coverBox = document.getElementById('np-cover-box');
+      const coverEl = document.getElementById('np-cover');
+      const fallbackEl = document.getElementById('np-fallback');
+      const titleEl = document.getElementById('np-title');
+      const artistEl = document.getElementById('np-artist');
+      const albumEl = document.getElementById('np-album');
+      const barEl = document.getElementById('np-bar');
+      const timeEl = document.getElementById('np-time');
+      const lyricsBox = document.getElementById('np-lyrics-box');
+      const lyricPrev = document.getElementById('lyric-prev');
+      const lyricCurr = document.getElementById('lyric-curr');
+      const lyricNext = document.getElementById('lyric-next');
+
+      const variant = params.get('variant') || 'full'; // 'compact' | 'full' | 'lyrics-only'
+      if (variant === 'compact') card.classList.add('np--compact');
+      if (variant === 'lyrics-only') card.classList.add('np--lyrics-only');
+
+      const BAR_WIDTH = parseInt(params.get('bar'), 10) || (variant === 'compact' ? 14 : 20);
+      const lyricsMode = params.get('lyrics') || (variant === 'lyrics-only' ? 'always' : 'auto'); // 'always' | 'auto' | 'starting' | 'off'
+
+      let state = {
+        available: false,
+        player: 'media',
+        status: 'Stopped',
+        title: '',
+        artist: '',
+        album: '',
+        position_ms: 0,
+        duration_ms: null,
+        has_cover: false,
+        cover_url: '',
+        source: 'local'
+      };
+
+      let currentLyrics = {
+        instrumental: false,
+        has_synced: false,
+        lines: [] // [{t: ms, text: ''}, ...]
+      };
+
+      let systemBroadcastState = 'live';
+      let lastPacketTime = performance.now();
+      let hideTimeout = null;
+
+      function formatTime(ms) {
+        if (ms == null || isNaN(ms)) return '--:--';
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+
+      function renderAsciiBar(currMs, totalMs) {
+        if (!totalMs || totalMs <= 0) {
+          // Streaming or live track: animated marquee
+          const tick = Math.floor((performance.now() / 250) % BAR_WIDTH);
+          let bar = '[';
+          for (let i = 0; i < BAR_WIDTH; i++) {
+            bar += (i === tick || i === (tick + 1) % BAR_WIDTH) ? '#' : '-';
+          }
+          return bar + ']';
+        }
+        const pct = Math.max(0, Math.min(1, currMs / totalMs));
+        const filled = Math.round(pct * BAR_WIDTH);
+        const empty = Math.max(0, BAR_WIDTH - filled);
+        return `[${'#'.repeat(filled)}${'-'.repeat(empty)}]`;
+      }
+
+      function updateCardVisibility() {
+        const shouldShow = state.available && state.status !== 'Stopped';
+        if (shouldShow) {
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
+          card.classList.remove('is-hidden');
+        } else if (!card.classList.contains('is-hidden') && !hideTimeout) {
+          // Debounce hiding by 2 seconds to avoid flickering between tracks
+          hideTimeout = setTimeout(() => {
+            card.classList.add('is-hidden');
+            hideTimeout = null;
+          }, 2000);
+        }
+      }
+
+      function updateCover(coverUrl, hasCover) {
+        if (hasCover && coverUrl) {
+          coverEl.src = coverUrl;
+          coverEl.style.display = 'block';
+          fallbackEl.style.display = 'none';
+        } else {
+          coverEl.style.display = 'none';
+          fallbackEl.style.display = 'block';
+        }
+      }
+
+      function shouldShowLyrics() {
+        if (lyricsMode === 'off') return false;
+        if (lyricsMode === 'always' || variant === 'lyrics-only') return true;
+        if (lyricsMode === 'starting') return systemBroadcastState === 'starting';
+        // 'auto': show if lyrics exist
+        return currentLyrics.has_synced || currentLyrics.instrumental;
+      }
+
+      function updateLyricsDisplay(currMs) {
+        if (!shouldShowLyrics()) {
+          lyricsBox.style.display = 'none';
+          return;
+        }
+
+        lyricsBox.style.display = 'flex';
+
+        if (currentLyrics.instrumental) {
+          lyricPrev.textContent = '';
+          lyricCurr.textContent = '♪ [ INSTRUMENTAL // NO VOCALS ] ♪';
+          lyricNext.textContent = '';
+          return;
+        }
+
+        const lines = currentLyrics.lines;
+        if (!lines || lines.length === 0) {
+          lyricPrev.textContent = '';
+          lyricCurr.textContent = '—';
+          lyricNext.textContent = '';
+          return;
+        }
+
+        // Binary search for the active line index
+        let low = 0;
+        let high = lines.length - 1;
+        let activeIdx = -1;
+
+        while (low <= high) {
+          const mid = (low + high) >> 1;
+          if (lines[mid].t <= currMs) {
+            activeIdx = mid;
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
+
+        const prev = activeIdx > 0 ? lines[activeIdx - 1] : null;
+        const curr = activeIdx >= 0 ? lines[activeIdx] : lines[0];
+        const next = activeIdx >= 0 && activeIdx < lines.length - 1 ? lines[activeIdx + 1] : null;
+
+        lyricPrev.textContent = prev ? `  [${formatTime(prev.t)}] ${prev.text}` : '';
+        lyricCurr.textContent = curr ? `> [${formatTime(curr.t)}] ${curr.text} <` : '—';
+        lyricNext.textContent = next ? `  [${formatTime(next.t)}] ${next.text}` : '';
+      }
+
+      // Smooth 60fps ticker loop using performance.now()
+      function animationTick() {
+        if (state.available && state.status !== 'Stopped') {
+          const now = performance.now();
+          const elapsed = (state.status === 'Playing') ? (now - lastPacketTime) : 0;
+          const currentPosMs = Math.max(0, state.position_ms + elapsed);
+
+          barEl.textContent = renderAsciiBar(currentPosMs, state.duration_ms);
+          if (state.duration_ms) {
+            timeEl.textContent = `${formatTime(currentPosMs)} / ${formatTime(state.duration_ms)}`;
+          } else {
+            timeEl.textContent = `${formatTime(currentPosMs)} / [LIVE]`;
+          }
+
+          updateLyricsDisplay(currentPosMs);
+        }
+        requestAnimationFrame(animationTick);
+      }
+      requestAnimationFrame(animationTick);
+
+      // Handle server updates
+      function applyNowPlaying(payload) {
+        Object.assign(state, payload);
+        lastPacketTime = performance.now();
+
+        playerEl.textContent = `[ NOW PLAYING // ${state.player.toUpperCase()} ]`;
+        titleEl.textContent = state.title || 'Unknown Track';
+        artistEl.textContent = state.artist || '—';
+        albumEl.textContent = state.album || '';
+        albumEl.style.display = state.album ? 'block' : 'none';
+
+        statusEl.className = 'np-status-tag';
+        if (state.source === 'donatex' || state.source === 'channel_points') {
+          statusEl.classList.add('is-request');
+          statusEl.textContent = 'ORDERED';
+        } else if (state.status === 'Playing') {
+          statusEl.classList.add('is-playing');
+          statusEl.textContent = 'PLAYING';
+        } else {
+          statusEl.classList.add('is-paused');
+          statusEl.textContent = 'PAUSED';
+        }
+
+        updateCover(state.cover_url, state.has_cover);
+        updateCardVisibility();
+      }
+
+      function applyLyrics(payload) {
+        currentLyrics = {
+          instrumental: boolVal(payload.instrumental),
+          has_synced: boolVal(payload.has_synced),
+          lines: payload.lines || []
+        };
+      }
+
+      function boolVal(v) {
+        return v === true || v === 'true';
+      }
+
+      // Mock preview mode (?ws=off)
+      if (params.get('ws') === 'off') {
+        applyNowPlaying({
+          available: true,
+          player: 'vlc',
+          status: 'Playing',
+          title: 'Numb',
+          artist: 'Linkin Park',
+          album: 'Meteora',
+          position_ms: 21500,
+          duration_ms: 186000,
+          has_cover: false,
+          cover_url: ''
+        });
+        applyLyrics({
+          instrumental: false,
+          has_synced: true,
+          lines: [
+            { t: 16000, text: "Don't know what you're expecting of me" },
+            { t: 21500, text: "I'm tired of being what you want me to be" },
+            { t: 25600, text: "Feeling so faithless, lost under the surface" }
+          ]
+        });
+        return;
+      }
+
+      // Live WebSocket connection
+      const wsUrl = `ws://${location.host || '127.0.0.1:8787'}/events`;
+      let retryDelay = 1000;
+
+      function connect() {
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          retryDelay = 1000;
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'now_playing') {
+              applyNowPlaying(data);
+            } else if (data.type === 'lyrics_update') {
+              applyLyrics(data);
+            } else if (data.type === 'status') {
+              systemBroadcastState = data.state || 'live';
+            } else if (data.type === 'media_mode') {
+              if (data.mode === 'request' && data.request) {
+                applyNowPlaying({
+                  available: true,
+                  player: 'donatex',
+                  status: 'Playing',
+                  title: data.request.title || 'YouTube Track',
+                  artist: `Ordered by ${data.request.user || 'viewer'}`,
+                  album: data.request.amount ? `Donation: ${data.request.amount}` : '',
+                  position_ms: 0,
+                  duration_ms: null,
+                  has_cover: false,
+                  cover_url: '',
+                  source: 'donatex'
+                });
+              }
+            }
+          } catch (e) {
+            console.debug('WS parse error:', e);
+          }
+        };
+
+        socket.onclose = () => {
+          setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 1.5, 5000);
+        };
+      }
+
+      connect();
+    })();
+  </script>
+</body>
+</html>

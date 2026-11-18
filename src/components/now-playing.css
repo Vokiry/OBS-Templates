@@ -1,0 +1,276 @@
+/**
+ * SYSTEM Broadcast Templates — Now Playing & Synchronized Lyrics (TUI)
+ * system24 aesthetic: monospace typography, 0px border-radius, clean tokens.
+ */
+
+.now-playing {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-interface);
+  font-size: var(--text-sm);
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  max-width: 440px;
+  min-width: 320px;
+  transition: opacity var(--anim-normal) ease, transform var(--anim-normal) ease;
+  user-select: none;
+}
+
+.now-playing.is-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+/* Header */
+.np-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: var(--text-xs);
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+}
+
+.np-player-tag {
+  color: var(--color-accent);
+  font-weight: var(--text-weight-semibold);
+}
+
+.np-status-tag {
+  padding: 1px 6px;
+  font-size: 10px;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.np-status-tag.is-playing {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.np-status-tag.is-paused {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.np-status-tag.is-request {
+  border-color: var(--color-accent-tertiary);
+  color: var(--color-accent-tertiary);
+}
+
+/* Track Body */
+.np-body {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Cover Art Slot */
+.np-cover-wrap {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  background: var(--color-base);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.np-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.np-cover-fallback {
+  font-size: 10px;
+  color: var(--color-muted);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Track Info */
+.np-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.np-title {
+  font-size: var(--text-md);
+  font-weight: var(--text-weight-bold);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.np-artist {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-album {
+  font-size: 11px;
+  color: var(--color-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Timeline & ASCII Progress Bar */
+.np-timeline {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--text-xs);
+  letter-spacing: var(--letter-spacing-mono);
+}
+
+.np-ascii-bar {
+  color: var(--color-accent);
+  font-weight: var(--text-weight-semibold);
+  white-space: pre;
+}
+
+.np-time {
+  color: var(--color-muted);
+  font-size: 11px;
+  min-width: 76px;
+  text-align: right;
+}
+
+/* Synchronized Lyrics Container */
+.np-lyrics-box {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.np-lyrics-header {
+  font-size: 10px;
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-muted);
+  margin-bottom: 2px;
+}
+
+.np-lyric-line {
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+.np-lyric-line.is-past {
+  color: var(--color-muted);
+  opacity: 0.45;
+}
+
+.np-lyric-line.is-active {
+  color: var(--color-accent);
+  font-weight: var(--text-weight-bold);
+  opacity: 1;
+  background: rgba(148, 226, 213, 0.08);
+  padding: 1px 4px;
+}
+
+.np-lyric-line.is-future {
+  color: var(--color-text);
+  opacity: 0.70;
+}
+
+.np-lyric-time {
+  color: var(--color-border);
+  font-size: 10px;
+  margin-right: 6px;
+}
+
+.np-lyric-instrumental {
+  font-size: 11px;
+  letter-spacing: var(--letter-spacing-mono);
+  color: var(--color-accent-tertiary);
+  padding: 4px 0;
+}
+
+/* ========================================================
+   VARIANT: Compact (2 Lines)
+   ======================================================== */
+.now-playing.np--compact {
+  max-width: 380px;
+  padding: 8px 12px;
+}
+
+.now-playing.np--compact .np-cover-wrap,
+.now-playing.np--compact .np-album,
+.now-playing.np--compact .np-lyrics-box {
+  display: none !important;
+}
+
+.now-playing.np--compact .np-header {
+  margin-bottom: 4px;
+}
+
+.now-playing.np--compact .np-title {
+  font-size: var(--text-sm);
+}
+
+.now-playing.np--compact .np-timeline {
+  margin-top: 6px;
+}
+
+/* ========================================================
+   VARIANT: Dedicated Lyrics-Only (Starting Soon Scene)
+   ======================================================== */
+.now-playing.np--lyrics-only {
+  max-width: 680px;
+  min-width: 480px;
+  padding: 16px 20px;
+  background: var(--color-overlay);
+  backdrop-filter: blur(8px);
+}
+
+.now-playing.np--lyrics-only .np-body,
+.now-playing.np--lyrics-only .np-cover-wrap,
+.now-playing.np--lyrics-only .np-timeline {
+  display: none !important;
+}
+
+.now-playing.np--lyrics-only .np-lyrics-box {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  gap: 8px;
+}
+
+.now-playing.np--lyrics-only .np-lyric-line {
+  font-size: 15px;
+  padding: 2px 6px;
+}
+
+.now-playing.np--lyrics-only .np-lyric-line.is-active {
+  font-size: 16px;
+}

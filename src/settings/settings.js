@@ -35,7 +35,8 @@ const modules = {
   dx: true,
   goal: true,
   tts: false,
-  transitions: true
+  transitions: true,
+  media: false
 };
 
 const THEME_PREVIEWS = {
@@ -78,7 +79,8 @@ function toggleModule(mod) {
     dx: 'btn-dx-toggle',
     goal: 'btn-goal-toggle',
     tts: 'btn-tts-toggle',
-    transitions: 'btn-transitions-toggle'
+    transitions: 'btn-transitions-toggle',
+    media: 'btn-media-toggle'
   };
   setToggleState(map[mod], modules[mod]);
   if (mod === 'tts') {
@@ -511,6 +513,29 @@ async function runSystemDoctor() {
         ttsEl.className = 'doctor-badge is-off';
       }
     }
+
+    // 9. Media & Lyrics
+    const mediaEl = document.getElementById('doc-media');
+    if (mediaEl) {
+      const med = d.media || {};
+      if (med.enabled) {
+        if (med.status === 'Playing') {
+          const lrcTag = med.has_lyrics ? ' [LRC: ✓]' : '';
+          const pName = med.player ? med.player.toUpperCase() : 'MEDIA';
+          mediaEl.textContent = `● Медиа: [ ${pName} ] ${med.track}${lrcTag}`;
+          mediaEl.className = 'doctor-badge is-ok';
+        } else if (med.status === 'Paused') {
+          mediaEl.textContent = `◌ Медиа: [ ${(med.player || 'MEDIA').toUpperCase()} ] ПАУЗА`;
+          mediaEl.className = 'doctor-badge is-warn';
+        } else {
+          mediaEl.textContent = `◌ Медиа: [ ${(med.player || 'ОЖИДАНИЕ').toUpperCase()} ] НЕТ ТРЕКА`;
+          mediaEl.className = 'doctor-badge is-warn';
+        }
+      } else {
+        mediaEl.textContent = '○ Медиа: Выключен';
+        mediaEl.className = 'doctor-badge is-off';
+      }
+    }
   } catch (e) {
     console.warn('System doctor error:', e);
   }
@@ -597,6 +622,19 @@ async function loadConfig() {
     document.getElementById('transitions-effect').value = tr.effect || 'doom-melt';
     document.getElementById('transitions-duration').value = tr.duration_ms !== undefined ? tr.duration_ms : 600;
     document.getElementById('transitions-dur-hint').textContent = tr.duration_ms !== undefined ? tr.duration_ms : 600;
+
+    // 10. Media Player & Lyrics
+    const med = configData.media || {};
+    modules.media = med.enabled === true;
+    setToggleState('btn-media-toggle', modules.media);
+    const mPlayer = document.getElementById('media-player');
+    if (mPlayer) mPlayer.value = med.player || 'auto';
+    const mPause = document.getElementById('media-auto-pause');
+    if (mPause) mPause.checked = med.auto_pause !== false;
+    const mLyrics = document.getElementById('media-show-lyrics');
+    if (mLyrics) mLyrics.checked = med.show_lyrics !== false;
+    const mIgnore = document.getElementById('media-ignore');
+    if (mIgnore) mIgnore.value = Array.isArray(med.ignore) ? med.ignore.join(', ') : 'firefox';
 
     // 6. Sounds Mapping
     const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
@@ -703,6 +741,13 @@ async function saveConfiguration() {
       effect: document.getElementById('transitions-effect')?.value || 'doom-melt',
       duration_ms: parseInt(document.getElementById('transitions-duration')?.value, 10) || 600
     },
+    media: {
+      enabled: modules.media,
+      player: document.getElementById('media-player')?.value.trim() || 'auto',
+      auto_pause: document.getElementById('media-auto-pause')?.checked ?? true,
+      show_lyrics: document.getElementById('media-show-lyrics')?.checked ?? true,
+      ignore: (document.getElementById('media-ignore')?.value || 'firefox').split(',').map(s => s.trim()).filter(Boolean)
+    },
     sounds: {
       mapping: soundMapping,
       masterVolume: (parseInt(document.getElementById('alerts-volume').value, 10) || 70) / 100
@@ -783,6 +828,20 @@ function openTransitionsPreview() {
     navigator.clipboard.writeText(url).then(() => showStatus('[ ✓ URL ПРЕВЬЮ СКОПИРОВАН: ' + url + ' ]'));
   }
   window.open(url, '_blank');
+}
+
+function copyMediaOverlayUrl(variant) {
+  let url = `${API_BASE}/src/overlays/now-playing.html?variant=${variant}`;
+  if (variant === 'lyrics-only') {
+    url += '&pos=center';
+  } else {
+    url += '&pos=bottom-left';
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      showStatus('[ ✓ URL ОВЕРЛЕЯ СКОПИРОВАН: ' + url + ' ]');
+    });
+  }
 }
 
 loadConfig();

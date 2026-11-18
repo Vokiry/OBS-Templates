@@ -84,3 +84,22 @@ blacklist = []
 #          "mocha-mauve" (Лавандовый Mocha) | "mocha-sky" (Небесно-голубой Mocha) | "classic" (SYSTEM Оригинал)
 [appearance]
 theme = "mocha-teal"
+
+# 8. ПЕРЕХОДЫ СЦЕН (SCENE TRANSITIONS)
+[transitions]
+enabled = true
+effect = "doom-melt"
+duration_ms = 600
+
+# 9. КРОССПЛАТФОРМЕННЫЙ ЛОКАЛЬНЫЙ МЕДИА-ПЛЕЕР И ТЕКСТЫ ПЕСЕН (MPRIS / SMTC)
+[media]
+enabled = false
+# Имя плеера: "auto" (первый активный) либо конкретный: "spotify", "vlc", "cider", "kopuz"
+player = "auto"
+# Авто-пауза локальной музыки при заказе трека через DonateX / баллы:
+auto_pause = true
+# Автоматическая загрузка караоке-текстов песен (LRCLIB + локальные .lrc):
+show_lyrics = true
+# Список игнорируемых плееров в auto-режиме:
+ignore = ["firefox"]
+

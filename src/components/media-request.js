@@ -244,6 +244,11 @@
   function stopPlayback() {
     card.classList.remove('is-active');
     isPaused = false;
+    if (socketRef && socketRef.readyState === WebSocket.OPEN) {
+      try {
+        socketRef.send(JSON.stringify({ type: 'media_request_ended' }));
+      } catch (e) {}
+    }
     setTimeout(() => {
       if (!isPlaying) {
         container.innerHTML = '';

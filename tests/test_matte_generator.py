@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from tools.generate_mattes import (
-    doom_melt_frame,
-    datamosh_frame,
-    scanline_frame,
-    WIDTH,
     HEIGHT,
+    WIDTH,
+    datamosh_frame,
+    doom_melt_frame,
+    scanline_frame,
 )
 
 BLACK = 0
@@ -70,7 +70,8 @@ def test_scanline_linear_progress() -> None:
     buf_mid = scanline_frame(0.2, 400)  # 50% progress
     buf_end = scanline_frame(0.4, 400)  # 100% progress
 
-    # Top row should be white at mid and end
+    # Top row should be black at start, white at mid and end
+    assert _pixel(buf_start, 100, 0) == BLACK
     assert _pixel(buf_mid, 100, 0) == WHITE
     assert _pixel(buf_end, 100, 0) == WHITE
     # Bottom row should stay black until the very end (above the 4px edge)

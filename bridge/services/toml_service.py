@@ -85,4 +85,26 @@ def serialize_toml(cfg: dict) -> str:
     lines.append(f'theme = "{toml_escape(cfg.get("appearance", {}).get("theme", "mocha-teal"))}"')
     lines.append("")
 
+    # 8. SCENE TRANSITIONS
+    if "transitions" in cfg:
+        tr = cfg["transitions"]
+        lines.append("[transitions]")
+        lines.append(f'enabled = {str(tr.get("enabled", True)).lower()}')
+        lines.append(f'effect = "{toml_escape(tr.get("effect", "doom-melt"))}"')
+        lines.append(f'duration_ms = {int(tr.get("duration_ms", 600))}')
+        lines.append("")
+
+    # 9. CROSS-PLATFORM MEDIA PLAYER & LYRICS
+    if "media" in cfg:
+        med = cfg["media"]
+        lines.append("[media]")
+        lines.append(f'enabled = {str(med.get("enabled", False)).lower()}')
+        lines.append(f'player = "{toml_escape(med.get("player", "auto"))}"')
+        lines.append(f'auto_pause = {str(med.get("auto_pause", True)).lower()}')
+        lines.append(f'show_lyrics = {str(med.get("show_lyrics", True)).lower()}')
+        ign = med.get("ignore", ["firefox"])
+        ign_str = ", ".join(f'"{toml_escape(x)}"' for x in ign)
+        lines.append(f'ignore = [{ign_str}]')
+        lines.append("")
+
     return "\n".join(lines)

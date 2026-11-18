@@ -1,11 +1,19 @@
-"""Media playback control, drisnya link resolver, and 7TV emote proxy routes."""
+"""Media playback control, drisnya link resolver, 7TV emote proxy, and album art routes."""
+
+import sys
 
 import aiohttp
 from aiohttp import web
 
 
-def register_media_routes(app: web.Application, broadcaster, config: dict) -> None:
-    """Register media resolver, 7TV proxy, and skip control endpoints."""
+def register_media_routes(
+    app: web.Application,
+    broadcaster,
+    config: dict,
+    media_service=None,
+    media_coordinator=None,
+) -> None:
+    """Register media resolver, 7TV proxy, album art, and playback control endpoints."""
 
     async def resolve_media_handler(request: web.Request) -> web.Response:
         url = request.query.get("url", "")
@@ -120,10 +128,60 @@ def register_media_routes(app: web.Application, broadcaster, config: dict) -> No
         await broadcaster.stop_tts()
         return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
 
+    async def media_cover_handler(request: web.Request) -> web.Response:
+        if not media_service:
+            return web.Response(status=404, text="Media service not active")
+        cover_bytes, mime = await media_service.get_cover_bytes()
+        if not cover_bytes:
+            return web.Response(status=404, text="No cover art available")
+        return web.Response(
+            body=cover_bytes,
+            content_type=mime,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "public, max-age=60",
+            },
+        )
+
+    async def media_status_handler(request: web.Request) -> web.Response:
+        status_data = {
+            "enabled": bool(media_service and media_service.enabled),
+            "platform": sys.platform,
+            "track": media_service.last_track_state if media_service else {},
+            "lyrics": media_service.last_lyrics_state if media_service else {},
+            "mode": media_coordinator.current_mode if media_coordinator else "local",
+        }
+        return web.json_response(status_data, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def media_control_handler(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        action = body.get("action", "toggle")
+        success = False
+        if media_coordinator and action == "skip":
+            success = await media_coordinator.skip_current()
+        elif media_service:
+            if action == "play":
+                success = await media_service.play()
+            elif action == "pause":
+                success = await media_service.pause()
+            elif action in ("toggle", "play-pause"):
+                success = await media_service.toggle()
+            elif action == "next":
+                success = await media_service.next_track()
+            elif action == "previous":
+                success = await media_service.previous_track()
+        return web.json_response({"ok": success, "action": action}, headers={"Access-Control-Allow-Origin": "*"})
+
     app.router.add_get("/api/resolve-media", resolve_media_handler)
     app.router.add_get("/api/7tv/config", get_7tv_config_handler)
     app.router.add_get("/api/7tv/global", proxy_7tv_global_handler)
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel_handler)
+    app.router.add_get("/api/media/cover", media_cover_handler)
+    app.router.add_get("/api/media/status", media_status_handler)
+    app.router.add_post("/api/media/control", media_control_handler)
     app.router.add_post("/api/media/skip", media_skip_handler)
     app.router.add_post("/api/donations/skip", donation_skip_handler)
     app.router.add_post("/api/tts/stop", tts_stop_handler)

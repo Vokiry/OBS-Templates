@@ -7,6 +7,7 @@ from pathlib import Path
 from aiohttp import web
 
 from core.broadcaster import Broadcaster
+from core.media_coordinator import MediaCoordinator
 from core.security import auth_middleware, no_cache_middleware
 from server.routes.auth_routes import register_auth_routes
 from server.routes.config_routes import register_config_routes
@@ -14,8 +15,13 @@ from server.routes.events_routes import register_events_routes
 from server.routes.media_routes import register_media_routes
 from server.routes.static_routes import register_static_routes
 from server.routes.system_routes import register_system_routes
+from services.media_service import MediaService
 
 log = logging.getLogger("bridge.server.app")
+
+
+MEDIA_SERVICE_KEY = web.AppKey("media_service", object)
+MEDIA_COORDINATOR_KEY = web.AppKey("media_coordinator", object)
 
 
 def build_app(
@@ -24,12 +30,21 @@ def build_app(
     enable_settings: bool = False,
     adapter_mgr=None,
     config_path: Path | None = None,
+    media_service: MediaService | None = None,
+    media_coordinator: MediaCoordinator | None = None,
 ) -> web.Application:
     """Build and configure the aiohttp web application."""
     project_root = Path(__file__).parent.parent.parent
     src_dir = project_root / "src"
     target_config_path = config_path or (project_root / "bridge" / "config.toml")
     target_backup_path = target_config_path.with_name(f"{target_config_path.name}.bak")
+
+    # Initialize Media Service & Media Coordinator
+    media_srv = media_service or MediaService(broadcaster, config)
+    media_coord = media_coordinator or MediaCoordinator(
+        media_srv, broadcaster, auto_pause=bool(config.get("media", {}).get("auto_pause", True))
+    )
+    broadcaster.media_coordinator = media_coord
 
     # 1. Pre-cache sound catalog
     sounds_json_path = src_dir / "sounds" / "sounds.json"
@@ -97,7 +112,16 @@ def build_app(
         target_backup_path=target_backup_path,
         enable_settings=enable_settings,
     )
-    register_media_routes(app, broadcaster, config)
+    register_media_routes(
+        app=app,
+        broadcaster=broadcaster,
+        config=config,
+        media_service=media_srv,
+        media_coordinator=media_coord,
+    )
     register_auth_routes(app, config, enable_settings)
+
+    app[MEDIA_SERVICE_KEY] = media_srv
+    app[MEDIA_COORDINATOR_KEY] = media_coord
 
     return app

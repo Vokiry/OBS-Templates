@@ -1,3 +1,5 @@
 aiohttp>=3.9
 websockets>=12
 twitchAPI>=4.5,<6
+winrt-Windows.Media.Control>=3.0; sys_platform == "win32"
+winrt-Windows.Storage.Streams>=3.0; sys_platform == "win32"

@@ -83,6 +83,8 @@ def register_config_routes(
                 await broadcaster.broadcast(broadcaster.last_theme)
         if "transitions" in payload:
             config.setdefault("transitions", {}).update(payload["transitions"])
+        if "media" in payload:
+            config.setdefault("media", {}).update(payload["media"])
 
         # Backup existing config
         if target_config_path.exists():

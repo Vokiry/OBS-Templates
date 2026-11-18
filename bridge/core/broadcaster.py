@@ -52,6 +52,12 @@ class Broadcaster:
         self._tts_queue: _deque = _deque(maxlen=4)
         self._tts_worker_running = False
 
+        # Media & Lyrics state
+        self.last_now_playing = None
+        self.last_lyrics = None
+        self.last_media_mode = None
+        self.media_coordinator = None
+
     def init_goal(self, goal_cfg: dict, config_path: Path | None = None) -> None:
         """Initialize donation goal configuration and pre-calculate percent."""
         self.goal_config = dict(goal_cfg)
@@ -274,6 +280,12 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_stream_stats))
             if self.last_goal:
                 await socket.send_str(base.encode(self.last_goal))
+            if self.last_now_playing:
+                await socket.send_str(base.encode(self.last_now_playing))
+            if self.last_lyrics:
+                await socket.send_str(base.encode(self.last_lyrics))
+            if self.last_media_mode:
+                await socket.send_str(base.encode(self.last_media_mode))
         except Exception:
             pass
 
@@ -338,6 +350,9 @@ class Broadcaster:
                 force_speed=data.get("speed"),
                 force_emotion=data.get("emotion"),
             )
+        elif msg_type == "media_request_ended":
+            if self.media_coordinator:
+                await self.media_coordinator.handle_media_request_ended()
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
 
@@ -373,6 +388,15 @@ class Broadcaster:
             self.last_stream_stats = payload
         elif msg_type == "goal_update":
             self.last_goal = payload
+        elif msg_type == "now_playing":
+            self.last_now_playing = payload
+        elif msg_type == "lyrics_update":
+            self.last_lyrics = payload
+        elif msg_type == "media_mode":
+            self.last_media_mode = payload
+        elif msg_type == "media_request":
+            if self.media_coordinator:
+                self._create_background_task(self.media_coordinator.handle_media_request_started(payload))
         elif msg_type == "alert":
             self.last_alert = dict(payload)
             if self.dnd_active:

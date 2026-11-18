@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.adapter_manager import AdapterManager, watch
 from core.broadcaster import Broadcaster
 from core.security import API_KEY, set_api_key
-from server.app import build_app
+from server.app import MEDIA_SERVICE_KEY, build_app
 from services import yandex_tts
 from services.goal_service import parse_amount
 from services.sound_service import get_sounds_catalog, save_sounds_catalog
@@ -91,6 +91,11 @@ async def main() -> None:
     await site.start()
     log.info("unified server ready at ws://%s:%d/events", host, port)
 
+    # Start cross-platform media tracker if enabled
+    media_service = app.get(MEDIA_SERVICE_KEY)
+    if media_service and media_service.enabled:
+        await media_service.start()
+
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
 
@@ -114,6 +119,8 @@ async def main() -> None:
         pass
     finally:
         log.info("shutting down...")
+        if media_service:
+            await media_service.stop()
         await adapter_mgr.stop_all()
         # Cancel any pending broadcaster background tasks (TTS worker, delay clears, etc.)
         for t in list(broadcaster._background_tasks):
