@@ -15,10 +15,16 @@
   const container = document.getElementById('yt-player-container');
 
   let socketRef = null;
+  let ytPlayer = null;
+  let ytApiReady = false;
   let trackQueue = [];
   let currentTrack = null;
   let isPlaying = false;
   let endCheckTimer = null;
+
+  window.onYouTubeIframeAPIReady = () => {
+    ytApiReady = true;
+  };
 
   if (params.get('width')) {
     card.style.width = params.get('width') + 'px';
@@ -96,14 +102,50 @@
 
     card.classList.add('is-active');
 
-    // Direct clean iframe embed: zero external script dependencies, robust on VPN/CEF
+    if (ytApiReady && window.YT && window.YT.Player) {
+      try {
+        if (!ytPlayer) {
+          container.innerHTML = '<div id="yt-player-target"></div>';
+          ytPlayer = new YT.Player('yt-player-target', {
+            width: '100%',
+            height: '100%',
+            videoId: currentTrack.youtubeId,
+            playerVars: {
+              autoplay: 1,
+              controls: 1,
+              rel: 0,
+              enablejsapi: 1,
+              origin: window.location.origin
+            },
+            events: {
+              onReady: (e) => { e.target.playVideo(); },
+              onStateChange: (e) => {
+                if (e.data === 0) { // 0 === YT.PlayerState.ENDED
+                  onTrackEnded();
+                }
+              },
+              onError: (e) => {
+                console.warn('YouTube playback error:', e.data);
+                setTimeout(onTrackEnded, 2000);
+              }
+            }
+          });
+        } else {
+          ytPlayer.loadVideoById(currentTrack.youtubeId);
+        }
+        return;
+      } catch (e) {
+        console.warn('YT.Player init failed, falling back to standard iframe:', e);
+      }
+    }
+
+    // Standard IFrame fallback (with postMessage listener)
     container.innerHTML = `
       <iframe
         id="yt-iframe"
-        src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&playsinline=1"
+        src="https://www.youtube.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&origin=${encodeURIComponent(window.location.origin)}"
         style="width: 100%; height: 100%; border: 0; display: block;"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        referrerpolicy="strict-origin-when-cross-origin"
+        allow="autoplay; encrypted-media; picture-in-picture"
         allowfullscreen>
       </iframe>
     `;
@@ -142,11 +184,8 @@
 
   function skipTrack(origin) {
     if (!isPlaying && !currentTrack) return;
-    const iframe = container.querySelector('iframe');
-    if (iframe && iframe.contentWindow) {
-      try {
-        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'stopVideo', args: '' }), '*');
-      } catch (e) {}
+    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+      try { ytPlayer.stopVideo(); } catch (e) {}
     }
 
     const skippedTrack = currentTrack;
@@ -181,6 +220,19 @@
     else if (forcedAction === 'resume' || forcedAction === 'play') isPaused = false;
     else isPaused = !isPaused;
 
+    if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+      try {
+        if (isPaused) {
+          ytPlayer.pauseVideo();
+          statusEl.textContent = 'PAUSED';
+        } else {
+          ytPlayer.playVideo();
+          statusEl.textContent = 'PLAYING';
+        }
+        return;
+      } catch (e) {}
+    }
+
     const iframe = container.querySelector('iframe');
     if (iframe && iframe.contentWindow) {
       const cmd = isPaused ? 'pauseVideo' : 'playVideo';
@@ -192,14 +244,10 @@
   function stopPlayback() {
     card.classList.remove('is-active');
     isPaused = false;
-    if (socketRef && socketRef.readyState === WebSocket.OPEN) {
-      try {
-        socketRef.send(JSON.stringify({ type: 'media_request_ended' }));
-      } catch (e) {}
-    }
     setTimeout(() => {
       if (!isPlaying) {
         container.innerHTML = '';
+        ytPlayer = null;
       }
     }, 350);
   }

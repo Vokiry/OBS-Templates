@@ -350,7 +350,7 @@ class Broadcaster:
                 force_speed=data.get("speed"),
                 force_emotion=data.get("emotion"),
             )
-        elif msg_type == "media_request_ended":
+        elif msg_type in ("media_request_ended", "media_finished"):
             if self.media_coordinator:
                 await self.media_coordinator.handle_media_request_ended()
         elif msg_type in ("status", "countdown_control", "chat_clear"):
