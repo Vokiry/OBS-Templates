@@ -71,11 +71,14 @@
       if (variant === 'compact') card.classList.add('np--compact');
       if (variant === 'starting-soon') card.classList.add('np--starting-soon');
 
-      const BAR_WIDTH = parseInt(params.get('bar'), 10) || (variant === 'compact' ? 14 : 20);
+      const showCover = params.get('cover') !== '0';
+      if (!showCover) card.classList.add('np--no-cover');
+
+      const BAR_WIDTH = parseInt(params.get('bar'), 10) || (variant === 'compact' ? 14 : 24);
       const lyricsMode = params.get('lyrics') || (variant === 'starting-soon' ? 'always' : 'auto'); // 'always' | 'auto' | 'starting' | 'off'
       const autohideSec = params.has('autohide') ? parseFloat(params.get('autohide')) : 8;
 
-      const LINE_HEIGHT = 28; // px per line
+      const LINE_HEIGHT = variant === 'starting-soon' ? 34 : 28; // px per line
 
       let state = {
         available: false,

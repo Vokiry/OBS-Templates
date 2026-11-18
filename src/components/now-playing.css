@@ -253,16 +253,32 @@
 }
 
 /* ========================================================
-   VARIANT: Compact (Gameplay Scene — Minimal 2-Line Bar)
+   VARIANT: Compact (Gameplay Scene — Minimal Media Badge)
    ======================================================== */
 .now-playing.np--compact {
-  width: 360px;
-  min-width: 360px;
-  max-width: 360px;
+  width: 420px;
+  min-width: 420px;
+  max-width: 420px;
   padding: 8px 12px;
 }
 
-.now-playing.np--compact .np-cover-wrap,
+.now-playing.np--compact.np--no-cover {
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
+}
+
+.now-playing.np--compact .np-cover-wrap {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  max-width: 48px;
+}
+
+.now-playing.np--compact.np--no-cover .np-cover-wrap {
+  display: none !important;
+}
+
 .now-playing.np--compact .np-album,
 .now-playing.np--compact .np-lyrics-box {
   display: none !important;
@@ -277,34 +293,70 @@
 }
 
 .now-playing.np--compact .np-timeline {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 /* ========================================================
    VARIANT: Starting Soon (Unified Left-Side Layout under Countdown)
    ======================================================== */
 .now-playing.np--starting-soon {
-  width: 520px;
-  min-width: 520px;
-  max-width: 520px;
-  margin-top: 155px; /* Sits cleanly beneath the Countdown timer */
-  margin-left: 16px;
-  padding: 16px 20px;
+  width: 640px;
+  min-width: 640px;
+  max-width: 640px;
+  margin-top: 175px; /* Sits cleanly beneath the Countdown timer */
+  margin-left: 24px;
+  padding: 18px 24px;
   background: var(--color-overlay);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
 }
 
 .now-playing.np--starting-soon .np-cover-wrap {
-  width: 80px;
-  height: 80px;
-  min-width: 80px;
-  max-width: 80px;
+  width: 96px;
+  height: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  border-width: 2px;
 }
 
 .now-playing.np--starting-soon .np-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+}
+
+.now-playing.np--starting-soon .np-artist {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.now-playing.np--starting-soon .np-album {
+  font-size: var(--text-xs);
+  color: var(--color-border);
+}
+
+.now-playing.np--starting-soon .np-timeline {
+  margin-top: 12px;
+  font-size: var(--text-sm);
+}
+
+.now-playing.np--starting-soon .np-lyrics-box {
+  margin-top: 14px;
+  padding-top: 10px;
 }
 
 .now-playing.np--starting-soon .np-lyrics-viewport {
-  height: 196px; /* 7 lines of 28px */
+  height: 238px; /* 7 lines of 34px */
+}
+
+.now-playing.np--starting-soon .np-lyric-line {
+  height: 34px;
+  line-height: 34px;
+  font-size: 15px;
+  padding: 0 10px;
+}
+
+.now-playing.np--starting-soon .np-lyric-line.is-active {
+  font-size: 16px;
+  background: rgba(148, 226, 213, 0.14);
 }
