@@ -128,6 +128,7 @@
                   e.target.setVolume(100);
                   e.target.playVideo();
                 } catch (err) {}
+                startEndCheckTimer();
               },
               onStateChange: (e) => {
                 if (e.data === 0) { // 0 === YT.PlayerState.ENDED
@@ -141,6 +142,7 @@
           });
         } else {
           ytPlayer.loadVideoById(currentTrack.youtubeId);
+          startEndCheckTimer();
         }
         return;
       } catch (e) {
@@ -149,6 +151,42 @@
     }
 
     fallbackDirectIframe(currentTrack.youtubeId);
+    startEndCheckTimer();
+  }
+
+  function startEndCheckTimer() {
+    if (endCheckTimer) clearInterval(endCheckTimer);
+
+    endCheckTimer = setInterval(() => {
+      if (!isPlaying || !currentTrack) {
+        clearInterval(endCheckTimer);
+        endCheckTimer = null;
+        return;
+      }
+
+      // Check via YT.Player API if active
+      if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && typeof ytPlayer.getDuration === 'function') {
+        try {
+          const cur = ytPlayer.getCurrentTime();
+          const dur = ytPlayer.getDuration();
+          if (dur > 0 && cur >= dur - 0.8) {
+            clearInterval(endCheckTimer);
+            endCheckTimer = null;
+            onTrackEnded();
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // Query via iframe postMessage if direct iframe
+      const iframe = container.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: '' }), '*');
+          iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getDuration', args: '' }), '*');
+        } catch (e) {}
+      }
+    }, 1000);
   }
 
   function handlePlaybackError(errorCode) {
@@ -171,6 +209,7 @@
       }, 3000);
     } else {
       fallbackDirectIframe(currentTrack ? currentTrack.youtubeId : '');
+      startEndCheckTimer();
     }
   }
 
@@ -186,10 +225,34 @@
         allowfullscreen>
       </iframe>
     `;
+
+    const iframe = container.querySelector('iframe');
+    if (iframe) {
+      iframe.addEventListener('load', () => {
+        try {
+          iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'listening',
+            id: 1,
+            channel: 'widget'
+          }), '*');
+          iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'command',
+            func: 'addEventListener',
+            args: ['onStateChange'],
+            id: 1,
+            channel: 'widget'
+          }), '*');
+        } catch (e) {}
+      });
+    }
   }
 
   function onTrackEnded() {
     if (!isPlaying) return;
+    if (endCheckTimer) {
+      clearInterval(endCheckTimer);
+      endCheckTimer = null;
+    }
     statusEl.textContent = 'FINISHED';
     isPlaying = false;
 
@@ -215,7 +278,7 @@
         if (!isPlaying && trackQueue.length === 0) {
           stopPlayback();
         }
-      }, 1800);
+      }, 1500);
     }
   }
 
@@ -279,8 +342,21 @@
   }
 
   function stopPlayback() {
+    if (endCheckTimer) {
+      clearInterval(endCheckTimer);
+      endCheckTimer = null;
+    }
     card.classList.remove('is-active');
     isPaused = false;
+    isPlaying = false;
+    currentTrack = null;
+
+    if (socketRef && socketRef.readyState === WebSocket.OPEN) {
+      try {
+        socketRef.send(JSON.stringify({ type: 'media_request_ended' }));
+      } catch (e) {}
+    }
+
     setTimeout(() => {
       if (!isPlaying) {
         container.innerHTML = '';
@@ -289,6 +365,9 @@
     }, 350);
   }
 
+  let lastReportedTime = 0;
+  let lastReportedDuration = 0;
+
   // Listen for YouTube iframe postMessage events (works even without iframe_api)
   window.addEventListener('message', (event) => {
     if (!event.data) return;
@@ -296,10 +375,21 @@
     if (typeof data === 'string') {
       try { data = JSON.parse(data); } catch (e) { return; }
     }
-    if (data && data.event === 'onStateChange' && data.info === 0) {
-      onTrackEnded();
+    if (data && data.event === 'onStateChange') {
+      if (data.info === 0) { // 0 === ENDED
+        onTrackEnded();
+      }
     } else if (data && data.event === 'onError') {
       handlePlaybackError(data.info);
+    } else if (data && data.info !== undefined && typeof data.info === 'number') {
+      if (data.info > 100) {
+        lastReportedDuration = data.info;
+      } else if (data.info > 0) {
+        lastReportedTime = data.info;
+      }
+      if (lastReportedDuration > 0 && lastReportedTime >= lastReportedDuration - 0.8) {
+        onTrackEnded();
+      }
     }
   });
 
