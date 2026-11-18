@@ -56,6 +56,7 @@ class Broadcaster:
         self.last_now_playing = None
         self.last_lyrics = None
         self.last_media_mode = None
+        self.last_media_request = None
         self.media_coordinator = None
 
     def init_goal(self, goal_cfg: dict, config_path: Path | None = None) -> None:
@@ -286,6 +287,8 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_lyrics))
             if self.last_media_mode:
                 await socket.send_str(base.encode(self.last_media_mode))
+            if self.last_media_request:
+                await socket.send_str(base.encode(self.last_media_request))
         except Exception:
             pass
 
@@ -351,6 +354,7 @@ class Broadcaster:
                 force_emotion=data.get("emotion"),
             )
         elif msg_type in ("media_request_ended", "media_finished"):
+            self.last_media_request = None
             if self.media_coordinator:
                 await self.media_coordinator.handle_media_request_ended()
         elif msg_type in ("status", "countdown_control", "chat_clear"):
@@ -395,8 +399,13 @@ class Broadcaster:
         elif msg_type == "media_mode":
             self.last_media_mode = payload
         elif msg_type == "media_request":
+            self.last_media_request = payload
             if self.media_coordinator:
                 self._create_background_task(self.media_coordinator.handle_media_request_started(payload))
+        elif msg_type == "media_control":
+            action = payload.get("action")
+            if action in ("skip", "stop"):
+                self.last_media_request = None
         elif msg_type == "alert":
             self.last_alert = dict(payload)
             if self.dnd_active:

@@ -22,6 +22,9 @@
   let isPlaying = false;
   let endCheckTimer = null;
 
+  if (window.YT && window.YT.Player) {
+    ytApiReady = true;
+  }
   window.onYouTubeIframeAPIReady = () => {
     ytApiReady = true;
   };
@@ -107,6 +110,7 @@
         if (!ytPlayer) {
           container.innerHTML = '<div id="yt-player-target"></div>';
           ytPlayer = new YT.Player('yt-player-target', {
+            host: 'https://www.youtube-nocookie.com',
             width: '100%',
             height: '100%',
             videoId: currentTrack.youtubeId,
@@ -115,18 +119,23 @@
               controls: 1,
               rel: 0,
               enablejsapi: 1,
-              origin: window.location.origin
+              playsinline: 1
             },
             events: {
-              onReady: (e) => { e.target.playVideo(); },
+              onReady: (e) => {
+                try {
+                  e.target.unMute();
+                  e.target.setVolume(100);
+                  e.target.playVideo();
+                } catch (err) {}
+              },
               onStateChange: (e) => {
                 if (e.data === 0) { // 0 === YT.PlayerState.ENDED
                   onTrackEnded();
                 }
               },
               onError: (e) => {
-                console.warn('YouTube playback error:', e.data);
-                setTimeout(onTrackEnded, 2000);
+                handlePlaybackError(e.data);
               }
             }
           });
@@ -139,13 +148,41 @@
       }
     }
 
-    // Standard IFrame fallback (with postMessage listener)
+    fallbackDirectIframe(currentTrack.youtubeId);
+  }
+
+  function handlePlaybackError(errorCode) {
+    console.warn('YouTube playback error code:', errorCode);
+    if (errorCode === 101 || errorCode === 150) {
+      statusEl.textContent = 'RESTRICTED // SKIPPING...';
+      statusEl.style.color = 'var(--color-danger)';
+      if (messageEl) {
+        messageEl.textContent = '[ ВОСПРОИЗВЕДЕНИЕ ЗАПРЕЩЕНО ПРАВООБЛАДАТЕЛЕМ НА СТОРОННИХ САЙТАХ ]';
+        messageEl.style.display = 'block';
+        messageEl.style.color = 'var(--color-danger)';
+      }
+      setTimeout(() => {
+        skipTrack('blocked_by_owner');
+      }, 3500);
+    } else if (errorCode === 100) {
+      statusEl.textContent = 'VIDEO NOT FOUND // SKIPPING...';
+      setTimeout(() => {
+        skipTrack('not_found');
+      }, 3000);
+    } else {
+      fallbackDirectIframe(currentTrack ? currentTrack.youtubeId : '');
+    }
+  }
+
+  function fallbackDirectIframe(videoId) {
+    if (!videoId) return;
     container.innerHTML = `
       <iframe
         id="yt-iframe"
-        src="https://www.youtube.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&origin=${encodeURIComponent(window.location.origin)}"
+        src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&enablejsapi=1&controls=1&playsinline=1"
         style="width: 100%; height: 100%; border: 0; display: block;"
-        allow="autoplay; encrypted-media; picture-in-picture"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen>
       </iframe>
     `;
@@ -261,6 +298,8 @@
     }
     if (data && data.event === 'onStateChange' && data.info === 0) {
       onTrackEnded();
+    } else if (data && data.event === 'onError') {
+      handlePlaybackError(data.info);
     }
   });
 
