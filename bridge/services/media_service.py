@@ -242,6 +242,25 @@ class LinuxMprisTracker(BaseMediaTracker):
                 self._last_active_player = parsed.get("player") or self._last_active_player
                 # Invalidate or load cover when art_url changes
                 new_art = parsed.get("art_url") or ""
+                # Resolve spotify:image URI to CDN URL
+                if new_art.startswith("spotify:image:"):
+                    img_id = new_art.split(":")[-1]
+                    new_art = f"https://i.scdn.co/image/{img_id}"
+                    parsed["art_url"] = new_art
+
+                # Fallback: if art_url is empty, check for local cover.jpg/folder.jpg in audio folder
+                if not new_art and parsed.get("local_file"):
+                    try:
+                        audio_p = Path(parsed["local_file"])
+                        for candidate_name in ("cover.jpg", "cover.png", "folder.jpg", "front.jpg", "album.jpg"):
+                            c_path = audio_p.parent / candidate_name
+                            if c_path.exists() and c_path.is_file():
+                                new_art = c_path.as_uri()
+                                parsed["art_url"] = new_art
+                                break
+                    except Exception:
+                        pass
+
                 if new_art != self._current_art_url:
                     self._current_art_url = new_art
                     self._cached_cover_bytes = None

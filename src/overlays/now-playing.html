@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>SYSTEM — Now Playing & Lyrics</title>
   <link rel="stylesheet" href="../base/fonts.css">
   <link rel="stylesheet" href="../tokens/tokens.css">
@@ -38,13 +39,11 @@
         <span class="np-time" id="np-time">00:00 / 00:00</span>
       </div>
 
-      <!-- Synchronized Lyrics Box -->
+      <!-- Synchronized Lyrics Teleprompter -->
       <div class="np-lyrics-box" id="np-lyrics-box" style="display: none;">
         <div class="np-lyrics-header">[ LYRICS // SYNCHRONIZED ]</div>
-        <div id="np-lyrics-lines">
-          <div class="np-lyric-line is-past" id="lyric-prev">&nbsp;</div>
-          <div class="np-lyric-line is-active" id="lyric-curr">&gt; [00:00] ... &lt;</div>
-          <div class="np-lyric-line is-future" id="lyric-next">&nbsp;</div>
+        <div class="np-lyrics-viewport" id="np-lyrics-viewport">
+          <div class="np-lyrics-stream" id="np-lyrics-stream"></div>
         </div>
       </div>
     </div>
@@ -57,7 +56,6 @@
       const card = document.getElementById('np-card');
       const playerEl = document.getElementById('np-player');
       const statusEl = document.getElementById('np-status');
-      const coverBox = document.getElementById('np-cover-box');
       const coverEl = document.getElementById('np-cover');
       const fallbackEl = document.getElementById('np-fallback');
       const titleEl = document.getElementById('np-title');
@@ -66,16 +64,18 @@
       const barEl = document.getElementById('np-bar');
       const timeEl = document.getElementById('np-time');
       const lyricsBox = document.getElementById('np-lyrics-box');
-      const lyricPrev = document.getElementById('lyric-prev');
-      const lyricCurr = document.getElementById('lyric-curr');
-      const lyricNext = document.getElementById('lyric-next');
+      const lyricsStream = document.getElementById('np-lyrics-stream');
 
-      const variant = params.get('variant') || 'full'; // 'compact' | 'full' | 'lyrics-only'
+      // Variant styling
+      const variant = params.get('variant') || 'full'; // 'compact' | 'full' | 'starting-soon'
       if (variant === 'compact') card.classList.add('np--compact');
-      if (variant === 'lyrics-only') card.classList.add('np--lyrics-only');
+      if (variant === 'starting-soon') card.classList.add('np--starting-soon');
 
       const BAR_WIDTH = parseInt(params.get('bar'), 10) || (variant === 'compact' ? 14 : 20);
-      const lyricsMode = params.get('lyrics') || (variant === 'lyrics-only' ? 'always' : 'auto'); // 'always' | 'auto' | 'starting' | 'off'
+      const lyricsMode = params.get('lyrics') || (variant === 'starting-soon' ? 'always' : 'auto'); // 'always' | 'auto' | 'starting' | 'off'
+      const autohideSec = params.has('autohide') ? parseFloat(params.get('autohide')) : 8;
+
+      const LINE_HEIGHT = 28; // px per line
 
       let state = {
         available: false,
@@ -100,6 +100,7 @@
       let systemBroadcastState = 'live';
       let lastPacketTime = performance.now();
       let hideTimeout = null;
+      let lastActiveIdx = -1;
 
       function formatTime(ms) {
         if (ms == null || isNaN(ms)) return '--:--';
@@ -124,8 +125,6 @@
         const empty = Math.max(0, BAR_WIDTH - filled);
         return `[${'#'.repeat(filled)}${'-'.repeat(empty)}]`;
       }
-
-      const autohideSec = params.has('autohide') ? parseFloat(params.get('autohide')) : 8;
 
       function updateCardVisibility() {
         if (state.available && state.status === 'Playing' && state.title) {
@@ -168,14 +167,42 @@
       }
 
       function shouldShowLyrics() {
-        if (lyricsMode === 'off') return false;
-        if (lyricsMode === 'always' || variant === 'lyrics-only') return true;
+        if (lyricsMode === 'off' || variant === 'compact') return false;
+        if (lyricsMode === 'always' || variant === 'starting-soon') return true;
         if (lyricsMode === 'starting') return systemBroadcastState === 'starting';
-        // 'auto': show if lyrics exist
         return currentLyrics.has_synced || currentLyrics.instrumental;
       }
 
-      function updateLyricsDisplay(currMs) {
+      function buildLyricsStreamDOM() {
+        lyricsStream.innerHTML = '';
+        lastActiveIdx = -1;
+
+        if (currentLyrics.instrumental) {
+          lyricsStream.innerHTML = '<div class="np-lyric-instrumental">♪ [ INSTRUMENTAL — NO VOCALS ] ♪</div>';
+          lyricsStream.style.transform = 'translateY(0)';
+          return;
+        }
+
+        const lines = currentLyrics.lines || [];
+        if (lines.length === 0) {
+          lyricsStream.innerHTML = '<div class="np-lyric-instrumental">[ NO SYNCHRONIZED LYRICS ]</div>';
+          lyricsStream.style.transform = 'translateY(0)';
+          return;
+        }
+
+        // Build rolling list of pure lyric lines (NO timestamps)
+        const frag = document.createDocumentFragment();
+        lines.forEach((line, idx) => {
+          const div = document.createElement('div');
+          div.className = 'np-lyric-line is-future';
+          div.id = `np-l-${idx}`;
+          div.textContent = line.text;
+          frag.appendChild(div);
+        });
+        lyricsStream.appendChild(frag);
+      }
+
+      function updateLyricsScroll(currMs) {
         if (!shouldShowLyrics()) {
           lyricsBox.style.display = 'none';
           return;
@@ -183,22 +210,13 @@
 
         lyricsBox.style.display = 'flex';
 
-        if (currentLyrics.instrumental) {
-          lyricPrev.textContent = '';
-          lyricCurr.textContent = '♪ [ INSTRUMENTAL // NO VOCALS ] ♪';
-          lyricNext.textContent = '';
+        if (currentLyrics.instrumental || !currentLyrics.lines || currentLyrics.lines.length === 0) {
           return;
         }
 
         const lines = currentLyrics.lines;
-        if (!lines || lines.length === 0) {
-          lyricPrev.textContent = '';
-          lyricCurr.textContent = '—';
-          lyricNext.textContent = '';
-          return;
-        }
 
-        // Binary search for the active line index
+        // Binary search for active lyric cue
         let low = 0;
         let high = lines.length - 1;
         let activeIdx = -1;
@@ -213,13 +231,26 @@
           }
         }
 
-        const prev = activeIdx > 0 ? lines[activeIdx - 1] : null;
-        const curr = activeIdx >= 0 ? lines[activeIdx] : lines[0];
-        const next = activeIdx >= 0 && activeIdx < lines.length - 1 ? lines[activeIdx + 1] : null;
+        if (activeIdx !== lastActiveIdx) {
+          lastActiveIdx = activeIdx;
 
-        lyricPrev.textContent = prev ? `  [${formatTime(prev.t)}] ${prev.text}` : '';
-        lyricCurr.textContent = curr ? `> [${formatTime(curr.t)}] ${curr.text} <` : '—';
-        lyricNext.textContent = next ? `  [${formatTime(next.t)}] ${next.text}` : '';
+          // Update active/past/future classes
+          const lineElements = lyricsStream.children;
+          for (let i = 0; i < lineElements.length; i++) {
+            const el = lineElements[i];
+            if (i < activeIdx) {
+              el.className = 'np-lyric-line is-past';
+            } else if (i === activeIdx) {
+              el.className = 'np-lyric-line is-active';
+            } else {
+              el.className = 'np-lyric-line is-future';
+            }
+          }
+
+          // Smooth teleprompter roll: center active line around row 2 (56px offset)
+          const targetY = Math.max(0, (activeIdx * LINE_HEIGHT) - (LINE_HEIGHT * 2));
+          lyricsStream.style.transform = `translateY(-${targetY}px)`;
+        }
       }
 
       // Smooth 60fps ticker loop using performance.now()
@@ -236,7 +267,7 @@
             timeEl.textContent = `${formatTime(currentPosMs)} / [LIVE]`;
           }
 
-          updateLyricsDisplay(currentPosMs);
+          updateLyricsScroll(currentPosMs);
         }
         requestAnimationFrame(animationTick);
       }
@@ -271,14 +302,11 @@
 
       function applyLyrics(payload) {
         currentLyrics = {
-          instrumental: boolVal(payload.instrumental),
-          has_synced: boolVal(payload.has_synced),
+          instrumental: payload.instrumental === true || payload.instrumental === 'true',
+          has_synced: payload.has_synced === true || payload.has_synced === 'true',
           lines: payload.lines || []
         };
-      }
-
-      function boolVal(v) {
-        return v === true || v === 'true';
+        buildLyricsStreamDOM();
       }
 
       // Mock preview mode (?ws=off)
@@ -299,9 +327,13 @@
           instrumental: false,
           has_synced: true,
           lines: [
-            { t: 16000, text: "Don't know what you're expecting of me" },
-            { t: 21500, text: "I'm tired of being what you want me to be" },
-            { t: 25600, text: "Feeling so faithless, lost under the surface" }
+            { t: 10000, text: "I'm tired of being what you want me to be" },
+            { t: 15000, text: "Feeling so faithless, lost under the surface" },
+            { t: 21500, text: "Don't know what you're expecting of me" },
+            { t: 26000, text: "Put under the pressure of walking in your shoes" },
+            { t: 31000, text: "Every step that I take is another mistake to you" },
+            { t: 36000, text: "I've become so numb, I can't feel you there" },
+            { t: 42000, text: "Become so tired, so much more aware" }
           ]
         });
         return;

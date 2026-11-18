@@ -638,11 +638,11 @@
         {
             "prev_ver": 537001985,
             "name": "SYSTEM: Now Playing",
-            "uuid": "bc1a152f-b5c2-5592-a757-465af729904f",
+            "uuid": "a4379403-a449-54e6-897c-6255d0ab599b",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
-                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=compact&pos=top-right",
+                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=compact&pos=top-left",
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
@@ -671,12 +671,12 @@
         },
         {
             "prev_ver": 537001985,
-            "name": "SYSTEM: Lyrics (Starting Soon)",
-            "uuid": "109a18d4-1466-5a8d-9145-f9abb8413da5",
+            "name": "SYSTEM: Now Playing (Starting Soon)",
+            "uuid": "2880e057-a032-5d89-a5a6-818f9e80c289",
             "id": "browser_source",
             "versioned_id": "browser_source",
             "settings": {
-                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=lyrics-only&pos=center",
+                "url": "http://localhost:8787/src/overlays/now-playing.html?variant=starting-soon&pos=top-left",
                 "width": 1920,
                 "height": 1080,
                 "fps": 60,
@@ -805,8 +805,8 @@
                         "id": 3
                     },
                     {
-                        "name": "SYSTEM: Lyrics (Starting Soon)",
-                        "source_uuid": "109a18d4-1466-5a8d-9145-f9abb8413da5",
+                        "name": "SYSTEM: Now Playing (Starting Soon)",
+                        "source_uuid": "2880e057-a032-5d89-a5a6-818f9e80c289",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -980,7 +980,7 @@
                     },
                     {
                         "name": "SYSTEM: Now Playing",
-                        "source_uuid": "bc1a152f-b5c2-5592-a757-465af729904f",
+                        "source_uuid": "a4379403-a449-54e6-897c-6255d0ab599b",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,
@@ -1154,7 +1154,7 @@
                     },
                     {
                         "name": "SYSTEM: Now Playing",
-                        "source_uuid": "bc1a152f-b5c2-5592-a757-465af729904f",
+                        "source_uuid": "a4379403-a449-54e6-897c-6255d0ab599b",
                         "visible": true,
                         "locked": true,
                         "rot": 0.0,

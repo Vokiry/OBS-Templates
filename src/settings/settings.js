@@ -832,8 +832,8 @@ function openTransitionsPreview() {
 
 function copyMediaOverlayUrl(variant) {
   let url = `${API_BASE}/src/overlays/now-playing.html?variant=${variant}`;
-  if (variant === 'lyrics-only') {
-    url += '&pos=center';
+  if (variant === 'starting-soon' || variant === 'compact') {
+    url += '&pos=top-left';
   } else {
     url += '&pos=bottom-left';
   }
