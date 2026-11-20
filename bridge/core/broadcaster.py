@@ -316,15 +316,26 @@ class Broadcaster:
             self.last_media_request = None
             from adapters import donatex
 
-            await donatex.skip_track()
+            try:
+                await donatex.skip_track()
+            except Exception as e:
+                log.warning("error calling donatex.skip_track: %s", e)
+
             if self.media_coordinator:
                 await self.media_coordinator.handle_media_request_ended()
         elif msg_type == "media_control":
             if data.get("action") == "skip":
                 log.info("media skip requested by client")
+                self.last_media_request = None
                 from adapters import donatex
 
-                await donatex.skip_track()
+                try:
+                    await donatex.skip_track()
+                except Exception as e:
+                    log.warning("error calling donatex.skip_track: %s", e)
+
+                if self.media_coordinator:
+                    await self.media_coordinator.handle_media_request_ended()
             await self.broadcast(data)
         elif msg_type == "alert_skip":
             log.info("alert skip requested by client")

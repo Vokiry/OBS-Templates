@@ -259,13 +259,15 @@
     const endedTrack = currentTrack;
     currentTrack = null;
 
-    // Notify bridge to skip DonateX track if it came from DonateX
-    if (endedTrack && endedTrack.source === 'donatex' && socketRef && socketRef.readyState === WebSocket.OPEN) {
+    // Notify bridge to skip DonateX track and resume local music
+    const trackSource = (endedTrack && endedTrack.source) || 'donatex';
+    const trackId = endedTrack ? endedTrack.youtubeId : '';
+    if (socketRef && socketRef.readyState === WebSocket.OPEN) {
       try {
         socketRef.send(JSON.stringify({
           type: 'media_finished',
-          source: 'donatex',
-          youtubeId: endedTrack.youtubeId
+          source: trackSource,
+          youtubeId: trackId
         }));
       } catch (e) {}
     }
@@ -292,12 +294,12 @@
     isPlaying = false;
     currentTrack = null;
 
-    if (origin !== 'donatex_server' && skippedTrack && skippedTrack.source === 'donatex' && socketRef && socketRef.readyState === WebSocket.OPEN) {
+    if (origin !== 'donatex_server' && socketRef && socketRef.readyState === WebSocket.OPEN) {
       try {
         socketRef.send(JSON.stringify({
           type: 'media_finished',
-          source: 'donatex',
-          youtubeId: skippedTrack.youtubeId
+          source: (skippedTrack && skippedTrack.source) || 'donatex',
+          youtubeId: skippedTrack ? skippedTrack.youtubeId : ''
         }));
       } catch (e) {}
     }
