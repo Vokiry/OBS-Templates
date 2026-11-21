@@ -287,7 +287,7 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_lyrics))
             if self.last_media_mode:
                 await socket.send_str(base.encode(self.last_media_mode))
-            if self.last_media_request:
+            if self.last_media_request and self.last_media_request.get("user"):
                 await socket.send_str(base.encode(self.last_media_request))
         except Exception:
             pass

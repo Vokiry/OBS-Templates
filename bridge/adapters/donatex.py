@@ -59,7 +59,7 @@ class DonateXAdapter:
                                 await self.broadcast(
                                     {
                                         "type": "media_request",
-                                        "user": "Заказ трека",
+                                        "user": "",
                                         "amount": "",
                                         "message": "",
                                         "youtubeId": yt_id,

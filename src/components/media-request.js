@@ -64,6 +64,8 @@
       if (item.title && item.title !== 'YouTube Track') currentTrack.title = item.title;
       if (item.amount) currentTrack.amount = item.amount;
       if (item.message) currentTrack.message = item.message;
+      if (item.source) currentTrack.source = item.source;
+      if (item.donationId) currentTrack.donationId = item.donationId;
       updateTrackDisplay(currentTrack);
       return;
     }
@@ -74,6 +76,8 @@
       if (item.title && item.title !== 'YouTube Track') existing.title = item.title;
       if (item.amount) existing.amount = item.amount;
       if (item.message) existing.message = item.message;
+      if (item.source) existing.source = item.source;
+      if (item.donationId) existing.donationId = item.donationId;
       return;
     }
 
@@ -128,7 +132,6 @@
                   e.target.setVolume(100);
                   e.target.playVideo();
                 } catch (err) {}
-                startEndCheckTimer();
               },
               onStateChange: (e) => {
                 if (e.data === 0) { // 0 === YT.PlayerState.ENDED
@@ -136,13 +139,13 @@
                 }
               },
               onError: (e) => {
-                handlePlaybackError(e.data);
+                console.warn('YouTube playback error:', e.data);
+                setTimeout(onTrackEnded, 2500);
               }
             }
           });
         } else {
           ytPlayer.loadVideoById(currentTrack.youtubeId);
-          startEndCheckTimer();
         }
         return;
       } catch (e) {
@@ -150,109 +153,21 @@
       }
     }
 
-    fallbackDirectIframe(currentTrack.youtubeId);
-    startEndCheckTimer();
-  }
-
-  function startEndCheckTimer() {
-    if (endCheckTimer) clearInterval(endCheckTimer);
-
-    endCheckTimer = setInterval(() => {
-      if (!isPlaying || !currentTrack) {
-        clearInterval(endCheckTimer);
-        endCheckTimer = null;
-        return;
-      }
-
-      // Check via YT.Player API if active
-      if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && typeof ytPlayer.getDuration === 'function') {
-        try {
-          const cur = ytPlayer.getCurrentTime();
-          const dur = ytPlayer.getDuration();
-          if (dur > 0 && cur >= dur - 0.8) {
-            clearInterval(endCheckTimer);
-            endCheckTimer = null;
-            onTrackEnded();
-            return;
-          }
-        } catch (e) {}
-      }
-
-      // Query via iframe postMessage if direct iframe
-      const iframe = container.querySelector('iframe');
-      if (iframe && iframe.contentWindow) {
-        try {
-          iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: '' }), '*');
-          iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getDuration', args: '' }), '*');
-        } catch (e) {}
-      }
-    }, 1000);
-  }
-
-  function handlePlaybackError(errorCode) {
-    console.warn('YouTube playback error code:', errorCode);
-    if (errorCode === 101 || errorCode === 150) {
-      statusEl.textContent = 'RESTRICTED // SKIPPING...';
-      statusEl.style.color = 'var(--color-danger)';
-      if (messageEl) {
-        messageEl.textContent = '[ ВОСПРОИЗВЕДЕНИЕ ЗАПРЕЩЕНО ПРАВООБЛАДАТЕЛЕМ НА СТОРОННИХ САЙТАХ ]';
-        messageEl.style.display = 'block';
-        messageEl.style.color = 'var(--color-danger)';
-      }
-      setTimeout(() => {
-        skipTrack('blocked_by_owner');
-      }, 3500);
-    } else if (errorCode === 100) {
-      statusEl.textContent = 'VIDEO NOT FOUND // SKIPPING...';
-      setTimeout(() => {
-        skipTrack('not_found');
-      }, 3000);
-    } else {
-      fallbackDirectIframe(currentTrack ? currentTrack.youtubeId : '');
-      startEndCheckTimer();
-    }
-  }
-
-  function fallbackDirectIframe(videoId) {
-    if (!videoId) return;
+    // Standard IFrame fallback (with postMessage listener)
     container.innerHTML = `
       <iframe
         id="yt-iframe"
-        src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&enablejsapi=1&controls=1&playsinline=1"
+        src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&playsinline=1"
         style="width: 100%; height: 100%; border: 0; display: block;"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen>
       </iframe>
     `;
-
-    const iframe = container.querySelector('iframe');
-    if (iframe) {
-      iframe.addEventListener('load', () => {
-        try {
-          iframe.contentWindow.postMessage(JSON.stringify({
-            event: 'listening',
-            id: 1,
-            channel: 'widget'
-          }), '*');
-          iframe.contentWindow.postMessage(JSON.stringify({
-            event: 'command',
-            func: 'addEventListener',
-            args: ['onStateChange'],
-            id: 1,
-            channel: 'widget'
-          }), '*');
-        } catch (e) {}
-      });
-    }
   }
 
   function onTrackEnded() {
     if (!isPlaying) return;
-    if (endCheckTimer) {
-      clearInterval(endCheckTimer);
-      endCheckTimer = null;
-    }
     statusEl.textContent = 'FINISHED';
     isPlaying = false;
 
@@ -260,14 +175,13 @@
     currentTrack = null;
 
     // Notify bridge to skip DonateX track and resume local music
-    const trackSource = (endedTrack && endedTrack.source) || 'donatex';
-    const trackId = endedTrack ? endedTrack.youtubeId : '';
-    if (socketRef && socketRef.readyState === WebSocket.OPEN) {
+    if (endedTrack && socketRef && socketRef.readyState === WebSocket.OPEN) {
       try {
         socketRef.send(JSON.stringify({
           type: 'media_finished',
-          source: trackSource,
-          youtubeId: trackId
+          source: endedTrack.source || 'donatex',
+          youtubeId: endedTrack.youtubeId,
+          donationId: endedTrack.donationId || ''
         }));
       } catch (e) {}
     }
@@ -294,12 +208,13 @@
     isPlaying = false;
     currentTrack = null;
 
-    if (origin !== 'donatex_server' && socketRef && socketRef.readyState === WebSocket.OPEN) {
+    if (origin !== 'donatex_server' && skippedTrack && socketRef && socketRef.readyState === WebSocket.OPEN) {
       try {
         socketRef.send(JSON.stringify({
           type: 'media_finished',
-          source: (skippedTrack && skippedTrack.source) || 'donatex',
-          youtubeId: skippedTrack ? skippedTrack.youtubeId : ''
+          source: skippedTrack.source || 'donatex',
+          youtubeId: skippedTrack.youtubeId,
+          donationId: skippedTrack.donationId || ''
         }));
       } catch (e) {}
     }
@@ -311,7 +226,7 @@
         if (!isPlaying && trackQueue.length === 0) {
           stopPlayback();
         }
-      }, 1800);
+      }, 1500);
     }
   }
 
@@ -344,10 +259,6 @@
   }
 
   function stopPlayback() {
-    if (endCheckTimer) {
-      clearInterval(endCheckTimer);
-      endCheckTimer = null;
-    }
     card.classList.remove('is-active');
     isPaused = false;
     isPlaying = false;
@@ -367,9 +278,6 @@
     }, 350);
   }
 
-  let lastReportedTime = 0;
-  let lastReportedDuration = 0;
-
   // Listen for YouTube iframe postMessage events (works even without iframe_api)
   window.addEventListener('message', (event) => {
     if (!event.data) return;
@@ -377,21 +285,8 @@
     if (typeof data === 'string') {
       try { data = JSON.parse(data); } catch (e) { return; }
     }
-    if (data && data.event === 'onStateChange') {
-      if (data.info === 0) { // 0 === ENDED
-        onTrackEnded();
-      }
-    } else if (data && data.event === 'onError') {
-      handlePlaybackError(data.info);
-    } else if (data && data.info !== undefined && typeof data.info === 'number') {
-      if (data.info > 100) {
-        lastReportedDuration = data.info;
-      } else if (data.info > 0) {
-        lastReportedTime = data.info;
-      }
-      if (lastReportedDuration > 0 && lastReportedTime >= lastReportedDuration - 0.8) {
-        onTrackEnded();
-      }
+    if (data && data.event === 'onStateChange' && data.info === 0) {
+      onTrackEnded();
     }
   });
 
