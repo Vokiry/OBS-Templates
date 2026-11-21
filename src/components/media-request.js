@@ -126,7 +126,7 @@
       try {
         container.innerHTML = '<div id="yt-player-target"></div>';
         ytPlayer = new YT.Player('yt-player-target', {
-          host: 'https://www.youtube-nocookie.com',
+          host: 'https://www.youtube.com',
           width: '100%',
           height: '100%',
           videoId: currentTrack.youtubeId,
@@ -167,7 +167,7 @@
     container.innerHTML = `
       <iframe
         id="yt-iframe"
-        src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&playsinline=1"
+        src="https://www.youtube.com/embed/${encodeURIComponent(currentTrack.youtubeId)}?autoplay=1&enablejsapi=1&controls=1&playsinline=1"
         style="width: 100%; height: 100%; border: 0; display: block;"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         referrerpolicy="strict-origin-when-cross-origin"
