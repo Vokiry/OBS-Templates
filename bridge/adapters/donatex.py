@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 
 import aiohttp
 
@@ -36,7 +37,12 @@ class DonateXAdapter:
         self.token = token.strip()
         self.broadcast = broadcast
         self.widget_id = None
-        self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.music_ws = None
+        self.current_donation_id = None
+        self.headers = {
+            "Authorization": f"Bearer {self.token}",
+            "X-External-Token": self.token,
+        }
 
     async def fetch_music_widget_id(self) -> str | None:
         try:
@@ -45,6 +51,7 @@ class DonateXAdapter:
                     if resp.status == 200:
                         data = await resp.json()
                         self.widget_id = data.get("widgetId")
+                        self.current_donation_id = data.get("donationId")
                         if data.get("hasTrack") and data.get("musicLink"):
                             yt_id = extract_youtube_id(data["musicLink"])
                             if yt_id:
@@ -58,6 +65,7 @@ class DonateXAdapter:
                                         "youtubeId": yt_id,
                                         "title": "YouTube Track",
                                         "source": "donatex",
+                                        "donationId": self.current_donation_id,
                                     }
                                 )
                         return self.widget_id
@@ -65,16 +73,61 @@ class DonateXAdapter:
             log.warning("could not fetch music widget ID from DonateX API: %s", e)
         return None
 
-    async def skip_current_track(self) -> bool:
+    async def skip_current_track(self, donation_id: str | None = None) -> bool:
+        did = donation_id or self.current_donation_id
+        success = False
+
+        # 1. Send SignalR PlayNextSong if connected to music-widgets-hub
+        if self.music_ws and not self.music_ws.closed and self.widget_id:
+            try:
+                play_next_msg = (
+                    json.dumps(
+                        {
+                            "type": 1,
+                            "invocationId": f"next_{int(time.time() * 1000)}",
+                            "target": "PlayNextSong",
+                            "arguments": [self.widget_id],
+                        }
+                    )
+                    + RECORD_SEP
+                )
+                await self.music_ws.send_str(play_next_msg)
+                log.info("donatex: sent PlayNextSong via SignalR for widget %s", self.widget_id)
+                success = True
+            except Exception as e:
+                log.debug("donatex: error sending SignalR PlayNextSong: %s", e)
+
+        # 2. Call REST API /v1/music/skip-current
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
                 async with session.post(MUSIC_SKIP_API, headers=self.headers) as resp:
                     if resp.status == 200:
                         log.info("donatex: track marked as played/skipped via API")
-                        return True
+                        success = True
+                    else:
+                        log.warning("donatex: skip-current returned status %d: %s", resp.status, await resp.text())
         except Exception as e:
             log.warning("could not skip track via DonateX API: %s", e)
-        return False
+
+        # 3. Call widget complete-playback and set-music-as-played if donationId is available
+        if did and self.widget_id:
+            try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=6)) as session:
+                    url_complete = f"https://donatex.gg/api/music-widgets/complete-playback?widgetId={self.widget_id}&donationId={did}"
+                    async with session.post(url_complete, headers=self.headers) as resp:
+                        if resp.status == 200:
+                            log.info("donatex: complete-playback confirmed for donation %s", did)
+                            success = True
+                    url_played = f"https://donatex.gg/api/music-widgets/set-music-as-played?donationId={did}"
+                    async with session.post(url_played, headers=self.headers) as resp:
+                        if resp.status == 200:
+                            log.info("donatex: set-music-as-played confirmed for donation %s", did)
+                            success = True
+            except Exception as e:
+                log.debug("donatex: complete-playback error: %s", e)
+
+        self.current_donation_id = None
+        return success
 
     async def skip_current_donation(self) -> bool:
         try:
@@ -160,6 +213,7 @@ class DonateXAdapter:
                     ws_url = f"{MUSIC_HUB_WS}?id={connection_token}"
 
                     async with session.ws_connect(ws_url, heartbeat=15) as ws:
+                        self.music_ws = ws
                         await ws.send_str(json.dumps({"protocol": "json", "version": 1}) + RECORD_SEP)
                         await ws.receive_str()
 
@@ -216,6 +270,7 @@ class DonateXAdapter:
                                     break
                         finally:
                             hb_task.cancel()
+                            self.music_ws = None
 
             except asyncio.CancelledError:
                 raise
@@ -297,9 +352,15 @@ class DonateXAdapter:
             link = data.get("link") or data.get("musicLink") or ""
             title = data.get("title") or "YouTube Track"
             yt_id = data.get("videoId") or extract_youtube_id(link)
+            self.current_donation_id = data.get("donationId") or data.get("id")
 
             if yt_id:
-                log.info("donatex: ReceiveNewSong: %s (%s)", title, yt_id)
+                log.info(
+                    "donatex: ReceiveNewSong: %s (%s) [donationId: %s]",
+                    title,
+                    yt_id,
+                    self.current_donation_id,
+                )
                 await self.broadcast(
                     {
                         "type": "media_request",
@@ -308,11 +369,13 @@ class DonateXAdapter:
                         "youtubeId": yt_id,
                         "link": link,
                         "source": "donatex",
+                        "donationId": self.current_donation_id,
                     }
                 )
 
         elif target in ("SongSkipped", "SkipSong", "PlayNextSong"):
             log.info("donatex: music skipped by server dashboard (%s)", target)
+            self.current_donation_id = None
             await self.broadcast(
                 {
                     "type": "media_control",
@@ -340,9 +403,9 @@ def get_status() -> dict:
     }
 
 
-async def skip_track() -> bool:
+async def skip_track(donation_id: str | None = None) -> bool:
     if active_adapter:
-        return await active_adapter.skip_current_track()
+        return await active_adapter.skip_current_track(donation_id=donation_id)
     return False
 
 

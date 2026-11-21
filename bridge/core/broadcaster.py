@@ -314,10 +314,11 @@ class Broadcaster:
         if msg_type == "media_finished":
             log.info("media playback finished, notifying DonateX skip and resuming local music...")
             self.last_media_request = None
+            donation_id = data.get("donationId")
             from adapters import donatex
 
             try:
-                await donatex.skip_track()
+                await donatex.skip_track(donation_id=donation_id)
             except Exception as e:
                 log.warning("error calling donatex.skip_track: %s", e)
 
@@ -327,10 +328,11 @@ class Broadcaster:
             if data.get("action") == "skip":
                 log.info("media skip requested by client")
                 self.last_media_request = None
+                donation_id = data.get("donationId")
                 from adapters import donatex
 
                 try:
-                    await donatex.skip_track()
+                    await donatex.skip_track(donation_id=donation_id)
                 except Exception as e:
                     log.warning("error calling donatex.skip_track: %s", e)
 
