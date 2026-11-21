@@ -44,7 +44,12 @@
   }
 
   function updateTrackDisplay(track) {
-    donorEl.textContent = `${track.user || 'viewer'}${track.amount ? ' · ' + track.amount : ''}`;
+    const rawUser = track.user || track.donor || '';
+    const cleanUser =
+      rawUser && rawUser !== 'Заказ трека' && rawUser !== 'Добавление трека в очередь'
+        ? rawUser
+        : 'viewer';
+    donorEl.textContent = `${cleanUser}${track.amount ? ' · ' + track.amount : ''}`;
     titleEl.textContent = track.title || 'YouTube Track';
     statusEl.textContent = 'PLAYING';
 
@@ -109,44 +114,49 @@
 
     card.classList.add('is-active');
 
+    // Clean up any stale player instance to guarantee reliable fresh playback
+    if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+      try {
+        ytPlayer.destroy();
+      } catch (e) {}
+    }
+    ytPlayer = null;
+
     if (ytApiReady && window.YT && window.YT.Player) {
       try {
-        if (!ytPlayer) {
-          container.innerHTML = '<div id="yt-player-target"></div>';
-          ytPlayer = new YT.Player('yt-player-target', {
-            host: 'https://www.youtube-nocookie.com',
-            width: '100%',
-            height: '100%',
-            videoId: currentTrack.youtubeId,
-            playerVars: {
-              autoplay: 1,
-              controls: 1,
-              rel: 0,
-              enablejsapi: 1,
-              playsinline: 1
+        container.innerHTML = '<div id="yt-player-target"></div>';
+        ytPlayer = new YT.Player('yt-player-target', {
+          host: 'https://www.youtube-nocookie.com',
+          width: '100%',
+          height: '100%',
+          videoId: currentTrack.youtubeId,
+          playerVars: {
+            autoplay: 1,
+            controls: 1,
+            rel: 0,
+            enablejsapi: 1,
+            playsinline: 1,
+          },
+          events: {
+            onReady: (e) => {
+              try {
+                e.target.unMute();
+                e.target.setVolume(100);
+                e.target.playVideo();
+              } catch (err) {}
             },
-            events: {
-              onReady: (e) => {
-                try {
-                  e.target.unMute();
-                  e.target.setVolume(100);
-                  e.target.playVideo();
-                } catch (err) {}
-              },
-              onStateChange: (e) => {
-                if (e.data === 0) { // 0 === YT.PlayerState.ENDED
-                  onTrackEnded();
-                }
-              },
-              onError: (e) => {
-                console.warn('YouTube playback error:', e.data);
-                setTimeout(onTrackEnded, 2500);
+            onStateChange: (e) => {
+              if (e.data === 0) {
+                // 0 === YT.PlayerState.ENDED
+                onTrackEnded();
               }
-            }
-          });
-        } else {
-          ytPlayer.loadVideoById(currentTrack.youtubeId);
-        }
+            },
+            onError: (e) => {
+              console.warn('YouTube playback error:', e.data);
+              setTimeout(onTrackEnded, 2500);
+            },
+          },
+        });
         return;
       } catch (e) {
         console.warn('YT.Player init failed, falling back to standard iframe:', e);
@@ -272,8 +282,13 @@
 
     setTimeout(() => {
       if (!isPlaying) {
-        container.innerHTML = '';
+        if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+          try {
+            ytPlayer.destroy();
+          } catch (e) {}
+        }
         ytPlayer = null;
+        container.innerHTML = '';
       }
     }, 350);
   }

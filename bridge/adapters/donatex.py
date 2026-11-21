@@ -77,6 +77,19 @@ class DonateXAdapter:
         did = donation_id or self.current_donation_id
         success = False
 
+        # If donationId not known, try fetching it from current music endpoint
+        if not did:
+            try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as session:
+                    async with session.get(MUSIC_CURRENT_API, headers=self.headers) as resp:
+                        if resp.status == 200:
+                            cur_data = await resp.json()
+                            did = cur_data.get("donationId")
+                            if not self.widget_id:
+                                self.widget_id = cur_data.get("widgetId")
+            except Exception:
+                pass
+
         # 1. Send SignalR PlayNextSong if connected to music-widgets-hub
         if self.music_ws and not self.music_ws.closed and self.widget_id:
             try:
@@ -105,7 +118,11 @@ class DonateXAdapter:
                         log.info("donatex: track marked as played/skipped via API")
                         success = True
                     else:
-                        log.warning("donatex: skip-current returned status %d: %s", resp.status, await resp.text())
+                        log.warning(
+                            "donatex: skip-current returned status %d: %s",
+                            resp.status,
+                            await resp.text(),
+                        )
         except Exception as e:
             log.warning("could not skip track via DonateX API: %s", e)
 
