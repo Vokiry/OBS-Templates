@@ -4,7 +4,6 @@
 import argparse
 import asyncio
 import logging
-import os
 import secrets
 import signal
 import sys
@@ -18,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from core.adapter_manager import AdapterManager, watch
 from core.broadcaster import Broadcaster
-from core.security import API_KEY, set_api_key
+from core.security import API_KEY, configure_allowed_host, set_api_key
 from server.app import MEDIA_SERVICE_KEY, build_app
 from services import yandex_tts
 from services.goal_service import parse_amount
@@ -57,6 +56,12 @@ async def main() -> None:
     if not config_path.exists():
         log.error("config not found: %s (copy config.example.toml)", config_path)
         sys.exit(1)
+    for sensitive_path in (config_path, config_path.with_name(f"{config_path.name}.bak")):
+        if sensitive_path.exists():
+            try:
+                sensitive_path.chmod(0o600)
+            except OSError as exc:
+                log.warning("could not restrict permissions on %s: %s", sensitive_path, exc)
     with open(config_path, "rb") as handle:
         config = toml_load(handle)
 
@@ -68,7 +73,9 @@ async def main() -> None:
 
     # Generate session API key for protecting state-changing endpoints
     session_key = secrets.token_urlsafe(24)
-    set_api_key(session_key)
+    is_loopback = host in ("127.0.0.1", "localhost", "::1")
+    configure_allowed_host(host)
+    set_api_key(session_key, require_for_external=not is_loopback)
 
     broadcaster = Broadcaster()
     adapter_mgr = AdapterManager(broadcaster.broadcast)
@@ -103,9 +110,13 @@ async def main() -> None:
         import webbrowser
 
         target_url = f"http://{host}:{port}/settings" if args.settings else f"http://{host}:{port}/dock"
+        if not is_loopback:
+            from urllib.parse import urlencode
+
+            target_url = f"{target_url}?{urlencode({'key': session_key})}"
         loop.call_later(0.6, webbrowser.open, target_url)
-    if host != "127.0.0.1":
-        log.info("API key for external access: %s", session_key)
+    if not is_loopback:
+        log.info("API key required for external access: %s", session_key)
 
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
@@ -161,5 +172,4 @@ if __name__ == "__main__":
         pass
     except Exception:
         log.exception("fatal server error")
-    finally:
-        os._exit(0)
+        raise SystemExit(1) from None

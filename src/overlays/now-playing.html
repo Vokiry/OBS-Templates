@@ -377,6 +377,13 @@
                   cover_url: '',
                   source: 'donatex'
                 });
+              } else if (data.mode === 'local') {
+                if (data.track) applyNowPlaying(data.track);
+                else {
+                  state.available = false;
+                  state.status = 'Stopped';
+                  updateCardVisibility();
+                }
               }
             }
           } catch (e) {

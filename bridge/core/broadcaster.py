@@ -6,15 +6,17 @@ import json
 import logging
 import re
 import time
+import uuid
 from collections import deque as _deque
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse
 
 from aiohttp import WSMsgType, web
 
 from adapters import base
+from core.security import api_key_required, has_valid_api_key, is_same_origin
 from services import yandex_tts
+from services.file_service import atomic_write_text
 from services.goal_service import parse_amount
 
 log = logging.getLogger("bridge.broadcaster")
@@ -27,6 +29,7 @@ class Broadcaster:
 
     def __init__(self):
         self.clients: set[web.WebSocketResponse] = set()
+        self._control_clients: set[web.WebSocketResponse] = set()
         self.last_status = None
         self.last_7tv_emotes = None
         self.last_twitch_badges = None
@@ -51,6 +54,8 @@ class Broadcaster:
         self.tts_config: dict = {}
         self._tts_queue: _deque = _deque(maxlen=4)
         self._tts_worker_running = False
+        self._tts_worker_task: asyncio.Task | None = None
+        self._tts_generation = 0
 
         # Media & Lyrics state
         self.last_now_playing = None
@@ -86,7 +91,7 @@ class Broadcaster:
             new_cur = f"{float(self.goal_config['current']):.1f}"
             new_txt = re.sub(r"(?m)^(current\s*=\s*)[0-9.]+", rf"\g<1>{new_cur}", txt)
             if new_txt != txt:
-                self.config_path.write_text(new_txt, "utf-8")
+                atomic_write_text(self.config_path, new_txt)
         except Exception as e:
             log.warning("failed to persist goal progress to config.toml: %s", e)
 
@@ -94,9 +99,7 @@ class Broadcaster:
 
     def init_appearance(self, appearance_cfg: dict) -> None:
         """Initialize active visual theme preset."""
-        if not appearance_cfg:
-            return
-        theme = str(appearance_cfg.get("theme", "mocha-teal")).strip() or "mocha-teal"
+        theme = str((appearance_cfg or {}).get("theme", "mocha-teal")).strip() or "mocha-teal"
         self.current_theme = theme
         self.last_theme = {"type": "theme_update", "theme": theme}
 
@@ -163,14 +166,17 @@ class Broadcaster:
                 "show_card": show_card,
             }
         )
-        if not self._tts_worker_running:
-            self._create_background_task(self._tts_worker())
+        if self._tts_worker_task is None:
+            self._tts_worker_running = True
+            self._tts_worker_task = self._create_background_task(self._tts_worker())
 
     async def _tts_worker(self) -> None:
         """Worker loop processing TTS queue with rate-limit protection."""
+        current_task = asyncio.current_task()
+        generation = self._tts_generation
         self._tts_worker_running = True
         try:
-            while self._tts_queue:
+            while self._tts_queue and generation == self._tts_generation:
                 item = self._tts_queue.popleft()
                 speed = item.get("speed") or str(self.tts_config.get("speed", "1.0"))
                 emotion = item.get("emotion") or str(self.tts_config.get("emotion", "neutral"))
@@ -185,7 +191,7 @@ class Broadcaster:
                     endpoint=endpoint,
                     auth_token=auth_token,
                 )
-                if audio:
+                if audio and generation == self._tts_generation:
                     if self.dnd_active:
                         log.debug("tts: skipping speech delivery because DND is active")
                     else:
@@ -207,41 +213,42 @@ class Broadcaster:
         except Exception as e:
             log.warning("tts: worker error: %s", e)
         finally:
-            self._tts_worker_running = False
+            if self._tts_worker_task is current_task:
+                self._tts_worker_running = False
+                self._tts_worker_task = None
 
     async def stop_tts(self) -> None:
-        """Clear TTS queue and broadcast tts_stop to all overlays."""
+        """Cancel synthesis, clear the queue, and stop audio on every overlay."""
+        self._tts_generation += 1
         self._tts_queue.clear()
+        worker = self._tts_worker_task
+        self._tts_worker_task = None
+        self._tts_worker_running = False
+        if worker and not worker.done():
+            worker.cancel()
         await self.broadcast({"type": "tts_stop"})
 
     # ── WebSocket Lifecycle ──────────────────────────────────────────────
 
     async def attach(self, request: web.Request) -> web.WebSocketResponse:
-        """Handle incoming WebSocket connection with CSWSH protection and state caching."""
+        """Attach a read-only overlay; only authenticated same-origin clients may send commands."""
         origin = request.headers.get("Origin", "")
-        host_header = request.headers.get("Host", "")
-        if origin:
-            parsed = urlparse(origin)
-            origin_host = f"{parsed.hostname}:{parsed.port}" if parsed.port else parsed.hostname
-            allowed_hosts = {
-                host_header,
-                "localhost",
-                "127.0.0.1",
-                f"localhost:{request.url.port}",
-                f"127.0.0.1:{request.url.port}",
-            }
-            if origin_host not in allowed_hosts and parsed.hostname not in ("localhost", "127.0.0.1"):
-                log.warning("WebSocket connection rejected: origin %s not allowed", origin)
-                return web.Response(status=403, text="Origin not allowed")
+        same_origin = is_same_origin(request, origin) if origin else False
+        if origin and not same_origin:
+            log.warning("WebSocket connection rejected: origin %s not allowed", origin)
+            return web.Response(status=403, text="Origin not allowed")
 
         if len(self.clients) >= self.MAX_CLIENTS:
             log.warning("WebSocket connection rejected: max %d clients reached", self.MAX_CLIENTS)
             return web.Response(status=503, text="Too many connections")
 
+        control_allowed = (same_origin and not api_key_required()) or has_valid_api_key(request)
         socket = web.WebSocketResponse(heartbeat=20)
         await socket.prepare(request)
         self.clients.add(socket)
-        log.info("overlay attached (%d total)", len(self.clients))
+        if control_allowed:
+            self._control_clients.add(socket)
+        log.info("overlay attached (%d total, control=%s)", len(self.clients), control_allowed)
 
         # Immediately send cached state to newly attached overlay
         try:
@@ -249,6 +256,8 @@ class Broadcaster:
                 await socket.send_str(base.encode(self.last_status))
             if self.last_theme:
                 await socket.send_str(base.encode(self.last_theme))
+            if self.dnd_active:
+                await socket.send_str(base.encode({"type": "dnd_status", "active": True}))
             if self.last_7tv_emotes:
                 await socket.send_str(base.encode(self.last_7tv_emotes))
             if self.last_twitch_badges:
@@ -297,14 +306,15 @@ class Broadcaster:
                 if msg.type == WSMsgType.TEXT:
                     try:
                         data = json.loads(msg.data)
-                        if isinstance(data, dict):
+                        if isinstance(data, dict) and socket in self._control_clients:
                             await self.handle_client_event(data)
                     except Exception:
-                        pass
+                        log.warning("failed to handle WebSocket client command", exc_info=True)
                 elif msg.type == WSMsgType.ERROR:
                     break
         finally:
             self.clients.discard(socket)
+            self._control_clients.discard(socket)
             log.info("overlay detached (%d total)", len(self.clients))
         return socket
 
@@ -312,32 +322,27 @@ class Broadcaster:
         """Handle events received from client overlays or OBS dock."""
         msg_type = data.get("type")
         if msg_type == "media_finished":
-            log.info("media playback finished, notifying DonateX skip and resuming local music...")
-            self.last_media_request = None
             donation_id = data.get("donationId")
+            request_id = data.get("requestId")
+            accepted = True
+            if self.media_coordinator:
+                accepted = await self.media_coordinator.handle_media_request_ended(request_id, donation_id)
+            else:
+                self.last_media_request = None
+            if not accepted:
+                return
             from adapters import donatex
 
-            try:
-                await donatex.skip_track(donation_id=donation_id)
-            except Exception as e:
-                log.warning("error calling donatex.skip_track: %s", e)
-
-            if self.media_coordinator:
-                await self.media_coordinator.handle_media_request_ended()
+            self._create_background_task(donatex.skip_track(donation_id=donation_id))
         elif msg_type == "media_control":
             if data.get("action") == "skip":
                 log.info("media skip requested by client")
-                self.last_media_request = None
-                donation_id = data.get("donationId")
+                if self.media_coordinator:
+                    await self.media_coordinator.skip_current()
+                    return
                 from adapters import donatex
 
-                try:
-                    await donatex.skip_track(donation_id=donation_id)
-                except Exception as e:
-                    log.warning("error calling donatex.skip_track: %s", e)
-
-                if self.media_coordinator:
-                    await self.media_coordinator.handle_media_request_ended()
+                await donatex.skip_track(donation_id=data.get("donationId"))
             await self.broadcast(data)
         elif msg_type == "alert_skip":
             log.info("alert skip requested by client")
@@ -370,9 +375,10 @@ class Broadcaster:
                 force_emotion=data.get("emotion"),
             )
         elif msg_type == "media_request_ended":
-            self.last_media_request = None
-            if self.media_coordinator:
-                await self.media_coordinator.handle_media_request_ended()
+            request_id = data.get("requestId")
+            donation_id = data.get("donationId")
+            if self.media_coordinator and (request_id or donation_id):
+                await self.media_coordinator.handle_media_request_ended(request_id, donation_id)
         elif msg_type in ("status", "countdown_control", "chat_clear"):
             await self.broadcast(data)
 
@@ -381,6 +387,7 @@ class Broadcaster:
         task = asyncio.create_task(coro)
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
+        return task
 
     async def _clear_poll_delayed(self, delay: float):
         await asyncio.sleep(delay)
@@ -415,6 +422,7 @@ class Broadcaster:
         elif msg_type == "media_mode":
             self.last_media_mode = payload
         elif msg_type == "media_request":
+            payload["requestId"] = str(payload.get("requestId") or payload.get("donationId") or uuid.uuid4())
             self.last_media_request = payload
             if self.media_coordinator:
                 self._create_background_task(self.media_coordinator.handle_media_request_started(payload))
@@ -422,13 +430,29 @@ class Broadcaster:
             action = payload.get("action")
             if action in ("skip", "stop"):
                 self.last_media_request = None
+                self.last_media_mode = None
                 if self.media_coordinator and self.media_coordinator.current_mode == "request":
-                    self._create_background_task(self.media_coordinator.handle_media_request_ended())
+                    if action == "stop":
+                        self._create_background_task(self.media_coordinator.clear_requests())
+                    else:
+                        self._create_background_task(
+                            self.media_coordinator.handle_media_request_ended(
+                                payload.get("requestId"), payload.get("donationId")
+                            )
+                        )
         elif msg_type == "alert":
             self.last_alert = dict(payload)
             if self.dnd_active:
                 payload["dnd"] = True
-            if payload.get("kind") == "donate" and self.goal_config and self.goal_config.get("enabled"):
+            is_real_donation = not (
+                payload.get("is_replay") or payload.get("isTest") or payload.get("isRerun")
+            )
+            if (
+                payload.get("kind") == "donate"
+                and is_real_donation
+                and self.goal_config
+                and self.goal_config.get("enabled")
+            ):
                 amount_val = parse_amount(payload.get("amount"))
                 if amount_val > 0:
                     self.goal_config["current"] = round(

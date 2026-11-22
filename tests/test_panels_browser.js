@@ -113,7 +113,35 @@ const fs = require('fs');
     throw new Error(`Expected 9 restored panels, got ${reloadedPanels.length}`);
   }
 
-  // 8. Screenshot full constructor UI
+  // 8. Imported/localStorage payloads must not inject HTML or event handlers.
+  await page.evaluate(() => {
+    localStorage.setItem('system24_twitch_panels_v2', JSON.stringify({
+      globalMode: 'card',
+      nextId: 2,
+      panels: [{
+        id: 1,
+        title: '" autofocus onfocus="window.__panelXss = true',
+        tag: 'XSS',
+        mode: 'card',
+        blocks: [{ type: 'x"><img src=x onerror="window.__panelXss = true">' }]
+      }]
+    }));
+  });
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  const injected = await page.evaluate(() => ({
+    executed: window.__panelXss === true,
+    autofocus: document.querySelectorAll('input[autofocus]').length,
+    images: document.querySelectorAll('.block-item__tag img').length,
+    blocks: window.getPanels()[0].blocks.length
+  }));
+  if (injected.executed || injected.autofocus || injected.images || injected.blocks !== 0) {
+    throw new Error(`Stored XSS/schema regression: ${JSON.stringify(injected)}`);
+  }
+  console.log('Malicious panel payload sanitized successfully');
+
+  // 9. Screenshot full constructor UI
+  await page.evaluate(() => window.resetToDefaults());
   await page.screenshot({ path: '/tmp/constructor_full_ui.png', fullPage: true });
   console.log('Saved /tmp/constructor_full_ui.png');
 

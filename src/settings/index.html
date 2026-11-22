@@ -557,6 +557,14 @@
           <input type="text" id="media-ignore" class="form-input" placeholder="firefox, chrome" value="firefox">
           <span class="form-hint">Через запятую (чтобы вкладки браузера не перехватывали виджет)</span>
         </div>
+        <div class="form-group">
+          <label class="form-label" for="media-youtube-domain">YouTube домен для заказов треков</label>
+          <select id="media-youtube-domain" class="form-select">
+            <option value="youtube-nocookie.com">youtube-nocookie.com — приватность, меньше Error 153 (рекомендуется)</option>
+            <option value="youtube.com">youtube.com — для работы через Zapret / DPI bypass в РФ</option>
+          </select>
+          <span class="form-hint">nocookie не использует куки, лучше для Error 153 (missing referrer). youtube.com нужен если используешь свой Zapret (flowseal/gnupret)</span>
+        </div>
       </div>
 
       <div class="form-grid">
@@ -605,6 +613,7 @@
     </div>
   </div>
 
+  <script src="../components/api-client.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

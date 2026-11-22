@@ -94,7 +94,7 @@
   let idleTimer = null;
 
   function hasActivePinnedWidget() {
-    return !!(document.getElementById('pinned-poll') || document.getElementById('pinned-prediction'));
+    return !!(document.getElementById('pinned-poll') || document.getElementById('pinned-pred'));
   }
 
   function resetIdleTimer() {

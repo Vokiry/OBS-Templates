@@ -59,7 +59,10 @@ fi
 if [ ! -f "bridge/config.toml" ]; then
   echo "[*] Creating bridge/config.toml from template..."
   cp bridge/config.example.toml bridge/config.toml
+  chmod 600 bridge/config.toml
 fi
+chmod 600 bridge/config.toml 2>/dev/null || true
+if [ -f "bridge/config.toml.bak" ]; then chmod 600 bridge/config.toml.bak; fi
 
 # 4. Safe scene collection handling (never overwrite user sources without confirmation)
 OBS_SCENES_DIR="$HOME/.config/obs-studio/basic/scenes"

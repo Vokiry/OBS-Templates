@@ -521,6 +521,59 @@
   // ──────────────────────────────────────────────
   // State & LocalStorage Management
   // ──────────────────────────────────────────────
+  const BLOCK_TYPES = new Set(['text', 'kv', 'qa', 'list', 'tags', 'link', 'divider', 'progress']);
+  function text(value, fallback = '') {
+    return value === undefined || value === null ? fallback : String(value).slice(0, 10000);
+  }
+  function number(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  function normalizeBlock(raw) {
+    if (!raw || typeof raw !== 'object' || !BLOCK_TYPES.has(raw.type)) return null;
+    const block = { type: raw.type };
+    if (raw.type === 'text') {
+      block.content = text(raw.content);
+      block.style = ['normal', 'lead', 'dim'].includes(raw.style) ? raw.style : 'normal';
+    } else if (raw.type === 'kv') {
+      block.key = text(raw.key, 'KEY'); block.value = text(raw.value, '—'); block.highlight = raw.highlight === true;
+    } else if (raw.type === 'qa') {
+      block.q = text(raw.q); block.a = text(raw.a);
+    } else if (raw.type === 'list') {
+      block.bullet = ['num', 'arrow', 'dot', 'check'].includes(raw.bullet) ? raw.bullet : 'num';
+      block.items = Array.isArray(raw.items) ? raw.items.slice(0, 200).map(item => text(item)) : [];
+    } else if (raw.type === 'tags') {
+      block.tags = Array.isArray(raw.tags) ? raw.tags.slice(0, 100).map(item => text(item)) : [];
+    } else if (raw.type === 'link') {
+      block.label = text(raw.label, 'Link'); block.url = text(raw.url);
+    } else if (raw.type === 'divider') {
+      block.style = 'solid';
+    } else if (raw.type === 'progress') {
+      block.label = text(raw.label, 'Goal');
+      block.current = number(raw.current); block.target = number(raw.target, 1000); block.unit = text(raw.unit);
+    }
+    return block;
+  }
+  function normalizePanels(input) {
+    if (!Array.isArray(input)) return [];
+    const usedIds = new Set();
+    return input.slice(0, 100).map((raw, index) => {
+      const source = raw && typeof raw === 'object' ? raw : {};
+      let id = Math.trunc(number(source.id, index + 1));
+      if (id < 1 || usedIds.has(id)) id = index + 1;
+      while (usedIds.has(id)) id += 1;
+      usedIds.add(id);
+      return {
+        id,
+        title: text(source.title, 'UNTITLED').slice(0, 200),
+        tag: text(source.tag, 'SYS//24').slice(0, 100),
+        mode: ['card', 'banner'].includes(source.mode) ? source.mode : 'card',
+        bannerVariant: ['mini', 'standard', 'hero'].includes(source.bannerVariant) ? source.bannerVariant : 'standard',
+        blocks: Array.isArray(source.blocks) ? source.blocks.map(normalizeBlock).filter(Boolean) : []
+      };
+    });
+  }
+
   function saveState() {
     try {
       const serialized = JSON.stringify({ globalMode, panels, nextId });
@@ -534,9 +587,9 @@
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed.panels) && parsed.panels.length > 0) {
-          panels = parsed.panels;
-          nextId = parsed.nextId || (panels.length + 1);
-          if (parsed.globalMode) globalMode = parsed.globalMode;
+          panels = normalizePanels(parsed.panels);
+          nextId = Math.max(number(parsed.nextId, 1), ...panels.map(panel => panel.id + 1));
+          if (['card', 'banner'].includes(parsed.globalMode)) globalMode = parsed.globalMode;
           return true;
         }
       }
@@ -703,9 +756,9 @@
       try {
         const parsed = JSON.parse(ev.target.result);
         if (Array.isArray(parsed.panels)) {
-          panels = parsed.panels;
-          nextId = panels.reduce((max, p) => Math.max(max, p.id || 0), 0) + 1;
-          if (parsed.globalMode) globalMode = parsed.globalMode;
+          panels = normalizePanels(parsed.panels);
+          nextId = panels.reduce((max, p) => Math.max(max, p.id), 0) + 1;
+          if (['card', 'banner'].includes(parsed.globalMode)) globalMode = parsed.globalMode;
           renderAll();
           saveState();
           showToast(`✓ Imported ${panels.length} panels from JSON!`);
@@ -905,7 +958,7 @@
   function createBlockEditorHtml(panelId, block, bIdx) {
     let bHtml = `<div class="block-item">
       <div class="block-item__header">
-        <span class="block-item__tag">[ ${block.type.toUpperCase()} ]</span>
+        <span class="block-item__tag">[ ${esc(block.type.toUpperCase())} ]</span>
         <div class="block-item__actions">
           <button class="block-item__btn" onclick="moveBlock(${panelId}, ${bIdx}, -1)" title="Move Block Up">↑</button>
           <button class="block-item__btn" onclick="moveBlock(${panelId}, ${bIdx}, 1)" title="Move Block Down">↓</button>
@@ -1035,7 +1088,7 @@
     if (!str) return '';
     const d = document.createElement('div');
     d.textContent = String(str);
-    return d.innerHTML;
+    return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function showToast(msg) {

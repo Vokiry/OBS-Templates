@@ -184,7 +184,7 @@ async function handleSoundUpload(input) {
 
   showStatus(`Загрузка ${file.name}...`);
   try {
-    const res = await fetch(`${API_BASE}/api/sounds/upload`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/api/sounds/upload`, {
       method: 'POST',
       body: formData
     });
@@ -213,7 +213,7 @@ async function handleSoundUpload(input) {
 
 async function connectDonationAlerts() {
   try {
-    const res = await fetch(`${API_BASE}/api/da/auth-url`);
+    const res = await SystemAPI.fetch(`${API_BASE}/api/da/auth-url`);
     if (res.ok) {
       const data = await res.json();
       if (data.url) {
@@ -238,7 +238,7 @@ function showStatus(text) {
 }
 
 const TEST_ALERT_PAYLOADS = {
-  donate: { type: 'alert', kind: 'donate', user: 'system_dev', amount: '500 ₽', message: 'Тестовый донат из панели настроек' },
+  donate: { type: 'alert', kind: 'donate', user: 'system_dev', amount: '500 ₽', message: 'Тестовый донат из панели настроек', isTest: true },
   sub: { type: 'alert', kind: 'sub', user: 'subscriber_test', body: 'subscriber_test · tier 1' },
   resub: { type: 'alert', kind: 'resub', user: 'veteran_viewer', body: 'veteran_viewer · 12 months' },
   gift: { type: 'alert', kind: 'gift', user: 'generous_gifter', body: 'generous_gifter × 5' },
@@ -263,7 +263,7 @@ async function fireTestAlert(kind) {
       statusEl.textContent = `[ ОТПРАВКА: ${kind.toUpperCase()}... ]`;
       statusEl.className = 'test-status-line is-pending';
     }
-    const res = await fetch(`${API_BASE}/notify`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -300,7 +300,7 @@ async function testTtsVoice() {
       statusEl.textContent = '[ ОТПРАВКА ОЗВУЧКИ... ]';
       statusEl.className = 'test-status-line is-pending';
     }
-    const res = await fetch(`${API_BASE}/notify`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -330,7 +330,7 @@ async function testTtsVoice() {
 }
 
 function copyDockUrl() {
-  const url = `${API_BASE}/dock`;
+  const url = SystemAPI.withKey(`${API_BASE}/dock`);
   if (navigator.clipboard) {
     navigator.clipboard.writeText(url).then(() => showStatus('[ ✓ URL ДОКА СКОПИРОВАН В БУФЕР: ' + url + ' ]'));
   } else {
@@ -349,7 +349,7 @@ async function sendTestChatMessage() {
       statusEl.className = 'test-status-line is-pending';
     }
     const userNick = document.getElementById('chat-channel')?.value.trim() || 'Streamer';
-    const res = await fetch(`${API_BASE}/notify`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -386,7 +386,7 @@ async function handleBackupRestore(input) {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const res = await fetch(`${API_BASE}/api/backup/import`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/api/backup/import`, {
       method: 'POST',
       body: formData
     });
@@ -405,7 +405,7 @@ async function handleBackupRestore(input) {
 
 async function runSystemDoctor() {
   try {
-    const res = await fetch(`${API_BASE}/api/doctor`);
+    const res = await SystemAPI.fetch(`${API_BASE}/api/doctor`);
     if (!res.ok) return;
     const d = await res.json();
 
@@ -543,7 +543,7 @@ async function runSystemDoctor() {
 
 async function loadConfig() {
   try {
-    const res = await fetch(`${API_BASE}/api/config`);
+    const res = await SystemAPI.fetch(`${API_BASE}/api/config`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     configData = data.config || {};
@@ -578,6 +578,7 @@ async function loadConfig() {
     setToggleState('btn-twitch-toggle', modules.twitch);
     document.getElementById('twitch-client-id').value = tw.client_id || '';
     document.getElementById('twitch-client-secret').value = tw.client_secret || '';
+    maskedSecrets['twitch-client-secret'] = tw.client_secret || '';
     document.getElementById('twitch-follows').checked = !!tw.include_follows;
 
     const twAuthStatus = document.getElementById('twitch-auth-status');
@@ -635,6 +636,8 @@ async function loadConfig() {
     if (mLyrics) mLyrics.checked = med.show_lyrics !== false;
     const mIgnore = document.getElementById('media-ignore');
     if (mIgnore) mIgnore.value = Array.isArray(med.ignore) ? med.ignore.join(', ') : 'firefox';
+    const mYtDomain = document.getElementById('media-youtube-domain');
+    if (mYtDomain) mYtDomain.value = med.youtube_domain || 'youtube-nocookie.com';
 
     // 6. Sounds Mapping
     const soundTypes = ['donate', 'sub', 'resub', 'gift', 'raid', 'cheer', 'follow', 'default'];
@@ -746,7 +749,8 @@ async function saveConfiguration() {
       player: document.getElementById('media-player')?.value.trim() || 'auto',
       auto_pause: document.getElementById('media-auto-pause')?.checked ?? true,
       show_lyrics: document.getElementById('media-show-lyrics')?.checked ?? true,
-      ignore: (document.getElementById('media-ignore')?.value || 'firefox').split(',').map(s => s.trim()).filter(Boolean)
+      ignore: (document.getElementById('media-ignore')?.value || 'firefox').split(',').map(s => s.trim()).filter(Boolean),
+      youtube_domain: document.getElementById('media-youtube-domain')?.value || 'youtube-nocookie.com'
     },
     sounds: {
       mapping: soundMapping,
@@ -778,7 +782,7 @@ async function saveConfiguration() {
     vip_voices: vipVoices,
     blacklist: (document.getElementById('tts-blacklist')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
   };
-  if (configData.tts?.auth_token) payload.tts.auth_token = configData.tts.auth_token;
+  // auth_token is intentionally never returned by the server; omission preserves it.
   if (configData.tts?.random_pool) payload.tts.random_pool = configData.tts.random_pool;
 
   // Only include secrets that were actually changed by the user
@@ -795,7 +799,7 @@ async function saveConfiguration() {
   if (dxToken !== undefined) payload.donatex.token = dxToken;
 
   try {
-    const res = await fetch(`${API_BASE}/api/config`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/api/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

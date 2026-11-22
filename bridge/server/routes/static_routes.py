@@ -5,20 +5,25 @@ from pathlib import Path
 from aiohttp import web
 
 
+def redirect_with_query(request: web.Request, target: str):
+    query = request.query_string
+    raise web.HTTPFound(f"{target}?{query}" if query else target)
+
+
 async def root_redirect(request: web.Request):
-    raise web.HTTPFound("/dock")
+    redirect_with_query(request, "/dock")
 
 
 async def dock_redirect(request: web.Request):
-    raise web.HTTPFound("/src/dock/index.html")
+    redirect_with_query(request, "/src/dock/index.html")
 
 
 async def settings_redirect(request: web.Request):
-    raise web.HTTPFound("/src/settings/index.html")
+    redirect_with_query(request, "/src/settings/index.html")
 
 
 async def panels_redirect(request: web.Request):
-    raise web.HTTPFound("/src/panels/index.html")
+    redirect_with_query(request, "/src/panels/index.html")
 
 
 def register_static_routes(app: web.Application, src_dir: Path, enable_settings: bool) -> None:

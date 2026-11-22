@@ -166,7 +166,7 @@ async def test_tts_stop_api(aiohttp_client):
     app = build_app(b, {"tts": {"mode": "all"}}, enable_settings=True)
     client = await aiohttp_client(app)
 
-    headers = {"Referer": "http://127.0.0.1:8787/dock"}
+    headers = {"Referer": str(client.make_url("/dock"))}
     res = await client.post("/api/tts/stop", headers=headers)
     assert res.status == 200
     assert len(b._tts_queue) == 0
@@ -184,7 +184,7 @@ async def test_tts_notify_test_trigger(aiohttp_client):
     app = build_app(b, {"tts": {"mode": "off"}}, enable_settings=True)
     client = await aiohttp_client(app)
 
-    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    headers = {"Referer": str(client.make_url("/settings"))}
     with patch("bridge.alerts_bridge.yandex_tts.generate", new_callable=AsyncMock) as mock_gen:
         mock_gen.return_value = b"OggOpusFakeAudioData"
         res = await client.post(
@@ -284,7 +284,8 @@ async def test_broadcaster_dnd_and_alert_replay(aiohttp_client):
     app.router.add_get("/events", b.attach)
     client = await aiohttp_client(app)
 
-    async with client.ws_connect("/events") as ws:
+    origin = str(client.make_url("/")).rstrip("/")
+    async with client.ws_connect("/events", headers={"Origin": origin}) as ws:
         # Drain cached messages
         while True:
             try:

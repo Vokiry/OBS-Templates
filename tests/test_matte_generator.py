@@ -88,3 +88,21 @@ def test_scanline_mid_approx_half() -> None:
             white_rows += 1
     assert 450 < white_rows < 600  # ~540 ± tolerance
 
+
+def test_cli_forwards_seed(monkeypatch, tmp_path) -> None:
+    from tools import generate_mattes as generator
+
+    captured = {}
+
+    def fake_generate(*args, **kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(generator, "generate_video", fake_generate)
+    monkeypatch.setattr(
+        generator.sys,
+        "argv",
+        ["generate_mattes.py", "--effect", "doom-melt", "--out", str(tmp_path / "out.mp4"), "--seed", "42"],
+    )
+    assert generator.main() == 0
+    assert captured["seed"] == 42
+

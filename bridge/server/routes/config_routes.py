@@ -1,13 +1,18 @@
 """Configuration management and sound file upload endpoints."""
 
+import copy
 import logging
+import os
 import re
+import tempfile
 import time
 from pathlib import Path
 
 from aiohttp import web
 
+from core.security import mask_secret
 from services import yandex_tts
+from services.file_service import atomic_write_bytes, atomic_write_text
 from services.sound_service import get_sounds_catalog, save_sounds_catalog
 from services.toml_service import serialize_toml
 
@@ -24,6 +29,8 @@ def register_config_routes(
     target_config_path: Path,
     target_backup_path: Path,
     enable_settings: bool,
+    media_service=None,
+    media_coordinator=None,
 ) -> None:
     """Register /api/config (GET/POST) and /api/sounds/upload endpoints."""
 
@@ -34,18 +41,27 @@ def register_config_routes(
         sounds_info = get_sounds_catalog(src_dir)
         has_twitch_token = (project_root / "bridge" / ".twitch_token.json").exists()
         has_da_token = (project_root / "bridge" / ".da_token.json").exists()
+        public_config = copy.deepcopy(config)
+        for section, keys in {
+            "twitch": ("client_secret",),
+            "donationalerts": ("client_secret", "access_token"),
+            "donatex": ("token",),
+            "tts": ("auth_token",),
+        }.items():
+            for key in keys:
+                if key in public_config.get(section, {}):
+                    public_config[section][key] = mask_secret(public_config[section][key])
 
         return web.json_response(
             {
-                "config": config,
+                "config": public_config,
                 "sounds": sounds_info,
                 "tts_voices": yandex_tts.VOICES,
                 "auth": {
                     "twitch": has_twitch_token,
                     "donationalerts": has_da_token,
                 },
-            },
-            headers={"Access-Control-Allow-Origin": "*"},
+            }
         )
 
     async def save_config_handler(request: web.Request) -> web.Response:
@@ -53,6 +69,15 @@ def register_config_routes(
             payload = await request.json()
         except Exception:
             return web.json_response({"error": "invalid json"}, status=400)
+
+        if not isinstance(payload, dict):
+            return web.json_response({"error": "object expected"}, status=400)
+        section_names = {
+            "server", "twitch", "twitch_chat", "donationalerts", "donatex", "goal",
+            "tts", "appearance", "transitions", "media",
+        }
+        if any(name in payload and not isinstance(payload[name], dict) for name in section_names):
+            return web.json_response({"error": "configuration sections must be objects"}, status=400)
 
         # 1. Update config dict
         if "server" in payload:
@@ -88,11 +113,11 @@ def register_config_routes(
 
         # Backup existing config
         if target_config_path.exists():
-            target_backup_path.write_bytes(target_config_path.read_bytes())
+            atomic_write_bytes(target_backup_path, target_config_path.read_bytes())
 
-        # Write clean TOML
+        # Write clean TOML without exposing secrets to other local users.
         toml_str = serialize_toml(config)
-        target_config_path.write_text(toml_str, encoding="utf-8")
+        atomic_write_text(target_config_path, toml_str)
 
         # 2. Save sound mappings if provided
         if "sounds" in payload and "mapping" in payload["sounds"]:
@@ -106,12 +131,20 @@ def register_config_routes(
                 }
             )
 
-        # 3. Hot-reload any changed adapters without restarting server
+        # 3. Hot-reload adapters and media without restarting the server.
         if adapter_mgr:
             await adapter_mgr.reload_if_changed(config)
+        if "media" in payload and media_service:
+            await media_service.reconfigure(config["media"])
+            if media_coordinator:
+                media_coordinator.auto_pause_enabled = bool(config["media"].get("auto_pause", True))
+            await broadcaster.broadcast({
+                "type": "media_config",
+                "youtubeDomain": config["media"].get("youtube_domain", "youtube-nocookie.com"),
+            })
 
         log.info("configuration saved via web settings panel (applied live)")
-        return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+        return web.json_response({"ok": True})
 
     async def upload_sound_handler(request: web.Request) -> web.Response:
         if not request.content_type.startswith("multipart/"):
@@ -141,25 +174,27 @@ def register_config_routes(
         dest = sounds_dir / safe_name
         size = 0
         exceeded = False
-        with open(dest, "wb") as f:
-            while True:
-                chunk = await field.read_chunk()
-                if not chunk:
-                    break
-                size += len(chunk)
-                if size > 15 * 1024 * 1024:  # 15MB limit
-                    exceeded = True
-                    break
-                f.write(chunk)
-
-        if exceeded:
-            dest.unlink(missing_ok=True)
-            return web.json_response({"error": "file exceeds 15MB limit"}, status=400)
-
+        fd, temporary_name = tempfile.mkstemp(prefix=".sound-upload-", dir=sounds_dir)
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                while True:
+                    chunk = await field.read_chunk()
+                    if not chunk:
+                        break
+                    size += len(chunk)
+                    if size > 15 * 1024 * 1024:
+                        exceeded = True
+                        break
+                    stream.write(chunk)
+            if exceeded:
+                return web.json_response({"error": "file exceeds 15MB limit"}, status=400)
+            os.chmod(temporary, 0o644)
+            os.replace(temporary, dest)
+        finally:
+            temporary.unlink(missing_ok=True)
         log.info("uploaded new sound file: %s (%d bytes)", safe_name, size)
-        return web.json_response(
-            {"ok": True, "filename": safe_name}, headers={"Access-Control-Allow-Origin": "*"}
-        )
+        return web.json_response({"ok": True, "filename": safe_name})
 
     app.router.add_get("/api/config", get_config_handler)
     app.router.add_post("/api/config", save_config_handler)

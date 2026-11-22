@@ -86,7 +86,8 @@ async def test_broadcaster_cswsh_origin_protection(aiohttp_client):
     assert "Origin not allowed" in (await evil_resp.text())
 
     # 2. Localhost origin must be allowed
-    async with client.ws_connect("/events", headers={"Origin": "http://localhost:8787"}) as ws:
+    origin = str(client.make_url("/")).rstrip("/")
+    async with client.ws_connect("/events", headers={"Origin": origin}) as ws:
         assert not ws.closed
 
     # 3. No origin (OBS Browser Source native) must be allowed
@@ -107,8 +108,8 @@ async def test_broadcaster_client_events_handling(aiohttp_client):
     client = await aiohttp_client(app)
 
     async with client.ws_connect("/events") as ws:
-        # Client sends tts_stop event
+        # Client sends tts_stop event without Origin: connection is read-only.
         await ws.send_str(json.dumps({"type": "tts_stop"}))
         await asyncio.sleep(0.05)
-        # TTS queue must be cleared
-        assert len(b._tts_queue) == 0
+        # Unauthenticated native clients cannot execute privileged commands.
+        assert len(b._tts_queue) == 1

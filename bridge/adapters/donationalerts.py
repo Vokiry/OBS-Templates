@@ -26,6 +26,7 @@ def _write_token_file(path: Path, data: dict) -> None:
         os.write(fd, content.encode("utf-8"))
     finally:
         os.close(fd)
+    os.chmod(path, 0o600)
 
 
 def normalize_donation(data: dict) -> dict:
@@ -47,6 +48,7 @@ def normalize_donation(data: dict) -> dict:
         "amount": amount_str,
         "message": message if msg_type != "audio" else "(Голосовое сообщение)",
         "body": body,
+        "isTest": bool(data.get("isTest") or data.get("is_test")),
     }
     if voice_url:
         res["voiceUrl"] = voice_url
@@ -313,7 +315,8 @@ async def run(config: dict, broadcast) -> None:
                     ref = cached.get("refresh_token")
                     if ref:
                         log.info("donationalerts: refreshing expired access token...")
-                        await refresh_da_token(client_id, client_secret, ref)
+                        refreshed = await refresh_da_token(client_id, client_secret, ref)
+                        token = refreshed.get("access_token", "")
                         continue
                 except Exception as ref_err:
                     log.warning("donationalerts: could not refresh token: %s", ref_err)

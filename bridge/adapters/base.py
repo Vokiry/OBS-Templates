@@ -43,6 +43,8 @@ def normalize(payload: dict) -> dict:
         res["dnd"] = bool(payload["dnd"])
     if "isTest" in payload:
         res["isTest"] = bool(payload["isTest"])
+    if "isRerun" in payload:
+        res["isRerun"] = bool(payload["isRerun"])
     return res
 
 

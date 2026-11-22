@@ -82,7 +82,7 @@ async def test_notify_endpoint_and_test_alerts(aiohttp_client):
         "amount": "500 ₽",
         "message": "Тестовый донат из панели настроек",
     }
-    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    headers = {"Referer": str(client.make_url("/settings"))}
     res_notify = await client.post("/notify", json=donate_payload, headers=headers)
     assert res_notify.status == 200
     notify_data = await res_notify.json()
@@ -94,7 +94,7 @@ async def test_upload_sound_api_validation(aiohttp_client):
     b = Broadcaster()
     app = build_app(b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True)
     client = await aiohttp_client(app)
-    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    headers = {"Referer": str(client.make_url("/settings"))}
 
     # 1. Disallowed format (.exe) must be rejected with 400
     from aiohttp import FormData
@@ -137,7 +137,7 @@ async def test_hot_reload_adapters_and_settings(aiohttp_client, tmp_path):
     app = build_app(b, config, enable_settings=True, adapter_mgr=mgr, config_path=test_cfg_path)
     client = await aiohttp_client(app)
 
-    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    headers = {"Referer": str(client.make_url("/settings"))}
     save_payload = {
         "goal": {"enabled": True, "title": "Новый сбор", "current": 100.0, "target": 10000.0},
         "tts": {"mode": "all", "volume": 0.45, "speed": "1.2"},
@@ -172,6 +172,10 @@ async def test_panels_redirect_route(aiohttp_client):
     res = await client.get("/panels", allow_redirects=False)
     assert res.status == 302
     assert res.headers.get("Location") == "/src/panels/index.html"
+    res = await client.get("/settings?key=session-key", allow_redirects=False)
+    assert res.headers.get("Location") == "/src/settings/index.html?key=session-key"
+    res = await client.get("/dock?key=session-key", allow_redirects=False)
+    assert res.headers.get("Location") == "/src/dock/index.html?key=session-key"
 
     # Verify static panels files are served
     res_html = await client.get("/src/panels/index.html")
@@ -248,10 +252,10 @@ async def test_backup_export_and_import(aiohttp_client, tmp_path):
         b, {"server": {"host": "127.0.0.1", "port": 8787}}, enable_settings=True, config_path=test_cfg
     )
     client = await aiohttp_client(app)
-    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    headers = {"Referer": str(client.make_url("/settings"))}
 
     # 1. Export backup zip
-    res = await client.get("/api/backup/export")
+    res = await client.get("/api/backup/export", headers=headers)
     assert res.status == 200
     assert "application/zip" in res.headers.get("Content-Type", "")
     assert "SYSTEM_Backup_" in res.headers.get("Content-Disposition", "")
@@ -324,7 +328,7 @@ async def test_appearance_theme_api_and_broadcast(aiohttp_client, tmp_path):
     assert health_data.get("theme") == "mocha-teal"
 
     # 2. Change theme to mocha-harmony via /api/config
-    headers = {"Referer": "http://127.0.0.1:8787/settings"}
+    headers = {"Referer": str(client.make_url("/settings"))}
     save_res = await client.post(
         "/api/config", json={"appearance": {"theme": "mocha-harmony"}}, headers=headers
     )

@@ -12,7 +12,7 @@ const API_BASE = window.location.origin;
 
 async function sendNotify(payload) {
   try {
-    const res = await fetch(`${API_BASE}/notify`, {
+    const res = await SystemAPI.fetch(`${API_BASE}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -60,16 +60,25 @@ function resetTimer() {
 }
 
 let isMediaPaused = false;
-function toggleMediaPause() {
+async function toggleMediaPause() {
   isMediaPaused = !isMediaPaused;
   const btn = document.getElementById('btn-media-pause');
   if (btn) btn.textContent = isMediaPaused ? 'RESUME' : 'PAUSE';
-  sendNotify({ type: 'media_control', action: isMediaPaused ? 'pause' : 'resume' });
+  try {
+    const res = await SystemAPI.fetch(`${API_BASE}/api/media/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: isMediaPaused ? 'pause' : 'resume' })
+    });
+    showToast(res.ok ? (isMediaPaused ? 'MEDIA PAUSED' : 'MEDIA RESUMED') : 'ERR');
+  } catch (e) {
+    sendNotify({ type: 'media_control', action: isMediaPaused ? 'pause' : 'resume' });
+  }
 }
 
 async function skipMedia() {
   try {
-    const res = await fetch(`${API_BASE}/api/media/skip`, { method: 'POST' });
+    const res = await SystemAPI.fetch(`${API_BASE}/api/media/skip`, { method: 'POST' });
     showToast(res.ok ? 'TRACK SKIPPED' : 'ERR');
   } catch (e) {
     sendNotify({ type: 'media_control', action: 'skip' });
@@ -78,7 +87,7 @@ async function skipMedia() {
 
 async function skipAlert() {
   try {
-    const res = await fetch(`${API_BASE}/api/donations/skip`, { method: 'POST' });
+    const res = await SystemAPI.fetch(`${API_BASE}/api/donations/skip`, { method: 'POST' });
     showToast(res.ok ? 'ALERT SKIPPED' : 'ERR');
   } catch (e) {
     sendNotify({ type: 'alert_skip' });
@@ -95,21 +104,23 @@ function replayAlert() {
 }
 
 let isDndActive = false;
+function renderDndState() {
+  const btn = document.getElementById('btn-dnd');
+  if (!btn) return;
+  btn.textContent = isDndActive ? 'DND: ON' : 'DND: OFF';
+  btn.classList.toggle('dock__btn--active', isDndActive);
+  btn.style.color = isDndActive ? '#E9B13C' : '';
+}
 function toggleDND() {
   isDndActive = !isDndActive;
-  const btn = document.getElementById('btn-dnd');
-  if (btn) {
-    btn.textContent = isDndActive ? 'DND: ON' : 'DND: OFF';
-    btn.classList.toggle('dock__btn--active', isDndActive);
-    btn.style.color = isDndActive ? '#E9B13C' : '';
-  }
+  renderDndState();
   sendNotify({ type: 'dnd_control', active: isDndActive });
   showToast(isDndActive ? 'DND: SILENT' : 'DND: NORMAL');
 }
 
 async function stopTTS() {
   try {
-    const res = await fetch(`${API_BASE}/api/tts/stop`, { method: 'POST' });
+    const res = await SystemAPI.fetch(`${API_BASE}/api/tts/stop`, { method: 'POST' });
     showToast(res.ok ? 'TTS STOPPED' : 'ERR');
   } catch (e) {
     sendNotify({ type: 'tts_stop' });
@@ -323,7 +334,7 @@ function updateStatsDisplay() {
 
 async function pollHealth() {
   try {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await SystemAPI.fetch(`${API_BASE}/health`);
     if (res.ok) {
       const data = await res.json();
       const ovl = document.getElementById('tag-ovl');
@@ -382,6 +393,11 @@ async function pollHealth() {
       badge.classList.remove('is-off');
       badge.classList.add('is-ok');
       badge.style.color = '#63E6BE';
+
+      if (typeof data.dnd_active === 'boolean' && data.dnd_active !== isDndActive) {
+        isDndActive = data.dnd_active;
+        renderDndState();
+      }
 
       if (data.theme && document.documentElement.dataset.theme !== data.theme) {
         document.documentElement.dataset.theme = data.theme;

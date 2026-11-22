@@ -21,8 +21,16 @@ def register_events_routes(app: web.Application, broadcaster) -> None:
         if not isinstance(payload, dict):
             return web.json_response({"error": "object expected"}, status=400)
 
+        # Route privileged client commands through the same implementation as WS.
+        if payload.get("type") in {"alert_replay", "dnd_control", "media_finished", "media_request_ended"}:
+            await broadcaster.handle_client_event(payload)
+            return web.json_response({"ok": True})
+
         # Handle media skip directly if requested
         if payload.get("type") == "media_control" and payload.get("action") == "skip":
+            if broadcaster.media_coordinator:
+                await broadcaster.media_coordinator.skip_current()
+                return web.json_response({"ok": True})
             from adapters import donatex
 
             await donatex.skip_track()

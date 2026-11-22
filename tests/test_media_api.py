@@ -44,7 +44,9 @@ async def test_media_status_endpoint(media_client: TestClient) -> None:
 @pytest.mark.asyncio
 async def test_media_control_endpoint(media_client: TestClient) -> None:
     # Test pause
-    resp = await media_client.post("/api/media/control", json={"action": "pause"})
+    resp = await media_client.post(
+        "/api/media/control", json={"action": "pause"}, headers={"Referer": str(media_client.make_url("/dock"))}
+    )
     assert resp.status == 200
     data = await resp.json()
     assert data["ok"] is True
@@ -55,7 +57,9 @@ async def test_media_control_endpoint(media_client: TestClient) -> None:
     assert status_data["track"]["status"] == "Paused"
 
     # Test play
-    resp = await media_client.post("/api/media/control", json={"action": "play"})
+    resp = await media_client.post(
+        "/api/media/control", json={"action": "play"}, headers={"Referer": str(media_client.make_url("/dock"))}
+    )
     assert resp.status == 200
     status_resp = await media_client.get("/api/media/status")
     status_data = await status_resp.json()

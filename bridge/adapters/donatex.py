@@ -90,8 +90,19 @@ class DonateXAdapter:
             except Exception:
                 pass
 
-        # 1. Send SignalR PlayNextSong if connected to music-widgets-hub
-        if self.music_ws and not self.music_ws.closed and self.widget_id:
+        # Use exactly one queue-advancing mechanism; the others are fallbacks only.
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+                async with session.post(MUSIC_SKIP_API, headers=self.headers) as resp:
+                    if resp.status == 200:
+                        log.info("donatex: track marked as played/skipped via API")
+                        success = True
+                    else:
+                        log.warning("donatex: skip-current returned status %d: %s", resp.status, await resp.text())
+        except Exception as e:
+            log.warning("could not skip track via DonateX API: %s", e)
+
+        if not success and self.music_ws and not self.music_ws.closed and self.widget_id:
             try:
                 play_next_msg = (
                     json.dumps(
@@ -105,41 +116,21 @@ class DonateXAdapter:
                     + RECORD_SEP
                 )
                 await self.music_ws.send_str(play_next_msg)
-                log.info("donatex: sent PlayNextSong via SignalR for widget %s", self.widget_id)
+                log.info("donatex: sent PlayNextSong fallback for widget %s", self.widget_id)
                 success = True
             except Exception as e:
                 log.debug("donatex: error sending SignalR PlayNextSong: %s", e)
 
-        # 2. Call REST API /v1/music/skip-current
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
-                async with session.post(MUSIC_SKIP_API, headers=self.headers) as resp:
-                    if resp.status == 200:
-                        log.info("donatex: track marked as played/skipped via API")
-                        success = True
-                    else:
-                        log.warning(
-                            "donatex: skip-current returned status %d: %s",
-                            resp.status,
-                            await resp.text(),
-                        )
-        except Exception as e:
-            log.warning("could not skip track via DonateX API: %s", e)
-
-        # 3. Call widget complete-playback and set-music-as-played if donationId is available
-        if did and self.widget_id:
+        if not success and did and self.widget_id:
             try:
                 async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=6)) as session:
                     url_complete = f"https://donatex.gg/api/music-widgets/complete-playback?widgetId={self.widget_id}&donationId={did}"
                     async with session.post(url_complete, headers=self.headers) as resp:
-                        if resp.status == 200:
-                            log.info("donatex: complete-playback confirmed for donation %s", did)
-                            success = True
-                    url_played = f"https://donatex.gg/api/music-widgets/set-music-as-played?donationId={did}"
-                    async with session.post(url_played, headers=self.headers) as resp:
-                        if resp.status == 200:
-                            log.info("donatex: set-music-as-played confirmed for donation %s", did)
-                            success = True
+                        success = resp.status == 200
+                    if not success:
+                        url_played = f"https://donatex.gg/api/music-widgets/set-music-as-played?donationId={did}"
+                        async with session.post(url_played, headers=self.headers) as resp:
+                            success = resp.status == 200
             except Exception as e:
                 log.debug("donatex: complete-playback error: %s", e)
 
@@ -328,6 +319,7 @@ class DonateXAdapter:
                 "message": message,
                 "body": body,
                 "isTest": data.get("isTest", False),
+                "isRerun": target == "DonationRerun",
             }
             if youtube_id:
                 payload["youtubeId"] = youtube_id
@@ -392,12 +384,15 @@ class DonateXAdapter:
 
         elif target in ("SongSkipped", "SkipSong", "PlayNextSong"):
             log.info("donatex: music skipped by server dashboard (%s)", target)
+            donation_id = self.current_donation_id
             self.current_donation_id = None
             await self.broadcast(
                 {
                     "type": "media_control",
                     "action": "skip",
                     "origin": "donatex_server",
+                    "requestId": donation_id,
+                    "donationId": donation_id or "",
                 }
             )
 

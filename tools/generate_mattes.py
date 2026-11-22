@@ -167,7 +167,7 @@ EFFECTS = {
 
 
 def generate_video(frame_func, out_path: Path, duration_ms: int, fps: int = FPS,
-                   width: int = WIDTH, height: int = HEIGHT) -> None:
+                   width: int = WIDTH, height: int = HEIGHT, seed: int = 0) -> None:
     num_frames = max(1, (duration_ms * fps) // 1000)
     frame_duration = 1.0 / fps
 
@@ -191,7 +191,7 @@ def generate_video(frame_func, out_path: Path, duration_ms: int, fps: int = FPS,
     try:
         for i in range(num_frames):
             t = i * frame_duration
-            frame = frame_func(t, duration_ms, width, height)
+            frame = frame_func(t, duration_ms, width, height, seed=seed)
             proc.stdin.write(frame)
     finally:
         proc.stdin.close()
@@ -216,17 +216,18 @@ def main() -> int:
 
     effects = list(EFFECTS) if args.effect == "all" else [args.effect]
 
+    default_seeds = {"doom-melt": 0xDEAD, "datamosh": 0xC0DE, "scanline": 0}
     for name in effects:
-        seed = args.seed if args.seed else hash(name) & 0xFFFFFFFF
+        seed = args.seed if args.seed else default_seeds[name]
         if args.effect != "all" and not args.out:
-            print(f"error: --out required for single effect", file=sys.stderr)
+            print("error: --out required for single effect", file=sys.stderr)
             return 2
 
         out_path = args.out or Path(f"src/transitions/{name}.mp4")
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"[generate] {name} → {out_path} ({args.duration_ms} ms @ {args.fps} fps)")
-        generate_video(EFFECTS[name], out_path, args.duration_ms, args.fps, args.width, args.height)
+        generate_video(EFFECTS[name], out_path, args.duration_ms, args.fps, args.width, args.height, seed=seed)
 
     print("[OK] masks generated")
     return 0

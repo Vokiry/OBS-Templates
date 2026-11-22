@@ -121,7 +121,9 @@ async def test_broadcaster_media_finished_and_skip_resumes_local() -> None:
 
     # 1. Start media request -> pauses local music
     await broadcaster.broadcast({"type": "media_request", "youtubeId": "abc", "user": "Bob"})
-    await coordinator.handle_media_request_started({"type": "media_request", "youtubeId": "abc"})
+    import asyncio
+
+    await asyncio.sleep(0.05)
     assert service.last_track_state["status"] == "Paused"
     assert broadcaster.last_media_request is not None
 
@@ -136,8 +138,6 @@ async def test_broadcaster_media_finished_and_skip_resumes_local() -> None:
     assert service.last_track_state["status"] == "Paused"
     await broadcaster.broadcast({"type": "media_control", "action": "skip"})
     # Allow background task to run
-    import asyncio
-
     await asyncio.sleep(0.05)
     assert coordinator.current_mode == "local"
     assert service.last_track_state["status"] == "Playing"

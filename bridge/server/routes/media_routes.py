@@ -107,14 +107,15 @@ def register_media_routes(
         return web.json_response({}, headers={"Access-Control-Allow-Origin": "*"})
 
     async def media_skip_handler(request: web.Request) -> web.Response:
-        from adapters import donatex
+        if media_coordinator:
+            result = await media_coordinator.skip_current()
+        else:
+            from adapters import donatex
 
-        skipped = await donatex.skip_track()
-        await broadcaster.broadcast({"type": "media_control", "action": "skip"})
-        return web.json_response(
-            {"ok": True, "donatex_skipped": skipped},
-            headers={"Access-Control-Allow-Origin": "*"},
-        )
+            skipped = await donatex.skip_track()
+            await broadcaster.broadcast({"type": "media_control", "action": "skip"})
+            result = {"ok": bool(skipped), "donatex_skipped": bool(skipped), "scope": "request"}
+        return web.json_response(result)
 
     async def donation_skip_handler(request: web.Request) -> web.Response:
         from adapters import donatex, donationalerts
@@ -122,11 +123,11 @@ def register_media_routes(
         await donatex.skip_donation()
         await donationalerts.skip_donation()
         await broadcaster.broadcast({"type": "alert_skip"})
-        return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+        return web.json_response({"ok": True})
 
     async def tts_stop_handler(request: web.Request) -> web.Response:
         await broadcaster.stop_tts()
-        return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+        return web.json_response({"ok": True})
 
     async def media_cover_handler(request: web.Request) -> web.Response:
         if not media_service:
@@ -158,22 +159,39 @@ def register_media_routes(
             body = await request.json()
         except Exception:
             body = {}
-        action = body.get("action", "toggle")
+        action = body.get("action", "toggle") if isinstance(body, dict) else "toggle"
         success = False
-        if media_coordinator and action == "skip":
-            success = await media_coordinator.skip_current()
+        outcome = {}
+        if media_coordinator and media_coordinator.current_mode == "request":
+            if action == "skip":
+                outcome = await media_coordinator.skip_current()
+                success = outcome["ok"]
+            elif action in ("play", "pause", "resume", "toggle", "play-pause", "toggle_pause", "stop"):
+                overlay_action = "toggle_pause" if action in ("toggle", "play-pause") else action
+                if action == "play":
+                    overlay_action = "resume"
+                await broadcaster.broadcast({"type": "media_control", "action": overlay_action})
+                success = True
         elif media_service:
             if action == "play":
                 success = await media_service.play()
             elif action == "pause":
                 success = await media_service.pause()
-            elif action in ("toggle", "play-pause"):
+            elif action in ("toggle", "play-pause", "toggle_pause"):
                 success = await media_service.toggle()
-            elif action == "next":
+            elif action in ("next", "skip"):
                 success = await media_service.next_track()
             elif action == "previous":
                 success = await media_service.previous_track()
-        return web.json_response({"ok": success, "action": action}, headers={"Access-Control-Allow-Origin": "*"})
+        return web.json_response({"ok": success, "action": action, **outcome})
+
+    async def media_config_handler(request: web.Request) -> web.Response:
+        media_cfg = config.get("media", {})
+        configured = "youtube_domain" in media_cfg
+        domain = str(media_cfg.get("youtube_domain", "youtube-nocookie.com"))
+        if domain not in ("youtube.com", "youtube-nocookie.com"):
+            domain = "youtube-nocookie.com"
+        return web.json_response({"youtubeDomain": domain, "configured": configured})
 
     app.router.add_get("/api/resolve-media", resolve_media_handler)
     app.router.add_get("/api/7tv/config", get_7tv_config_handler)
@@ -181,6 +199,7 @@ def register_media_routes(
     app.router.add_get("/api/7tv/channel/{room_id}", proxy_7tv_channel_handler)
     app.router.add_get("/api/media/cover", media_cover_handler)
     app.router.add_get("/api/media/status", media_status_handler)
+    app.router.add_get("/api/media/config", media_config_handler)
     app.router.add_post("/api/media/control", media_control_handler)
     app.router.add_post("/api/media/skip", media_skip_handler)
     app.router.add_post("/api/donations/skip", donation_skip_handler)

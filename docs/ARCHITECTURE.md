@@ -52,18 +52,27 @@ obs-templates/
   # Пример отправки алерта:
   curl -X POST http://127.0.0.1:8787/notify \
     -H 'Content-Type: application/json' \
+  -H 'Referer: http://127.0.0.1:8787/dock' \
     -d '{"kind": "donate", "user": "Alex", "amount": "$25.00", "message": "Good stream!"}'
 
   # Пример отправки сообщения в чат:
   curl -X POST http://127.0.0.1:8787/notify \
     -H 'Content-Type: application/json' \
+  -H 'Referer: http://127.0.0.1:8787/dock' \
     -d '{"type": "chat", "user": "Tester", "text": "RainTime hello chat"}'
 
   # Пример смены состояния сцены:
   curl -X POST http://127.0.0.1:8787/notify \
     -H 'Content-Type: application/json' \
+  -H 'Referer: http://127.0.0.1:8787/dock' \
     -d '{"type": "status", "state": "brb"}'
   ```
+
+### Авторизация API и WebSocket
+
+- На loopback (`127.0.0.1`, `localhost`, `::1`) браузерные клиенты используют строгую same-origin проверку scheme/host/port. Клиенты WebSocket без Origin получают только события и не могут отправлять команды управления.
+- При не-loopback bind для изменяющих API, чтения конфигурации/backup и команд WebSocket обязателен session API key из журнала запуска. Для браузерного UI его можно передать один раз как `?key=...`; ключ сохраняется только в `sessionStorage` текущей вкладки. Для API-клиентов используется `Authorization: Bearer <key>`.
+- Заголовки `Origin`, `Referer` и `Host` проверяются независимо, что предотвращает CSRF и DNS-rebinding bypass.
 
 ---
 

@@ -163,6 +163,7 @@ async def run(config: dict, broadcast) -> None:
                     twitch, scopes, storage_path=storage_path, auth_generator_func=auth_gen
                 )
                 await helper.bind()
+                storage_path.chmod(0o600)
                 user = await first(twitch.get_users())
                 user_id = user.id
                 log.info("twitch authenticated as %s (%s)", user.display_name, user_id)

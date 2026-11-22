@@ -607,21 +607,24 @@ class MediaService:
         }
 
         # Initialize OS-specific or custom tracker
-        if tracker:
-            self.tracker = tracker
-        elif sys.platform == "win32":
-            self.tracker = WindowsSmtcTracker(self._handle_tracker_update)
-        else:
-            player_opt = str(self.config.get("player", "auto"))
-            ignore_opt = list(self.config.get("ignore", ["firefox"]))
-            self.tracker = LinuxMprisTracker(self._handle_tracker_update, player=player_opt, ignore_players=ignore_opt)
+        self._custom_tracker = tracker
+        self.tracker = tracker or self._create_tracker()
 
         self._active_track_hash = ""
         self._lyrics_fetch_task: asyncio.Task | None = None
 
+    def _create_tracker(self) -> BaseMediaTracker:
+        if sys.platform == "win32":
+            return WindowsSmtcTracker(self._handle_tracker_update)
+        player_opt = str(self.config.get("player", "auto"))
+        ignore_opt = list(self.config.get("ignore", ["firefox"]))
+        return LinuxMprisTracker(self._handle_tracker_update, player=player_opt, ignore_players=ignore_opt)
+
     async def start(self) -> None:
         if not self.enabled:
             log.info("media player tracking is disabled in config")
+            return
+        if self.tracker.is_running:
             return
         log.info("starting media service on platform: %s", sys.platform)
         await self.tracker.start()
@@ -629,7 +632,38 @@ class MediaService:
     async def stop(self) -> None:
         if self._lyrics_fetch_task and not self._lyrics_fetch_task.done():
             self._lyrics_fetch_task.cancel()
+        self._lyrics_fetch_task = None
         await self.tracker.stop()
+
+    async def reconfigure(self, media_config: dict) -> None:
+        """Apply changed media settings and restart only the OS tracker."""
+        await self.stop()
+        self.config = dict(media_config)
+        self.enabled = bool(self.config.get("enabled", False))
+        if self._custom_tracker is None:
+            self.tracker = self._create_tracker()
+        self._active_track_hash = ""
+        if not self.enabled:
+            self.last_track_state = {
+                **self.last_track_state,
+                "available": False,
+                "status": "Stopped",
+                "position_ms": 0,
+                "has_cover": False,
+                "cover_url": "",
+            }
+            await self.broadcaster.broadcast(self.last_track_state)
+        if not self.enabled or not self.config.get("show_lyrics", True):
+            self.last_lyrics_state = {
+                "type": "lyrics_update",
+                "track": "",
+                "instrumental": False,
+                "has_synced": False,
+                "lines": [],
+                "source": "none",
+            }
+            await self.broadcaster.broadcast(self.last_lyrics_state)
+        await self.start()
 
     def _calc_track_hash(self, artist: str, title: str) -> str:
         clean = f"{artist.strip().lower()}:::{title.strip().lower()}"
@@ -637,6 +671,8 @@ class MediaService:
 
     async def _handle_tracker_update(self, raw_state: dict) -> None:
         """Handle raw state update from active OS tracker."""
+        if not self.enabled:
+            return
         artist = raw_state.get("artist") or ""
         title = raw_state.get("title") or ""
         track_hash = self._calc_track_hash(artist, title) if (artist or title) else ""
@@ -663,8 +699,13 @@ class MediaService:
         self.last_track_state = payload
         await self.broadcaster.broadcast(payload)
 
-        # If track changed and status is Playing, fetch new synchronized lyrics in background
-        if track_hash and track_hash != self._active_track_hash and payload.get("status") == "Playing":
+        # If track changed and status is Playing, fetch lyrics only when enabled.
+        if (
+            self.config.get("show_lyrics", True)
+            and track_hash
+            and track_hash != self._active_track_hash
+            and payload.get("status") == "Playing"
+        ):
             self._active_track_hash = track_hash
             if self._lyrics_fetch_task and not self._lyrics_fetch_task.done():
                 self._lyrics_fetch_task.cancel()
@@ -686,6 +727,8 @@ class MediaService:
         duration_sec: int | None = None,
         local_file: str | Path | None = None,
     ) -> None:
+        if not self.config.get("show_lyrics", True):
+            return
         lyrics = await self.lyrics_service.get_lyrics(
             artist=artist,
             title=title,

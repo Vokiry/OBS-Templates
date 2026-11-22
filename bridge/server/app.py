@@ -84,7 +84,10 @@ def build_app(
     }
 
     # 6. Create web application with security middlewares
-    app = web.Application(middlewares=[auth_middleware, no_cache_middleware])
+    app = web.Application(
+        middlewares=[auth_middleware, no_cache_middleware],
+        client_max_size=64 * 1024 * 1024,
+    )
 
     # 7. Register modular routes
     register_static_routes(app, src_dir, enable_settings)
@@ -100,6 +103,8 @@ def build_app(
         target_config_path=target_config_path,
         target_backup_path=target_backup_path,
         enable_settings=enable_settings,
+        media_service=media_srv,
+        media_coordinator=media_coord,
     )
     register_config_routes(
         app=app,
@@ -111,6 +116,8 @@ def build_app(
         target_config_path=target_config_path,
         target_backup_path=target_backup_path,
         enable_settings=enable_settings,
+        media_service=media_srv,
+        media_coordinator=media_coord,
     )
     register_media_routes(
         app=app,

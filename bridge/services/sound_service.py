@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from services.file_service import atomic_write_text
+
 
 def get_sounds_catalog(src_dir: Path) -> dict:
     """Read sounds directory and return available files, current mappings, and volume."""
@@ -52,5 +54,5 @@ def save_sounds_catalog(src_dir: Path, mapping: dict, master_volume: float = 0.7
         "masterVolume": max(0.0, min(1.0, float(master_volume))),
         "sounds": {k: {"file": f"../sounds/{fname}", "volume": 0.8} for k, fname in mapping.items()},
     }
-    sounds_json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    atomic_write_text(sounds_json_path, json.dumps(data, indent=2, ensure_ascii=False), mode=0o644)
     return data

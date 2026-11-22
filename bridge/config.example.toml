@@ -102,4 +102,6 @@ auto_pause = true
 show_lyrics = true
 # Список игнорируемых плееров в auto-режиме:
 ignore = ["firefox"]
+# YouTube domain for media requests: "youtube-nocookie.com" (privacy, fewer Error 153) | "youtube.com" (Zapret/DPI bypass support)
+youtube_domain = "youtube-nocookie.com"
 
